@@ -137,20 +137,24 @@ Each run is automatically archived to a uniquely-named folder:
 ```
 outputs/runs/
 └── bat-inspired-drone-navigation-2026-06-08/   ← {topic-slug}-{date}
-    ├── outputs/
+    ├── figures/                   ← 9 PNG figures (300 DPI) — direct access
+    │   ├── fig_bat_sonar.png
+    │   ├── fig_ekf_covariance.png
+    │   └── ...
+    ├── outputs/                   ← agent reports
     │   ├── paper_outline.md       ← Director's topic decomposition
     │   ├── research_briefs.md     ← Researcher's English-language findings
     │   ├── hebrew_prose.md        ← HebrewAcademicWriter prose (pre-LaTeX)
-    │   ├── figures_manifest.md    ← figure descriptions and PNG paths
+    │   ├── figures_manifest.md    ← figure descriptions and generation code
     │   ├── quality_report.md      ← programmatic gate verdict (JSON)
     │   └── token_report.md        ← per-agent cost accounting
     ├── latex/                     ← full LaTeX source snapshot
     │   ├── main.tex
     │   ├── chapters/              ← abstract + cover + 8 chapter files
-    │   ├── figures/               ← 9 PNG figures (300 DPI)
+    │   ├── figures/               ← same PNGs as top-level figures/
     │   └── references.bib         ← 14 BibTeX entries
     ├── paper.pdf                  ← compiled IEEE paper
-    └── run_manifest.txt           ← human-readable file index
+    └── run_manifest.txt           ← index of all archived files
 
 # If same date already exists, the next run gets -v2, -v3, etc.:
 └── bat-inspired-drone-navigation-2026-06-08-v2/
