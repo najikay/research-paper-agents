@@ -22,6 +22,7 @@ _AGENT_OUTPUT_FILES = [
     "research_briefs.md",
     "figures_manifest.md",
     "hebrew_prose.md",
+    "latex_status.md",
     "quality_report.md",
     "token_report.md",
 ]
@@ -154,12 +155,12 @@ def archive_run(run_folder: Path, pdf_path: Path | None) -> None:
 def compile_pdf() -> Path | None:
     """
     Run the full XeLaTeX → BibTeX → XeLaTeX → XeLaTeX sequence.
-    Returns path to the compiled PDF, or None on failure.
-    Copies the result to outputs/NavigatorCrew_paper.pdf.
+    Returns path to the compiled PDF (latex/main.pdf), or None on failure.
+    The PDF is copied to the run archive by archive_run(); it is NOT written
+    to outputs/ so as to keep that directory clean between runs.
     """
     latex_dir = PROJECT_ROOT / "latex"
     pdf_src   = latex_dir / "main.pdf"
-    pdf_dst   = PROJECT_ROOT / "outputs" / "NavigatorCrew_paper.pdf"
 
     def run(cmd: list[str]) -> bool:
         result = subprocess.run(
@@ -177,10 +178,9 @@ def compile_pdf() -> Path | None:
     run(["xelatex", "-interaction=nonstopmode", "main.tex"])
 
     if pdf_src.exists():
-        shutil.copy2(pdf_src, pdf_dst)
         size_mb = pdf_src.stat().st_size / 1_048_576
-        logger.success(f"[LaTeX] PDF compiled: {pdf_dst} ({size_mb:.1f} MB)")
-        return pdf_dst
+        logger.success(f"[LaTeX] PDF compiled: {pdf_src} ({size_mb:.1f} MB)")
+        return pdf_src
     else:
         logger.error("[LaTeX] PDF compilation failed — check latex/main.log")
         return None

@@ -28,7 +28,7 @@ main.py --topic "..."
 | 2 | SLAMResearcher | outline | `outputs/research_briefs.md` |
 | 3 | VisualizationEngineer | briefs | `latex/figures/*.png` + `outputs/figures_manifest.md` |
 | 4 | HebrewAcademicWriter | briefs | `outputs/hebrew_prose.md` |
-| 5 | LaTeXAuthor | prose + figures | `latex/chapters/*.tex` + `latex/references.bib` |
+| 5 | LaTeXAuthor | prose + figures | `latex/chapters/*.tex` + `latex/references.bib` + `outputs/latex_status.md` |
 
 ### Quality Gate (programmatic, in LangGraph node)
 

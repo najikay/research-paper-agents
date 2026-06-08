@@ -41,7 +41,9 @@
 
 % ── Convenience Commands ──────────────────────────────────────────────────────
 % Wrap English technical terms inside Hebrew prose
-\newcommand{\en}[1]{\textenglish{#1}}
+% \texorpdfstring prevents hyperref from crashing when \textenglish{} appears
+% in section titles that get converted to PDF bookmark strings.
+\newcommand{\en}[1]{\texorpdfstring{\textenglish{#1}}{#1}}
 % Figure reference helper
 \newcommand{\figref}[1]{\figurename~\ref{#1}}
 

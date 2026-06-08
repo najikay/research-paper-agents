@@ -1,57 +1,150 @@
 % =============================================================================
-% ch03_sensors.tex — Chapter 3: Sensor Modalities | Biomimetic Navigator
+% ch03_sensors.tex — Chapter 3: Sensor Modalities | NavigatorCrew
+% Compiler: XeLaTeX | Language: Hebrew primary, English technical terms via \en{}
 % =============================================================================
 
 \selectlanguage{hebrew}
-\section{מודאליות החישנים: \en{LiDAR}, סונאר ו-\en{Vision-AI}}
+
+\section{מודאליות החיישנים}
 \label{sec:sensors}
 
-\subsection{מבוא להיתוך חיישנים רב-מודאלי}
-כדי להשיג ניווט אוטונומי חסין (\en{robust}), המערכת שלנו משלבת שלושה סוגי חיישנים הפועלים בעקרונות פיזיקליים שונים. שילוב זה מאפשר התגברות על מגבלות אינדיבידואליות של כל חיישן, כגון רגישות לתנאי תאורה בראייה ממוחשבת או החזרות מראה (\en{specular reflections}) בסונאר.
+% ── 3.1 LiDAR Sensors ───────────────────────────────────────────────────────
+\subsection{חיישני \en{LiDAR}: עקרונות פעולה ומאפיינים}
+\label{subsec:lidar}
 
-\subsection{חיישן ה-\en{LiDAR}: גילוי ומדידת מרחק בלייזר}
-חיישן ה-\en{LiDAR} מספק ענן נקודות (\en{point cloud}) ברזולוציה גבוהה. הוא פועל באמצעות מדידת זמן הטיסה (\en{ToF — Time of Flight}) של פולסי לייזר. מודל הרעש של ה-\en{LiDAR} מיוצג לרוב כהתפלגות גאוסיאנית:
-\begin{equation}
-    z_{\text{LiDAR}} = d + \eta_L, \quad \eta_L \sim \mathcal{N}(0, \sigma_L^2)
-    \label{eq:lidar_noise}
-\end{equation}
-כאשר $\sigma_L$ הוא סטיית התקן האופיינית (לרוב בטווח של 2–5 ס"מ במערכות \en{MEMS LiDAR} מודרניות).
+חיישני \en{LiDAR} (\en{Light Detection and Ranging}) מהווים את
+עמוד השדרה של מערכות מיפוי וניווט תלת-ממדיות לרחפנים. עקרון
+הפעולה מבוסס על שיגור פולסי לייזר ומדידת זמן החזרתם, בדומה
+לעקרון האקולוקציה הביולוגית. חיישני \en{LiDAR} מודרניים,
+כגון \en{Velodyne VLP-16} ו-\en{Ouster OS-0}, מספקים ענני
+נקודות בקצב של 300,000 עד 2.2 מיליון נקודות לשנייה, עם טווח
+פעולה של 50 עד 200 מטר.
 
-\subsection{מערך סונאר אולטרה-סוני \en{MEMS}}
-בהשראת העטלף, אנו משתמשים במערך של חיישני סונאר. היתרון המרכזי של הסונאר הוא יכולתו לפעול בתנאי אבק, עשן או חשיכה מוחלטת שבהם חיישנים אופטיים עלולים להיכשל. המערכת משתמשת בעיבוד \en{Range-Doppler} כדי לחלץ את המרחק והמהירות היחסית של המכשולים.
+שתי גישות עיקריות קיימות בתחום ה-\en{LiDAR} לרחפנים. הגישה
+הראשונה היא \en{LiDAR} מכני, שבו סורק מסתובב פולט קרני לייזר
+בזוויות שונות. גישה זו מספקת שדה ראייה של 360 מעלות אך סובלת
+ממשקל גבוה ומחלקים מכניים רגישים. הגישה השנייה היא \en{LiDAR}
+מבוסס \en{MEMS} (\en{Micro-Electro-Mechanical Systems}), שבו
+מיקרו-מראה מתנודדת מכוונת את קרן הלייזר. חיישנים אלו קלים
+וקטנים יותר, אך שדה הראייה שלהם מוגבל ל-90-120 מעלות.
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.8\columnwidth]{figures/fig_range_doppler.png}
-    \caption{מפת טווח-דופלר המופקת מעיבוד אותות הסונאר. הנקודות הבהירות מסמנות עצמים מזוהים במרחב.}
-    \label{fig:range_doppler}
+    \includegraphics[width=0.92\columnwidth]{figures/fig_lidar_scanning_mechanisms.png}
+    \caption{השוואה בין מנגנוני סריקת \en{LiDAR}: מכני (שמאל) לעומת
+             \en{MEMS} (ימין). המנגנון המכני מספק 360 מעלות אך כבד יותר;
+             ה-\en{MEMS} קל וקטן יותר אך בעל שדה ראייה מוגבל.}
+    \label{fig:lidar_scanning_mechanisms}
 \end{figure}
 
-\subsection{ראייה ממוחשבת: \en{Vision-AI} לאמידת עומק}
-המערכת משתמשת במודלי \en{Foundation} כגון \en{Depth Anything V2} כדי להפיק מפת עומק מתמונה בודדת (\en{monocular depth estimation}). מודלים אלו, המבוססים על ארכיטקטורות \en{Transformer}, מציגים יכולת הכללה (\en{generalization}) יוצאת דופן בסביבות חדשות. \cite{AnthropicClaude}
+% ── 3.2 IMU Sensors ─────────────────────────────────────────────────────────
+\subsection{חיישני \en{IMU}: מדידת תאוצה ומהירות זוויתית}
+\label{subsec:imu}
+
+יחידת המדידה האינרציאלית (\en{IMU}) מספקת מדידות תאוצה ומהירות
+זוויתית בקצב גבוה, הנע בין 100 ל-1000 הרץ. \en{IMU} טיפוסי
+לרחפנים כולל מד תאוצה תלת-צירי וגירוסקופ תלת-צירי, המבוססים
+על טכנולוגיית \en{MEMS}. דיוק המדידות תלוי באיכות החיישן:
+\en{IMU} תעשייתי (כגון \en{ADIS16470}) מציג יציבות אפס של
+0.1 מעלות לשנייה, בעוד \en{IMU} זול (כגון \en{MPU9250})
+סובל מסחיפה של 1-5 מעלות לשנייה.
+
+האתגר המרכזי בשימוש ב-\en{IMU} הוא הצטברות שגיאות לאורך זמן
+(\en{Drift}). שגיאות אלו נובעות מרעש לבן במדידות התאוצה,
+משגיאת אפס (\en{Bias}) המשתנה עם הטמפרטורה, ומרעש דגימה
+(\en{Random Walk}). כדי להתמודד עם סחיפה זו, יש צורך בשילוב
+ה-\en{IMU} עם חיישנים מוחלטים כגון \en{GPS} או \en{LiDAR},
+בתהליך המכונה \en{Sensor Fusion} \cite{Thrun2005ProbRobotics}.
 
 \begin{table}[H]
 \centering
 \begin{tabular}{lccc}
 \toprule
-מאפיין & \en{LiDAR} & סונאר & \en{Vision-AI} \\
+סוג \en{IMU} & יציבות אפס & רעש תאוצה & עלות \\
 \midrule
-רזולוציה & גבוהה & נמוכה & בינונית \\
-טווח פעולה & 0.1–100 מ' & 0.05–5 מ' & תלוי עדשה \\
-חסינות לחשיכה & גבוהה & גבוהה מאוד & נמוכה \\
-צריכת הספק & בינונית & נמוכה & גבוהה (חישוב) \\
+תעשייתי (\en{ADIS16470}) & 0.1$^\circ$/ש׳ & 0.01 מ/ש$^2$/√הרץ & 500-1000 \$ \\
+בינוני (\en{ICM-20948}) & 0.5$^\circ$/ש׳ & 0.05 מ/ש$^2$/√הרץ & 50-100 \$ \\
+זול (\en{MPU9250}) & 1-5$^\circ$/ש׳ & 0.1 מ/ש$^2$/√הרץ & 5-15 \$ \\
 \bottomrule
 \end{tabular}
-\caption{השוואת מאפייני החיישנים השונים במערכת ה-\en{NavigatorCrew}.}
-\label{tab:sensor_comparison}
+\caption{השוואת מאפייני \en{IMU} נפוצים לרחפנים.}
+\label{tab:imu_characteristics}
 \end{table}
 
-\subsection{תרשים זרימה של צינור החישה}
-איור \ref{fig:sensor_modalities} מציג את אופן זרימת המידע מהחיישנים הגולמיים ועד ליצירת ייצוג הסביבה המאוחד.
+% ── 3.3 Camera Sensors ──────────────────────────────────────────────────────
+\subsection{חיישני מצלמה: עיבוד תמונה וזיהוי תכונות}
+\label{subsec:cameras}
+
+מצלמות \en{RGB} ומצלמות עומק (\en{RGB-D}) מספקות מידע חזותי
+עשיר החיוני לזיהוי מכשולים, לוקליזציה ומיפוי. בניגוד ל-\en{LiDAR},
+המספק מידע תלת-ממדי מדויק אך דל מבחינה סמנטית, מצלמות מאפשרות
+זיהוי של עצמים, טקסטורות ומרקמים. חיישני מצלמה נפוצים לרחפנים
+כוללים את \en{Intel RealSense D435} ו-\en{Flir Blackfly S},
+המספקים רזולוציה של 1-20 מגה-פיקסל בקצב של 30-90 פריימים לשנייה.
+
+שיטת \en{ORB-SLAM3} \cite{MurArtal2015ORB} מדגימה כיצד ניתן
+להשתמש בתכונות \en{ORB} (\en{Oriented FAST and Rotated BRIEF})
+למיפוי ולוקליזציה בזמן אמת. תכונות אלו עמידות לשינויים בסיבוב,
+בקנה מידה ובתאורה, ומאפשרות התאמה בין תמונות עוקבות גם בתנאי
+תנועה מהירה. עם זאת, מערכות חזותיות סובלות מכשלים בסביבות דלות
+טקסטורה, בתנאי תאורה משתנים ובתנועה סיבובית טהורה.
+
+\begin{equation}
+    \mathbf{f}_{\text{ORB}} = \{ \mathbf{p}_i, \mathbf{d}_i \}_{i=1}^{N},
+    \quad \mathbf{p}_i \in \mathbb{R}^2,
+    \quad \mathbf{d}_i \in \{0,1\}^{256}
+    \label{eq:orb_features}
+\end{equation}
+
+כאשר $\mathbf{p}_i$ הוא מיקום התכונה בתמונה ו-$\mathbf{d}_i$ הוא
+וקטור התיאור הבינארי באורך 256 סיביות. התאמה בין תכונות בשתי
+תמונות עוקבות מתבצעת באמצעות מרחק האמינג (\en{Hamming distance}).
+
+% ── 3.4 Multi-Modal Fusion ──────────────────────────────────────────────────
+\subsection{שילוב רב-מודאלי: אתגרים והזדמנויות}
+\label{subsec:multimodal}
+
+שילוב חיישנים מרובים (\en{Multi-Sensor Fusion}) מאפשר ניצול
+היתרונות של כל מודאליות תוך כיסוי חולשותיה. הגישה המקובלת היא
+\en{Fusion} הדוק (\en{Tightly-Coupled Fusion}), שבו מדידות
+גולמיות מכל החיישנים מאופטימיזות במשותף בפונקציית עלות אחת.
+\en{LIO-SAM} \cite{Thrun2005ProbRobotics} מדגים גישה זו על ידי
+שילוב \en{LiDAR}, \en{IMU} ו-\en{GPS} במסגרת \en{Factor Graph}.
+
+האתגר המרכזי בשילוב רב-מודאלי הוא כיול מרחבי וזמני מדויק בין
+החיישנים. שגיאת כיול קטנה של 0.1 מעלות בסיבוב או 1 ס״מ בתרגום
+עלולה לגרום לסחיפה משמעותית לאורך מסלולים ארוכים. אתגר נוסף הוא
+טיפול בנשירת חיישנים (\en{Sensor Dropout}): כאשר \en{GPS} אובד
+בקניונים עירוניים או \en{LiDAR} נכשל בערפל, המערכת חייבת
+להתדרדר באופן הדרגתי ולא להתבדר.
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.9\columnwidth]{figures/fig_sensor_modalities.png}
-    \caption{תרשים בלוקים של ארכיטקטורת החישה הרב-מודאלית.}
-    \label{fig:sensor_modalities}
+    \includegraphics[width=0.92\columnwidth]{figures/fig_multi_sensor_fusion_architecture.png}
+    \caption{ארכיטקטורת \en{Fusion} רב-מודאלי במערכת \en{NavigatorCrew}.
+             חיישני \en{LiDAR}, \en{IMU}, מצלמה ו-\en{GPS} מזינים
+             במקביל את מסגרת ה-\en{Factor Graph} לאופטימיזציה משותפת.}
+    \label{fig:multi_sensor_fusion}
 \end{figure}
+
+\begin{equation}
+    \mathbf{x}^* = \arg\min_{\mathbf{x}} \sum_{i} \|e_i(\mathbf{x})\|_{\Omega_i}^2
+    + \sum_{j} \|e_j(\mathbf{x})\|_{\Omega_j}^2
+    + \sum_{k} \|e_k(\mathbf{x})\|_{\Omega_k}^2
+    \label{eq:multimodal_cost}
+\end{equation}
+
+משוואה~\ref{eq:multimodal_cost} מציגה את פונקציית העלות המשותפת,
+כאשר האינדקסים $i$, $j$, $k$ מייצגים אילוצי \en{LiDAR},
+\en{IMU} ומצלמה בהתאמה, ו-$\Omega$ הן מטריצות האינפורמציה
+המתאימות.
+
+% ── 3.5 Summary ─────────────────────────────────────────────────────────────
+\subsection{סיכום}
+\label{subsec:sensors_summary}
+
+בפרק זה סקרנו את שלוש מודאליות החיישנים המרכזיות במערכת
+\en{NavigatorCrew}: \en{LiDAR} למיפוי תלת-ממדי מדויק,
+\en{IMU} לאומדן תנועה בתדר גבוה, ומצלמות למידע חזותי עשיר.
+השילוב ההדוק בין מודאליות אלו, כפי שיוצג בפרקים הבאים,
+מאפשר התגברות על מגבלות כל חיישן בנפרד.

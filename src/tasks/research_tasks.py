@@ -138,6 +138,11 @@ FIGURES — use ONLY filenames confirmed in the figures manifest.
     Use: \\includegraphics[width=0.92\\columnwidth]{figures/fig_name.png}
 
 COMPILER: XeLaTeX. Every file must compile without errors.
+
+IMPORTANT — references.bib MUST be written using SafeFileWriterTool with path
+"latex/references.bib". Do NOT rely on the task output mechanism to write it —
+that mechanism only captures your final status message, NOT the BibTeX content.
+Use SafeFileWriterTool for EVERY file you write (chapters AND references.bib).
 """.strip(),
         expected_output=(
             "10 .tex files and references.bib written to latex/. "
@@ -148,7 +153,7 @@ COMPILER: XeLaTeX. Every file must compile without errors.
         ),
         agent=author,
         context=context,
-        output_file="latex/references.bib"
+        output_file="outputs/latex_status.md"
     )
 
 def create_task_review(editor: Agent, context: list[Task]) -> Task:

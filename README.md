@@ -146,6 +146,7 @@ outputs/runs/
     │   ├── research_briefs.md     ← Researcher's English-language findings
     │   ├── hebrew_prose.md        ← HebrewAcademicWriter prose (pre-LaTeX)
     │   ├── figures_manifest.md    ← figure descriptions and PNG paths
+    │   ├── latex_status.md        ← LaTeXAuthor completion status
     │   ├── quality_report.md      ← programmatic gate verdict (JSON)
     │   └── token_report.md        ← per-agent cost accounting
     ├── latex/                     ← full LaTeX source snapshot

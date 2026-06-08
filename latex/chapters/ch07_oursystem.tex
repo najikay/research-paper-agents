@@ -1,32 +1,131 @@
 % =============================================================================
-% ch07_oursystem.tex — Chapter 7: NavigatorCrew System | Biomimetic Navigator
+% ch07_oursystem.tex — Chapter 7: Visual-Inertial Odometry and Visual SLAM | NavigatorCrew
+% Compiler: XeLaTeX | Language: Hebrew primary, English technical terms via \en{}
 % =============================================================================
 
 \selectlanguage{hebrew}
-\section{\en{NavigatorCrew}: עיצוב ומימוש הפלטפורמה}
+
+\section{אודומטרייה חזותית-אינרציאלית ו-\en{SLAM} חזותי}
 \label{sec:oursystem}
 
-\subsection{סקירת הארכיטקטורה}
-פלטפורמת ה-\en{NavigatorCrew} היא מערכת מרובת-סוכנים (\en{Multi-Agent System}) המבוססת על פריימוורק ה-\en{CrewAI}. המערכת נועדה לבצע מחקר, סימולציה וכתיבה של תכנים מדעיים בתחום הניווט האוטונומי בצורה אוטונומית לחלוטין.
+% ── 7.1 ORB-SLAM3 ───────────────────────────────────────────────────────────
+\subsection{\en{ORB-SLAM3}: מצב-האמנות ב-\en{SLAM} חזותי}
+\label{subsec:orb_slam3}
 
-\subsection{הסוכנים במערכת}
-המערכת מורכבת מחמישה סוכנים מומחים:
-\begin{itemize}
-    \item \textbf{מנהל המחקר (\en{Research Director}):} אחראי על פירוק נושא המחקר לפרקים והנחיית שאר הסוכנים.
-    \item \textbf{חוקר ה-\en{SLAM} והיתוך חיישנים:} מבצע חיפוש אקדמי ב-\en{ArXiv} ו-\en{Serper} ומחלץ אלגוריתמים ונוסחאות.
-    \item \textbf{מהנדס הויזואליזציה:} יוצר את הגרפים והדיאגרמות באמצעות קוד \en{Python}.
-    \item \textbf{סופר ה-\en{LaTeX}:} מתרגם את ממצאי המחקר לקבצי \en{XeLaTeX} תקניים בעברית ובאנגלית.
-    \item \textbf{עורך האיכות:} מבצע ביקורת עמיתים על המאמר, בודק עקביות מתמטית ודיוק בציטוטים.
-\end{itemize}
+\en{ORB-SLAM3} מייצג את מצב-האמנות הנוכחי ב-\en{SLAM} חזותי
+מבוסס תכונות. זוהי המערכת הראשונה המסוגלת לפעול במצבים מונוקולרי,
+סטריאו ו-\en{RGB-D} עם \en{Fusion} חזותי-אינרציאלי, תוך תמיכה
+בדגמי מצלמת חור-סיכה (\en{Pin-Hole}) ועין-דג (\en{Fisheye}).
+החדשנות המרכזית היא מסגרת ה-\en{Atlas}, המנהלת מבנה נתונים
+רב-מפתי המאפשר התאוששות חזקה מכשלי מעקב על ידי יצירת מפות
+חדשות ומיזוגן מאוחר יותר כאשר מתגלות סגירות לולאה
+\cite{MurArtal2015ORB}.
 
-\subsection{הכלים (\en{Tools}) והזיכרון}
-הסוכנים מצוידים במערכת כלים המאפשרת להם אינטראקציה עם העולם החיצוני:
-\begin{itemize}
-    \item \textbf{\en{Search Tools}:} חיפוש ב-\en{ArXiv} ו-\en{Serper.dev}.
-    \item \textbf{\en{Code Executor}:} הרצת קוד \en{Python} בסביבה מאובטחת ליצירת גרפים.
-    \item \textbf{\en{File Tools}:} קריאה וכתיבה של קבצי טקסט ו-\en{LaTeX}.
-\end{itemize}
-המערכת משתמשת בזיכרון מבוסס \en{Vector DB} (\en{ChromaDB}) כדי לשמור על עקביות המידע בין הסוכנים לאורך כל שלבי המחקר. \cite{CrewAIDocs}
+על מערך הנתונים \en{EuRoC MAV}, \en{ORB-SLAM3} משיג \en{ATE}
+של 0.03 מטר לרצף \en{V1_01} במצב סטריאו-אינרציאלי, תוצאה טובה
+פי 2.6 מ-\en{VINS-Mono}. האלגוריתם מבצע \en{Bundle Adjustment}
+חזותי-אינרציאלי המשלב שגיאות תחזית מחדש (\en{Reprojection Error})
+עם שגיאות \en{IMU Preintegration}, תוך שימוש בפונקציות עלות
+\en{Robust} (\en{Huber Loss}) לטיפול במדידות חריגות.
 
-\subsection{מימוש טכני ודיאגרמת המערכת}
-איור \ref{fig:sensor_modalities} (שנמצא בפרק \ref{sec:sensors}) מציג את זרימת המידע, בעוד שאיור \ref{fig:results_summary} בפרק הבא יציג את תוצאות הריצה של המערכת. התשתית ממומשת ב-\en{Python} ורצה על גבי מעבדי \en{NVIDIA Jetson} עבור יישומי זמן-אמת ברחפנים.
+\begin{equation}
+    \mathbf{X}^* = \arg\min_{\mathbf{X}} \sum_{i} \rho_{\delta}\left( \| \mathbf{e}_{\text{vis},i} \|_{\Omega_{\text{vis}}} \right)
+    + \sum_{j} \rho_{\delta}\left( \| \mathbf{e}_{\text{imu},j} \|_{\Omega_{\text{imu}}} \right)
+    \label{eq:orb_slam3_ba}
+\end{equation}
+
+משוואה~\ref{eq:orb_slam3_ba} מציגה את פונקציית העלות של
+\en{Bundle Adjustment} חזותי-אינרציאלי, כאשר $\mathbf{e}_{\text{vis}}$
+היא שגיאת התחזית מחדש ו-$\mathbf{e}_{\text{imu}}$ היא שגיאת
+\en{IMU Preintegration}.
+
+% ── 7.2 DSO and SVO ─────────────────────────────────────────────────────────
+\subsection{\en{DSO} ו-\en{SVO}: גישות ישירות לעומת מבוססות תכונות}
+\label{subsec:dso_svo}
+
+\en{Direct Sparse Odometry} (\en{DSO}) נוקט גישה שונה מהותית:
+במקום לחלץ ולהתאים תכונות, \en{DSO} ממזער את השגיאה הפוטומטרית
+על קבוצה דלילה של פיקסלים, תוך אופטימיזציה משותפת של תנוחת
+המצלמה, העומק ההפוך ופרמטרי בהירות אפינית. \en{DSO} משיג דיוק
+מעולה בסביבות עשירות בטקסטורה, אך נכשל בסביבות דלות טקסטורה
+או בתנאי טשטוש תנועה.
+
+\en{Semi-Direct Visual Odometry} (\en{SVO}) משלב שיטות ישירות
+ומבוססות תכונות: הוא משתמש ביישור ישיר (\en{Direct Alignment})
+לאומדן תנועה בין-פריימית ושיטות מבוססות תכונות למיפוי וסגירת
+לולאה. \en{SVO 2.0} משיג \en{ATE} של 0.09 מטר על \en{EuRoC V1_01}
+עם עומס מעבד נמוך של 28%, מה שהופך אותו למתאים במיוחד
+לפלטפורמות מוגבלות משאבים כמו רחפנים.
+
+\begin{equation}
+    \mathbf{T}^* = \arg\min_{\mathbf{T}} \sum_{i \in \mathcal{P}} \left\| I_1(\mathbf{p}_i) - I_2(\pi(\mathbf{T} \cdot \pi^{-1}(\mathbf{p}_i, d_i))) \right\|_{\sigma}^2
+    \label{eq:dso_photometric}
+\end{equation}
+
+משוואה~\ref{eq:dso_photometric} מגדירה את השגיאה הפוטומטרית
+ב-\en{DSO}, כאשר $I_1, I_2$ הן עוצמות הפיקסלים בשתי תמונות
+עוקבות, $\pi$ היא פונקציית ההיטל של המצלמה, ו-$d_i$ הוא העומק
+ההפוך של פיקסל $i$.
+
+\begin{equation}
+    \mathbf{T}^* = \arg\min_{\mathbf{T}} \sum_{i} \left\| I_{\text{ref}}(\mathbf{p}_i) - I_{\text{cur}}(\mathbf{w}(\mathbf{T}, \mathbf{p}_i, d_i)) \right\|^2
+    \label{eq:svo_direct}
+\end{equation}
+
+משוואה~\ref{eq:svo_direct} מציגה את יישור התמונה הישיר
+ב-\en{SVO}, כאשר $\mathbf{w}$ היא פונקציית העיוות
+(\en{Warp function}) הממפה פיקסלים מתמונת הייחוס לתמונה הנוכחית.
+
+% ── 7.3 Comparative Analysis ────────────────────────────────────────────────
+\subsection{ניתוח השוואתי ומגבלות}
+\label{subsec:visual_comparison}
+
+השוואת ביצועים על \en{EuRoC} ו-\en{TUM VI} מראה כי
+\en{ORB-SLAM3} מוביל בדיוק בכל הרצפים, עם \en{ATE} של
+0.03-0.08 מטר לעומת 0.08-0.24 מטר למתחרים. עם זאת,
+\en{ORB-SLAM3} דורש עומס מעבד גבוה יותר (45%) לעומת
+\en{SVO} (28%). \en{DSO} סובל מביצועים ירודים בסביבות
+דלות טקסטורה, בעוד ש-\en{VINS-Mono} מתקשה בתנועה סיבובית
+מהירה.
+
+כשלים מרכזיים למערכות \en{SLAM} חזותי כוללים: תנועה סיבובית
+טהורה הגורמת לאובדן מעקב תכונות, סביבות דלות טקסטורה (קירות
+לבנים, מנהרות), שינויי תאורה מהירים, ועצמים דינמיים המפרים
+את הנחת העולם הסטטי. \en{Fusion} חזותי-אינרציאלי מפחית חלק
+מבעיות אלה על ידי אספקת קנה מידה מטרי ואומדני זווית מיושרי
+כבידה מה-\en{IMU}, אך שגיאות \en{IMU Preintegration} מצטברות
+בתקופות עמידה ממושכות.
+
+\begin{table}[H]
+\centering
+\begin{tabular}{lccc}
+\toprule
+אלגוריתם & \en{ATE} [מ׳] & עומס מעבד [%] & חסינות לחושך \\
+\midrule
+\en{ORB-SLAM3} & 0.03-0.08 & 45 & נמוכה \\
+\en{SVO 2.0} & 0.09-0.15 & 28 & נמוכה \\
+\en{DSO} & 0.12-0.24 & 35 & נמוכה מאוד \\
+\en{VINS-Mono} & 0.08-0.18 & 40 & נמוכה \\
+\bottomrule
+\end{tabular}
+\caption{השוואת ביצועי מערכות \en{SLAM} חזותי על \en{EuRoC MAV}.}
+\label{tab:visual_slam_benchmark}
+\end{table}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.92\columnwidth]{figures/fig_visual_slam_comparison.png}
+    \caption{השוואת מסלולי \en{SLAM} חזותי על רצף \en{EuRoC V1_01}.
+             \en{ORB-SLAM3} (כחול) קרוב ביותר ל-\en{Ground Truth} (שחור).}
+    \label{fig:visual_slam_comparison}
+\end{figure}
+
+% ── 7.4 Summary ─────────────────────────────────────────────────────────────
+\subsection{סיכום}
+\label{subsec:visual_summary}
+
+בפרק זה סקרנו את הגישות המרכזיות ל-\en{SLAM} חזותי ואודומטרייה
+חזותית-אינרציאלית. \en{ORB-SLAM3} מציג את הביצועים הטובים ביותר
+במונחי דיוק, אך בעלות חישובית גבוהה. \en{SVO} מהווה חלופה
+יעילה לפלטפורמות מוגבלות משאבים. בפרק הבא נתאר את מערכת
+ה-\en{Fusion} הרב-חיישני המשלבת את כל המודאליות שתוארו.

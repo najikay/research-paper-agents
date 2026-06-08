@@ -78,17 +78,25 @@ run_manifest.txt ← human-readable file index
 - [x] `--no-archive` flag for smoke tests
 - [x] `outputs/runs/` excluded from git
 
-## Phase 4: Pending
+## Phase 4: Bug Fixes Applied (COMPLETE)
+
+Root-cause fixes applied after first real run (score=18):
+
+- [x] `references.bib` overwrite — changed `create_task_latex` `output_file` from `"latex/references.bib"` to `"outputs/latex_status.md"` so CrewAI's auto-write mechanism doesn't destroy the file; added explicit SafeFileWriterTool instruction in task description
+- [x] `\textenglish` hyperref crash — changed `\newcommand{\en}` to use `\texorpdfstring{\textenglish{#1}}{#1}` in `latex/main.tex`
+- [x] PDF duplication — `compile_pdf()` no longer copies to `outputs/NavigatorCrew_paper.pdf`; returns `latex/main.pdf` path directly for the archive
+- [x] Stale outputs cleared — `outputs/runs/` old folder and loose `.md`/`.pdf` files deleted
+
+## Phase 5: Pending
 
 - [ ] Full run that reaches 25–30 pages in PDF
 - [ ] All chapters pass quality gate (score ≥ 75)
-- [ ] `references.bib` verified with all 14 required keys
 - [ ] No LaTeX compilation errors (xelatex exits 0)
 - [ ] Push clean version to GitHub
 
 ## Backlog
 
 - [ ] ArXiv search for real citations in researcher
-- [ ] Post-run `references.bib` key validator/restorer
+- [ ] Post-run `references.bib` key validator (belt-and-suspenders)
 - [ ] Token-budget enforcement: abort if projected cost exceeds threshold
-- [ ] Soft fact-check: verify numeric claims against outputs/
+- [ ] Evaluate domain-expert agents (physics, CS, AI engineering professors)

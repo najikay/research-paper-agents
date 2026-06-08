@@ -137,8 +137,11 @@ def test_hebrew_prose_task_output_file(hebrew_task):
 # ---------------------------------------------------------------------------
 
 def test_latex_task_output_file(latex_task):
-    """LaTeX task must write to latex/references.bib."""
-    assert latex_task.output_file == "latex/references.bib"
+    """LaTeX task status file must be outputs/latex_status.md.
+    Note: references.bib is written by the agent via SafeFileWriterTool, not
+    via the task output_file mechanism (which would overwrite it with plain text).
+    """
+    assert latex_task.output_file == "outputs/latex_status.md"
 
 
 def test_latex_task_does_not_write_ch04_slam(latex_task):
@@ -184,7 +187,7 @@ def test_create_all_tasks_returns_5(agents):
 
 
 def test_task_pipeline_order(agents):
-    """Tasks must be returned in the order: outline, research, figures, prose, bib."""
+    """Tasks must be returned in the order: outline, research, figures, prose, latex."""
     tasks = create_all_tasks(
         agents["director"], agents["researcher"], agents["visualizer"],
         agents["hebrew_writer"], agents["author"],
@@ -194,4 +197,4 @@ def test_task_pipeline_order(agents):
     assert "research" in tasks[1].output_file
     assert "figures"  in tasks[2].output_file
     assert "prose"    in tasks[3].output_file
-    assert "bib"      in tasks[4].output_file
+    assert "latex"    in tasks[4].output_file  # outputs/latex_status.md
