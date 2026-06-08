@@ -39,6 +39,13 @@
 \newfontfamily\hebrewfont[Script=Hebrew]{Arial}
 \newfontfamily\englishfont[Script=Latin]{Times New Roman}
 
+% ── Math operators (agents use these — define them so compilation doesn't fail) ──
+\DeclareMathOperator{\rect}{rect}
+\DeclareMathOperator{\sinc}{sinc}
+\DeclareMathOperator{\sgn}{sgn}
+\DeclareMathOperator{\diag}{diag}
+\DeclareMathOperator{\tr}{tr}
+
 % ── Convenience Commands ──────────────────────────────────────────────────────
 % Wrap English technical terms inside Hebrew prose
 % \texorpdfstring prevents hyperref from crashing when \textenglish{} appears

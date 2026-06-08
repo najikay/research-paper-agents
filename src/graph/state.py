@@ -9,7 +9,8 @@ from typing import TypedDict
 
 class PipelineState(TypedDict):
     topic: str
-    remediation_count: int          # How many remediation loops have run
-    failed_sections: list[str]      # Section names that failed quality check
-    quality_verdict: str            # "PENDING" | "PASS" | "FAIL"
-    quality_score: int              # 0-100 score from editor's structured report
+    run_folder: str              # Absolute path to this run's folder
+    remediation_count: int       # How many remediation loops have run
+    failed_sections: list[str]   # Section names that failed quality check
+    quality_verdict: str         # "PENDING" | "PASS" | "FAIL"
+    quality_score: int           # 0-100 score from editor's structured report

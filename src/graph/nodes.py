@@ -59,7 +59,7 @@ def run_main_pipeline(state: PipelineState) -> dict:
     from src.crew import build_crew  # lazy import avoids circular deps
 
     logger.info("[Graph] NODE: run_main_pipeline")
-    crew, accountant = build_crew(topic=state["topic"])
+    crew, accountant = build_crew(topic=state["topic"], run_folder=state["run_folder"])
     crew.kickoff()
     return {"quality_verdict": "PENDING"}
 
@@ -75,8 +75,9 @@ def run_quality_gate(state: PipelineState) -> dict:
     """
     logger.info("[Graph] NODE: run_quality_gate (programmatic)")
 
-    chapters_dir = PROJECT_ROOT / "latex" / "chapters"
-    bib_path     = PROJECT_ROOT / "latex" / "references.bib"
+    run_folder   = Path(state["run_folder"])
+    chapters_dir = run_folder / "latex" / "chapters"
+    bib_path     = run_folder / "latex" / "references.bib"
 
     issues: list[str] = []
     failed_sections: list[str] = []
@@ -144,10 +145,25 @@ def run_quality_gate(state: PipelineState) -> dict:
         score -= 20
         failed_sections.append("references")
 
-    # ── 4. Check for forbidden patterns ──────────────────────────────────
+    # ── 4a. Check figure references point to real files ──────────────────
+    figures_dir = run_folder / "latex" / "figures"
     all_tex = list(chapters_dir.glob("*.tex"))
-    placeholder_files, emdash_files, center_files = [], [], []
     for fpath in all_tex:
+        text = fpath.read_text(encoding="utf-8", errors="replace")
+        for fig_ref in re.findall(r'\\includegraphics(?:\[[^\]]*\])?\{figures/([^}]+)\}', text):
+            if not (figures_dir / fig_ref).exists():
+                issues.append(f"{fpath.name}: missing figure file 'figures/{fig_ref}'")
+                score -= 5
+                failed_sections.append("figures")
+
+    # ── 4b. Check for forbidden patterns ─────────────────────────────────
+    # Only check AGENT-WRITTEN chapters — skip static/protected files.
+    # ch01_intro, ch04_slam, and cover are human-written and may intentionally
+    # contain em dashes; we cannot and should not penalise them.
+    _STATIC = {"ch01_intro.tex", "ch04_slam.tex", "cover.tex"}
+    agent_tex = [f for f in chapters_dir.glob("*.tex") if f.name not in _STATIC]
+    placeholder_files, emdash_files, center_files = [], [], []
+    for fpath in agent_tex:
         text = fpath.read_text(encoding="utf-8", errors="replace")
         if "PLACEHOLDER" in text or r"\fbox{\parbox" in text:
             placeholder_files.append(fpath.name)
@@ -155,7 +171,7 @@ def run_quality_gate(state: PipelineState) -> dict:
         clean = re.sub(r"\\en\{[^}]*\}", "", text)
         if "\u2014" in clean:
             emdash_files.append(fpath.name)
-        if r"\begin{center}" in text and fpath.name not in ("cover.tex",):
+        if r"\begin{center}" in text:
             center_files.append(fpath.name)
 
     if placeholder_files:
@@ -176,7 +192,9 @@ def run_quality_gate(state: PipelineState) -> dict:
     verdict = "PASS" if score >= QUALITY_THRESHOLD else "FAIL"
 
     # ── 6. Write quality report ───────────────────────────────────────────
-    report_path = PROJECT_ROOT / "outputs" / "quality_report.md"
+    report_path = PROJECT_ROOT / "outputs" / "current" / "quality_report.md"
+    report_path.parent.mkdir(parents=True, exist_ok=True)
+
     issue_lines = "\n".join(f"- {i}" for i in issues) if issues else "- None"
     report_content = f"""# Quality Gate Report
 
@@ -236,32 +254,38 @@ def run_remediation(state: PipelineState) -> dict:
     logger.info(f"[Graph] NODE: run_remediation (attempt {count}/{MAX_REMEDIATIONS})")
     logger.info(f"[Graph] Failed sections: {state['failed_sections']}")
 
+    run_folder = Path(state["run_folder"])
     failed = state["failed_sections"]
 
     agents, tasks = [], []
 
-    # Researcher is needed if content/algorithm sections failed
+    # Researcher is needed if content/algorithm sections failed.
+    # Give it FileReaderTool so it can read the quality report — without it
+    # the LLM tries to use the web-scraper on a local path, spamming errors.
+    # Web scraper excluded: remediation works from existing content, not new searches.
     RESEARCH_SECTIONS = {"methodology", "algorithms", "related_work", "equations"}
     if any(s in RESEARCH_SECTIONS for s in failed):
         researcher = create_slam_researcher(tools=[
-            SerperDevSearchTool(), ArxivSearchTool(), NavigatorWebScraperTool()
+            FileReaderTool(), SerperDevSearchTool(), ArxivSearchTool()
         ])
         t_research = create_remediation_task(
             agent=researcher,
             failed_sections=[s for s in failed if s in RESEARCH_SECTIONS],
-            quality_report_path="outputs/quality_report.md",
-            output_file="outputs/research_briefs.md",
+            quality_report_path="outputs/current/quality_report.md",
+            output_file="outputs/current/research_briefs.md",
         )
         agents.append(researcher)
         tasks.append(t_research)
 
-    # LaTeX author re-renders any fixed content
+    # LaTeX author re-renders any fixed content — pass run_folder so it knows
+    # the exact absolute paths to write the chapter files.
     author = create_latex_author(tools=[SafeFileWriterTool(), FileReaderTool()])
     t_latex = create_remediation_task(
         agent=author,
         failed_sections=failed,
-        quality_report_path="outputs/quality_report.md",
-        output_file="latex/references.bib",
+        quality_report_path="outputs/current/quality_report.md",
+        output_file="outputs/current/latex_status.md",
+        run_folder=run_folder,
     )
     agents.append(author)
     tasks.append(t_latex)

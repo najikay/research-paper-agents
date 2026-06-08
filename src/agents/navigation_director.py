@@ -27,7 +27,7 @@ _GOAL = (
     "via bio-mimetic multi-modal sensor fusion.\n\n"
     "Your responsibilities are strictly architectural and quality-focused:\n\n"
     "1. Decompose the research topic into exactly 7 thematic sub-domains.\n"
-    "2. Produce a master paper structure (outputs/paper_outline.md) that includes:\n"
+    "2. Produce a master paper structure (outputs/current/paper_outline.md) that includes:\n"
     "   - Hebrew chapter titles\n"
     "   - Target page counts\n"
     "   - Key equations needed per chapter\n"

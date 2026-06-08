@@ -62,9 +62,14 @@ class FileReaderTool(BaseTool):
 
     def _run(self, file_path: str, **kwargs: Any) -> str:
         raw = Path(file_path)
+        # LLMs sometimes pass "/outputs/foo.md" (leading slash) which would
+        # resolve to the filesystem root. Strip the leading slash so relative
+        # resolution against PROJECT_ROOT works correctly.
+        if raw.is_absolute() and not raw.exists():
+            raw = Path(str(raw).lstrip("/"))
         resolved = (PROJECT_ROOT / raw).resolve() if not raw.is_absolute() else raw.resolve()
 
         if not resolved.exists():
-            return "ERROR: file not found."
+            return f"ERROR: file not found at {resolved}. Make sure the path is relative to the project root (e.g. 'outputs/current/research_briefs.md')."
 
         return resolved.read_text(encoding="utf-8", errors="replace")

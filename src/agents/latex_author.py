@@ -39,7 +39,7 @@ _GOAL = """
 Format pre-written Hebrew academic prose into complete, compilable XeLaTeX
 chapter files for an IEEE paper on bat-inspired drone navigation.
 
-Your PRIMARY input is outputs/hebrew_prose.md — polished Hebrew prose written
+Your PRIMARY input is outputs/current/hebrew_prose.md — polished Hebrew prose written
 by the HebrewAcademicWriter. Your job is FORMATTING, not translation:
   1. Wrap each prose section in the correct LaTeX environments.
   2. Insert equations at [EQUATION: name] markers.

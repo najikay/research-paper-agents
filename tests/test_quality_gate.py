@@ -59,6 +59,8 @@ def _setup_latex(
     """Write chapter files and references.bib into tmp_path/latex/."""
     chapters_dir = tmp_path / "latex" / "chapters"
     chapters_dir.mkdir(parents=True, exist_ok=True)
+    figures_dir  = tmp_path / "latex" / "figures"
+    figures_dir.mkdir(parents=True, exist_ok=True)
     (tmp_path / "latex").mkdir(parents=True, exist_ok=True)
     (tmp_path / "outputs").mkdir(parents=True, exist_ok=True)
 
@@ -67,6 +69,11 @@ def _setup_latex(
         (chapters_dir / fname).write_text(chapter_content, encoding="utf-8")
 
     (tmp_path / "latex" / "references.bib").write_text(bib_content, encoding="utf-8")
+
+    # Create dummy figure files for any \includegraphics references found in chapter_content
+    import re as _re
+    for fig_ref in _re.findall(r'\\includegraphics(?:\[[^\]]*\])?\{figures/([^}]+)\}', chapter_content):
+        (figures_dir / fig_ref).write_bytes(b"\x89PNG\r\n\x1a\n")  # minimal PNG magic
 
 
 def _patch_project_root(monkeypatch, tmp_path: Path) -> None:
@@ -81,6 +88,7 @@ def _patch_project_root(monkeypatch, tmp_path: Path) -> None:
 def _make_state(tmp_path: Path) -> dict:
     return {
         "topic": "test",
+        "run_folder": str(tmp_path),
         "remediation_count": 0,
         "failed_sections": [],
         "quality_verdict": "PENDING",
@@ -255,8 +263,8 @@ class TestQualityGate:
 
         run_quality_gate(_make_state(tmp_path))
 
-        report_path = tmp_path / "outputs" / "quality_report.md"
-        assert report_path.exists(), "quality_report.md must be created"
+        report_path = tmp_path / "outputs" / "current" / "quality_report.md"
+        assert report_path.exists(), "quality_report.md must be created in outputs/current/"
         assert report_path.stat().st_size > 0
 
     def test_quality_gate_report_has_json(
@@ -268,7 +276,7 @@ class TestQualityGate:
 
         run_quality_gate(_make_state(tmp_path))
 
-        report_text = (tmp_path / "outputs" / "quality_report.md").read_text(encoding="utf-8")
+        report_text = (tmp_path / "outputs" / "current" / "quality_report.md").read_text(encoding="utf-8")
 
         # Extract JSON block between ```json ... ```
         match = re.search(r"```json\s*(\{.*?\})\s*```", report_text, re.DOTALL)

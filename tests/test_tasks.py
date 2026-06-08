@@ -6,6 +6,8 @@ Unit tests for the task factory functions in src/tasks/research_tasks.py.
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import pytest
 
 from src.agents.navigation_director import create_navigation_director
@@ -13,6 +15,11 @@ from src.agents.slam_researcher import create_slam_researcher
 from src.agents.visualization_engineer import create_visualization_engineer
 from src.agents.hebrew_academic_writer import create_hebrew_academic_writer
 from src.agents.latex_author import create_latex_author
+from src.agents.vision_ai_expert import create_vision_ai_expert
+from src.agents.physics_expert import create_physics_expert
+from src.agents.algorithms_expert import create_algorithms_expert
+from src.agents.aerospace_marine_expert import create_aerospace_marine_expert
+from src.agents.biology_expert import create_biology_expert
 from src.tasks.research_tasks import (
     create_all_tasks,
     create_task_figures,
@@ -21,6 +28,9 @@ from src.tasks.research_tasks import (
     create_task_outline,
     create_task_research,
 )
+
+# Stable fake run folder used across module-scoped fixtures
+_RUN_FOLDER = Path("/tmp/test_navigator_run")
 
 # Required BibTeX keys that must appear in the latex task description
 REQUIRED_CITE_KEYS = [
@@ -46,11 +56,16 @@ REQUIRED_CITE_KEYS = [
 def agents():
     """Real CrewAI agent instances — instantiation makes no LLM calls."""
     return {
-        "director":      create_navigation_director(tools=[]),
-        "researcher":    create_slam_researcher(tools=[]),
-        "visualizer":    create_visualization_engineer(tools=[]),
-        "hebrew_writer": create_hebrew_academic_writer(tools=[]),
-        "author":        create_latex_author(tools=[]),
+        "director":       create_navigation_director(tools=[]),
+        "researcher":     create_slam_researcher(tools=[]),
+        "visualizer":     create_visualization_engineer(tools=[]),
+        "hebrew_writer":  create_hebrew_academic_writer(tools=[]),
+        "author":         create_latex_author(tools=[]),
+        "dom_vision_ai":  create_vision_ai_expert(tools=[]),
+        "dom_physics":    create_physics_expert(tools=[]),
+        "dom_algorithms": create_algorithms_expert(tools=[]),
+        "dom_aerospace":  create_aerospace_marine_expert(tools=[]),
+        "dom_biology":    create_biology_expert(tools=[]),
     }
 
 
@@ -66,7 +81,7 @@ def research_task(agents, outline_task):
 
 @pytest.fixture(scope="module")
 def figures_task(agents, research_task):
-    return create_task_figures(agents["visualizer"], context=[research_task])
+    return create_task_figures(agents["visualizer"], context=[research_task], run_folder=_RUN_FOLDER)
 
 
 @pytest.fixture(scope="module")
@@ -76,7 +91,7 @@ def hebrew_task(agents, research_task):
 
 @pytest.fixture(scope="module")
 def latex_task(agents, hebrew_task, figures_task):
-    return create_task_latex(agents["author"], context=[hebrew_task, figures_task])
+    return create_task_latex(agents["author"], context=[hebrew_task, figures_task], run_folder=_RUN_FOLDER)
 
 
 # ---------------------------------------------------------------------------
@@ -84,8 +99,8 @@ def latex_task(agents, hebrew_task, figures_task):
 # ---------------------------------------------------------------------------
 
 def test_outline_task_output_file(outline_task):
-    """Outline task must write to outputs/paper_outline.md."""
-    assert outline_task.output_file == "outputs/paper_outline.md"
+    """Outline task must write to outputs/current/paper_outline.md."""
+    assert outline_task.output_file == "outputs/current/paper_outline.md"
 
 
 def test_outline_task_description_has_topic(outline_task):
@@ -104,8 +119,8 @@ def test_outline_task_description_mentions_25_30_pages(outline_task):
 # ---------------------------------------------------------------------------
 
 def test_research_task_output_file(research_task):
-    """Research task must write to outputs/research_briefs.md."""
-    assert research_task.output_file == "outputs/research_briefs.md"
+    """Research task must write to outputs/current/research_briefs.md."""
+    assert research_task.output_file == "outputs/current/research_briefs.md"
 
 
 def test_research_task_has_context(research_task):
@@ -119,8 +134,8 @@ def test_research_task_has_context(research_task):
 # ---------------------------------------------------------------------------
 
 def test_figures_task_output_file(figures_task):
-    """Figures task must write to outputs/figures_manifest.md."""
-    assert figures_task.output_file == "outputs/figures_manifest.md"
+    """Figures task must write to outputs/current/figures_manifest.md."""
+    assert figures_task.output_file == "outputs/current/figures_manifest.md"
 
 
 # ---------------------------------------------------------------------------
@@ -128,8 +143,8 @@ def test_figures_task_output_file(figures_task):
 # ---------------------------------------------------------------------------
 
 def test_hebrew_prose_task_output_file(hebrew_task):
-    """Hebrew prose task must write to outputs/hebrew_prose.md."""
-    assert hebrew_task.output_file == "outputs/hebrew_prose.md"
+    """Hebrew prose task must write to outputs/current/hebrew_prose.md."""
+    assert hebrew_task.output_file == "outputs/current/hebrew_prose.md"
 
 
 # ---------------------------------------------------------------------------
@@ -141,7 +156,7 @@ def test_latex_task_output_file(latex_task):
     Note: references.bib is written by the agent via SafeFileWriterTool, not
     via the task output_file mechanism (which would overwrite it with plain text).
     """
-    assert latex_task.output_file == "outputs/latex_status.md"
+    assert latex_task.output_file == "outputs/current/latex_status.md"
 
 
 def test_latex_task_does_not_write_ch04_slam(latex_task):
@@ -176,25 +191,38 @@ def test_latex_task_has_all_14_citation_keys(latex_task):
 # create_all_tasks
 # ---------------------------------------------------------------------------
 
-def test_create_all_tasks_returns_5(agents):
-    """create_all_tasks must return exactly 5 tasks."""
-    tasks = create_all_tasks(
-        agents["director"], agents["researcher"], agents["visualizer"],
-        agents["hebrew_writer"], agents["author"],
+def _all_tasks(agents):
+    """Helper: build the full 10-task pipeline for reuse in tests."""
+    return create_all_tasks(
+        director=agents["director"],
+        researcher=agents["researcher"],
+        dom_vision_ai=agents["dom_vision_ai"],
+        dom_physics=agents["dom_physics"],
+        dom_algorithms=agents["dom_algorithms"],
+        dom_aerospace=agents["dom_aerospace"],
+        dom_biology=agents["dom_biology"],
+        visualizer=agents["visualizer"],
+        hebrew_writer=agents["hebrew_writer"],
+        author=agents["author"],
         topic="Test Topic",
+        run_folder=_RUN_FOLDER,
     )
-    assert len(tasks) == 5
+
+
+def test_create_all_tasks_returns_10(agents):
+    """create_all_tasks must return exactly 10 tasks."""
+    tasks = _all_tasks(agents)
+    assert len(tasks) == 10
 
 
 def test_task_pipeline_order(agents):
-    """Tasks must be returned in the order: outline, research, figures, prose, latex."""
-    tasks = create_all_tasks(
-        agents["director"], agents["researcher"], agents["visualizer"],
-        agents["hebrew_writer"], agents["author"],
-        topic="Test Topic",
-    )
-    assert "outline"  in tasks[0].output_file
-    assert "research" in tasks[1].output_file
-    assert "figures"  in tasks[2].output_file
-    assert "prose"    in tasks[3].output_file
-    assert "latex"    in tasks[4].output_file  # outputs/latex_status.md
+    """Tasks must follow: outline, research, 5×domain, figures, prose, latex."""
+    tasks = _all_tasks(agents)
+    assert "outline"   in tasks[0].output_file
+    assert "research"  in tasks[1].output_file
+    # tasks[2..6] are domain expert outputs
+    for i in range(2, 7):
+        assert "domain_" in tasks[i].output_file
+    assert "figures"   in tasks[7].output_file
+    assert "prose"     in tasks[8].output_file
+    assert "latex"     in tasks[9].output_file  # outputs/current/latex_status.md

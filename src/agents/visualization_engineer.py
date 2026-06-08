@@ -141,7 +141,7 @@ Required figures and their exact specifications:
   - Figure size: (15, 5)
 
 After completing all 9 figures, write a summary manifest to
-outputs/figures_manifest.md listing: filename, title, caption (Hebrew),
+outputs/current/figures_manifest.md listing: filename, title, caption (Hebrew),
 and the \\label{fig:...} key to use in LaTeX.
 """.strip()
 
@@ -172,7 +172,7 @@ where spatial data is shown.
 
 _EXPECTED_TOOLS = [
     "PythonCodeExecutorTool — executes matplotlib/scipy code, saves PNG to latex/figures/",
-    "SafeFileWriterTool     — writes figures_manifest.md to outputs/",
+    "SafeFileWriterTool     — writes figures_manifest.md to outputs/current/",
 ]
 
 

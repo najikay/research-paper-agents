@@ -3,16 +3,25 @@ src/tasks/research_tasks.py
 ============================
 Factory functions for the 5 NavigatorCrew tasks.
 Architecture: Robust Sequential Pipeline v4.0.
+
+All intermediate outputs are staged to outputs/current/ during a run.
+main.py moves them to the per-run archive folder on completion and cleans up.
 """
 
 from __future__ import annotations
+from pathlib import Path
 from crewai import Agent, Task
 from src.config import logger
+
+# Staging directory for all intermediate outputs during a run.
+# Always use this constant — never hardcode "outputs/" directly.
+_STAGING = "outputs/current"
+
 
 def create_task_outline(director: Agent, topic: str) -> Task:
     return Task(
         description=f"""
-Decompose the topic '{topic}' into 8 sub-domains and create outputs/paper_outline.md.
+Decompose the topic '{topic}' into 8 sub-domains and create {_STAGING}/paper_outline.md.
 
 TARGET: The final paper must be 25–30 printed A4 pages (IEEEtran, 10pt).
 Each sub-domain chapter should contain at least 4 subsections, 3 equations,
@@ -33,15 +42,16 @@ required equations, required figures (with filenames from latex/figures/),
 required table topics, and 3–5 English search keywords the researcher should
 use when querying Serper/ArXiv (all searches must be in English).
 """.strip(),
-        expected_output="Detailed chapter-by-chapter outline in outputs/paper_outline.md specifying subsections, equations, figures, and tables per chapter. Confirmation: 'OUTLINE COMPLETE'.",
+        expected_output=f"Detailed chapter-by-chapter outline in {_STAGING}/paper_outline.md specifying subsections, equations, figures, and tables per chapter. Confirmation: 'OUTLINE COMPLETE'.",
         agent=director,
-        output_file="outputs/paper_outline.md"
+        output_file=f"{_STAGING}/paper_outline.md"
     )
+
 
 def create_task_research(researcher: Agent, context: list[Task]) -> Task:
     return Task(
-        description="""
-Produce 8 detailed technical research briefs based on outputs/paper_outline.md.
+        description=f"""
+Produce 8 detailed technical research briefs based on {_STAGING}/paper_outline.md.
 Each brief must provide enough material for a 3–4 page chapter (600+ words of content).
 
 For each sub-domain include:
@@ -52,71 +62,152 @@ For each sub-domain include:
   • Figure descriptions (what to plot and why)
   • A comparison table (at least 3 alternatives compared on 3+ criteria)
 
-Write to outputs/research_briefs.md.
+Write to {_STAGING}/research_briefs.md.
 """.strip(),
-        expected_output="8 structured research briefs in outputs/research_briefs.md, each providing ≥600 words of technical content. Confirmation: 'RESEARCH COMPLETE'.",
+        expected_output=f"8 structured research briefs in {_STAGING}/research_briefs.md, each providing ≥600 words of technical content. Confirmation: 'RESEARCH COMPLETE'.",
         agent=researcher,
         context=context,
-        output_file="outputs/research_briefs.md"
+        output_file=f"{_STAGING}/research_briefs.md"
     )
 
-def create_task_figures(visualizer: Agent, context: list[Task]) -> Task:
+
+def create_task_figures(visualizer: Agent, context: list[Task], run_folder: Path | None = None) -> Task:
+    latex_figures = str(run_folder / "latex" / "figures") if run_folder else "latex/figures"
     return Task(
-        description="Generate 9 IEEE-standard figures and save to latex/figures/. Write manifest to outputs/figures_manifest.md.",
-        expected_output="9 PNG files and a manifest in outputs/figures_manifest.md.",
+        description=(
+            f"Generate 9 IEEE-standard figures and save them to {latex_figures}/.\n"
+            f"Use the EXACT absolute path '{latex_figures}/' in every plt.savefig() call.\n"
+            f"After saving all 9 figures, write the manifest to {_STAGING}/figures_manifest.md."
+        ),
+        expected_output=f"9 PNG files in {latex_figures}/ and a manifest in {_STAGING}/figures_manifest.md.",
         agent=visualizer,
         context=context,
-        output_file="outputs/figures_manifest.md"
+        output_file=f"{_STAGING}/figures_manifest.md"
     )
+
+
+def create_task_domain_expert(
+    expert: Agent,
+    domain_key: str,
+    domain_description: str,
+    context: list[Task],
+) -> Task:
+    """
+    Generic domain-expert enrichment task.
+    Each specialist reads the outline + research briefs and contributes
+    domain-specific depth (equations, algorithms, insights, references).
+    If the topic is outside their domain they write a single DOMAIN SKIP line.
+    """
+    return Task(
+        description=f"""
+You are a PhD-level domain specialist contributing technical depth to an academic paper.
+
+STEP 1 — Read existing work (use FileReaderTool for each):
+    FileReaderTool("{_STAGING}/paper_outline.md")
+    FileReaderTool("{_STAGING}/research_briefs.md")
+
+STEP 2 — Assess relevance of your domain to this paper topic:
+    Your domain: {domain_description}
+
+STEP 3a — If your domain IS relevant to the topic:
+    Contribute content NOT already covered in the research briefs:
+    • Domain-specific equations with full derivations and variable definitions
+      (numbered, LaTeX-ready format)
+    • Algorithms, methods, or design principles unique to your field
+    • Physical, biological, or theoretical insights that deepen any chapter
+    • 3–5 key BibTeX-formatted references from your domain
+      (format: @article{{Key, author=..., title=..., journal=..., year=..., doi=...}})
+    Precision standard: PhD-level. Cite primary sources. No padding.
+
+STEP 3b — If your domain has NO meaningful intersection with this topic:
+    Write exactly one line: "DOMAIN SKIP: [brief reason]"
+    Do NOT pad with generic content — professional silence is valued.
+
+Write your output to {_STAGING}/domain_{domain_key}.md
+""".strip(),
+        expected_output=(
+            f"Domain contribution at {_STAGING}/domain_{domain_key}.md "
+            f"with equations, algorithms, and references, OR a single 'DOMAIN SKIP:' line."
+        ),
+        agent=expert,
+        context=context,
+        output_file=f"{_STAGING}/domain_{domain_key}.md",
+    )
+
 
 def create_task_hebrew_prose(writer: Agent, context: list[Task]) -> Task:
     return Task(
-        description="""
-Read outputs/research_briefs.md and write polished Hebrew academic prose for
-all chapters (CH02–CH09). Save to outputs/hebrew_prose.md.
+        description=f"""
+Read all research and domain-expert materials, then write polished Hebrew academic
+prose for all chapters (CH02–CH09). Save to {_STAGING}/hebrew_prose.md.
 
-For each chapter section write 150–250 words of Hebrew prose. Use your judgment
-to keep standard academic English terms (SLAM, EKF, LiDAR, UAV, etc.) in English
-— the same way a Technion robotics professor would write. Translate generic words
-to Hebrew. Do not write LaTeX. Mark equation/figure/table placement with
-[EQUATION: name], [FIGURE: name], [TABLE: description]. Mark citations with
-[CITE: BibKey].
+STEP 1 — READ ALL INPUTS (use FileReaderTool for each):
+    FileReaderTool("{_STAGING}/research_briefs.md")       ← primary technical input
+    FileReaderTool("{_STAGING}/domain_vision_ai.md")      ← Vision-AI expert
+    FileReaderTool("{_STAGING}/domain_physics.md")        ← Physics expert
+    FileReaderTool("{_STAGING}/domain_algorithms.md")     ← Algorithms expert
+    FileReaderTool("{_STAGING}/domain_aerospace.md")      ← Aerospace/Marine expert
+    FileReaderTool("{_STAGING}/domain_biology.md")        ← Biology expert
+    Files that begin with "DOMAIN SKIP:" have no relevant content — ignore them.
+    All other domain files contain PhD-level contributions — incorporate them fully.
+
+STEP 2 — Write Hebrew prose for each chapter (CH02–CH09):
+    For each chapter: 150–250 words of polished Hebrew academic prose.
+    Use judgment to keep standard English technical terms (SLAM, EKF, LiDAR,
+    UAV, etc.) in English — the way a Technion professor writes.
+    Translate generic words to Hebrew. Do not write LaTeX.
+    Mark placements: [EQUATION: name], [FIGURE: name], [TABLE: description].
+    Mark citations: [CITE: BibKey].
+    Integrate domain-expert insights naturally into the prose.
 """.strip(),
-        expected_output="outputs/hebrew_prose.md with Hebrew prose for all 8 chapters. Confirmation: 'HEBREW PROSE COMPLETE'.",
+        expected_output=f"{_STAGING}/hebrew_prose.md with Hebrew prose for all 8 chapters incorporating domain expert contributions. Confirmation: 'HEBREW PROSE COMPLETE'.",
         agent=writer,
         context=context,
-        output_file="outputs/hebrew_prose.md",
+        output_file=f"{_STAGING}/hebrew_prose.md",
     )
 
 
-def create_task_latex(author: Agent, context: list[Task]) -> Task:
+def create_task_latex(author: Agent, context: list[Task], run_folder: Path | None = None) -> Task:
+    latex_dir = str(run_folder / "latex") if run_folder else "latex"
+    chapters_dir = f"{latex_dir}/chapters"
+    bib_path = f"{latex_dir}/references.bib"
     return Task(
-        description="""
+        description=f"""
 Write 9 LaTeX chapter files + references.bib based on the research briefs and figures manifest.
 Target: 25–30 printed pages total (A4, IEEEtran, 10pt).
 
+STEP 1 — READ INPUTS BEFORE WRITING ANYTHING:
+    FileReaderTool("{_STAGING}/hebrew_prose.md")          ← primary prose input
+    FileReaderTool("{_STAGING}/figures_manifest.md")      ← authoritative figure filenames
+    FileReaderTool("{_STAGING}/domain_vision_ai.md")      ← Vision-AI equations/algorithms
+    FileReaderTool("{_STAGING}/domain_physics.md")        ← Physics derivations
+    FileReaderTool("{_STAGING}/domain_algorithms.md")     ← Algorithm pseudocode/proofs
+    FileReaderTool("{_STAGING}/domain_aerospace.md")      ← Aerospace/Marine methods
+    FileReaderTool("{_STAGING}/domain_biology.md")        ← Biological ground truth
+    Files beginning with "DOMAIN SKIP:" contain no content — ignore them.
+
 PRE-WRITTEN (PROTECTED — do NOT overwrite):
-    latex/chapters/ch01_intro.tex    ← static, already written
-    latex/chapters/ch04_slam.tex     ← static, already written
-    latex/main.tex                   ← protected master document
-    latex/chapters/cover.tex         ← protected cover page
+    {chapters_dir}/ch01_intro.tex    ← static, already written
+    {chapters_dir}/ch04_slam.tex     ← static, already written
+    {latex_dir}/main.tex             ← protected master document
+    {chapters_dir}/cover.tex         ← protected cover page
 
 FILES TO WRITE (exact paths — write ALL of these):
-    latex/chapters/abstract.tex
-    latex/chapters/ch02_bio_basis.tex
-    latex/chapters/ch03_sensors.tex
-    latex/chapters/ch05_fusion.tex
-    latex/chapters/ch06_algorithm.tex
-    latex/chapters/ch07_oursystem.tex
-    latex/chapters/ch08_results.tex
-    latex/chapters/ch09_conclusion.tex
-    latex/references.bib
+    {chapters_dir}/abstract.tex
+    {chapters_dir}/ch02_bio_basis.tex
+    {chapters_dir}/ch03_sensors.tex
+    {chapters_dir}/ch05_fusion.tex
+    {chapters_dir}/ch06_algorithm.tex
+    {chapters_dir}/ch07_oursystem.tex
+    {chapters_dir}/ch08_results.tex
+    {chapters_dir}/ch09_conclusion.tex
+    {bib_path}
 
 CONTENT DEPTH — each of ch02–ch09 must have:
     • Minimum 600 words of Hebrew prose
-    • Minimum 4 \\subsection{} blocks
+    • Minimum 4 \\subsection{{}} blocks
     • Minimum 3 numbered equations with derivation text
-    • Minimum 2 \\includegraphics{} figures (using PNGs from the manifest)
+    • Minimum 2 \\includegraphics{{}} figures (using PNGs from the manifest)
     • Minimum 1 booktabs table
     ch06 (algorithm) and ch08 (results) must have ≥ 900 words each.
 
@@ -131,16 +222,21 @@ CITATION KEYS — references.bib MUST define ALL of these keys (and may add more
 
 EM DASH RULE — the character — is FORBIDDEN in Hebrew prose.
     Use colon (:) or comma (,) instead. Em dash is only permitted inside
-    \\en{} abbreviation expansions, e.g., \\en{UAV — Unmanned Aerial Vehicles}.
+    \\en{{}} abbreviation expansions, e.g., \\en{{UAV — Unmanned Aerial Vehicles}}.
 
-FIGURES — use ONLY filenames confirmed in the figures manifest.
-    Never write \\fbox{\\parbox{...PLACEHOLDER...}} boxes.
-    Use: \\includegraphics[width=0.92\\columnwidth]{figures/fig_name.png}
+FIGURES — CRITICAL RULE:
+    1. Read {_STAGING}/figures_manifest.md FIRST with FileReaderTool.
+    2. Extract the EXACT filenames listed there (e.g. fig_bat_vs_artificial.png).
+    3. Use ONLY those exact filenames in \\includegraphics{{}} commands.
+    4. NEVER invent figure names. A figure that does not exist in the manifest
+       will cause a fatal LaTeX compile error (! Unable to load picture).
+    5. Never write \\fbox{{\\parbox{{...PLACEHOLDER...}}}} boxes.
+    Format: \\includegraphics[width=0.92\\columnwidth]{{figures/EXACT_NAME.png}}
 
 COMPILER: XeLaTeX. Every file must compile without errors.
 
 IMPORTANT — references.bib MUST be written using SafeFileWriterTool with path
-"latex/references.bib". Do NOT rely on the task output mechanism to write it —
+"{bib_path}". Do NOT rely on the task output mechanism to write it —
 that mechanism only captures your final status message, NOT the BibTeX content.
 Use SafeFileWriterTool for EVERY file you write (chapters AND references.bib).
 """.strip(),
@@ -153,69 +249,146 @@ Use SafeFileWriterTool for EVERY file you write (chapters AND references.bib).
         ),
         agent=author,
         context=context,
-        output_file="outputs/latex_status.md"
+        output_file=f"{_STAGING}/latex_status.md"
     )
+
 
 def create_task_review(editor: Agent, context: list[Task]) -> Task:
     return Task(
-        description="""
-Conduct a peer review of all LaTeX files and output a report to outputs/quality_report.md.
+        description=f"""
+Conduct a peer review of all LaTeX files and output a report to {_STAGING}/quality_report.md.
 
 **MANDATORY**: Your report MUST end with a machine-readable JSON verdict block:
 
 ```json
-{
+{{
   "verdict": "PASS" or "FAIL",
   "score": <integer 0-100>,
   "failed_sections": ["section_name", ...]
-}
+}}
 ```
 
 Score below 75 = FAIL. Failed sections must use these exact names if applicable:
 methodology, algorithms, related_work, equations, introduction, conclusion, references, figures.
 """,
-        expected_output="Quality report in outputs/quality_report.md ending with a JSON verdict block.",
+        expected_output=f"Quality report in {_STAGING}/quality_report.md ending with a JSON verdict block.",
         agent=editor,
         context=context,
-        output_file="outputs/quality_report.md"
+        output_file=f"{_STAGING}/quality_report.md"
     )
+
 
 def create_remediation_task(
     agent: Agent,
     failed_sections: list[str],
     quality_report_path: str,
     output_file: str,
+    run_folder: Path | None = None,
 ) -> Task:
     """
     Targeted fix task. The agent reads the quality report and the existing
     output files, then patches ONLY the sections listed in failed_sections.
     """
     sections_str = ", ".join(failed_sections)
+
+    # If this is a LaTeX author task and we know the run folder, include
+    # the absolute write paths so the agent writes to the correct location.
+    latex_paths_note = ""
+    if run_folder is not None:
+        chapters_dir = run_folder / "latex" / "chapters"
+        bib_path     = run_folder / "latex" / "references.bib"
+        latex_paths_note = f"""
+WRITE PATHS — use these exact absolute paths with SafeFileWriterTool:
+    Chapters : {chapters_dir}/<filename>.tex
+    BibTeX   : {bib_path}
+"""
+
     return Task(
         description=f"""
 REMEDIATION TASK. You are fixing specific quality failures identified by the QualityEditor.
 
-1. Read the quality report at {quality_report_path} to understand each specific issue.
+1. Read the quality report: FileReaderTool("{quality_report_path}")
 2. Read the existing output files to understand what currently exists.
 3. Fix ONLY the following failed sections: [{sections_str}]
 4. Do NOT modify sections that passed — this minimises unnecessary rewrites.
 5. Overwrite only the files that contain the failing sections.
 6. Produce the same output files as the original task, but with issues resolved.
+{latex_paths_note}
 """,
         expected_output=f"Fixed output file(s) addressing failures in: {sections_str}. Confirmation: 'REMEDIATION COMPLETE'.",
         agent=agent,
         output_file=output_file,
     )
 
-def create_all_tasks(director, researcher, visualizer, hebrew_writer, author, topic) -> list[Task]:
+
+_DOMAIN_DESCRIPTIONS: dict[str, str] = {
+    "vision_ai": (
+        "Visual SLAM, monocular/stereo depth estimation, semantic segmentation, "
+        "optical flow, neural feature descriptors, vision transformers, edge inference"
+    ),
+    "physics": (
+        "Matched filter theory, LFM/FM sonar signal design, acoustic wave propagation, "
+        "Doppler physics, cochlear mechanics, range-Doppler ambiguity, beamforming"
+    ),
+    "algorithms": (
+        "EKF/UKF/particle filters, factor graph SLAM (g2o/GTSAM/iSAM2), "
+        "covariance intersection, loop closure, CRLB, computational complexity of SLAM"
+    ),
+    "aerospace": (
+        "UAV 6-DOF flight dynamics, IMU strapdown/INS, GPS-denied navigation, "
+        "AUV/submarine sonar, DVL, multi-path acoustics, submarine↔cave navigation parallel"
+    ),
+    "biology": (
+        "Bat echolocation (CF-FM sonar, acoustic fovea, DSC mechanism), "
+        "neural computation for spatial mapping, bio-inspired algorithm design, "
+        "dolphin biosonar, lateral line sensing"
+    ),
+}
+
+
+def create_all_tasks(
+    director,
+    researcher,
+    dom_vision_ai,
+    dom_physics,
+    dom_algorithms,
+    dom_aerospace,
+    dom_biology,
+    visualizer,
+    hebrew_writer,
+    author,
+    topic,
+    run_folder: Path | None = None,
+) -> list[Task]:
     """
-    5-task pipeline:
-      outline → research → figures → hebrew_prose → latex
+    11-task pipeline:
+      outline → research
+        → domain_vision_ai → domain_physics → domain_algorithms
+        → domain_aerospace → domain_biology
+        → figures → hebrew_prose → latex
     Quality review is handled programmatically by the LangGraph gate.
+    Domain experts each read the research briefs independently and add
+    domain-specific depth. They write "DOMAIN SKIP:" if the topic is
+    outside their expertise.
     """
     t_outline  = create_task_outline(director, topic)
     t_research = create_task_research(researcher, [t_outline])
-    t_figures  = create_task_figures(visualizer, [t_research])
-    t_hebrew   = create_task_hebrew_prose(hebrew_writer, [t_research])
-    t_latex    = create_task_latex(author, [t_hebrew, t_figures])
-    return [t_outline, t_research, t_figures, t_hebrew, t_latex]
+
+    # Domain expert enrichment — all read research briefs, run sequentially
+    t_dom_vision_ai   = create_task_domain_expert(dom_vision_ai,   "vision_ai",   _DOMAIN_DESCRIPTIONS["vision_ai"],   [t_research])
+    t_dom_physics     = create_task_domain_expert(dom_physics,     "physics",     _DOMAIN_DESCRIPTIONS["physics"],     [t_research])
+    t_dom_algorithms  = create_task_domain_expert(dom_algorithms,  "algorithms",  _DOMAIN_DESCRIPTIONS["algorithms"],  [t_research])
+    t_dom_aerospace   = create_task_domain_expert(dom_aerospace,   "aerospace",   _DOMAIN_DESCRIPTIONS["aerospace"],   [t_research])
+    t_dom_biology     = create_task_domain_expert(dom_biology,     "biology",     _DOMAIN_DESCRIPTIONS["biology"],     [t_research])
+
+    domain_tasks = [t_dom_vision_ai, t_dom_physics, t_dom_algorithms, t_dom_aerospace, t_dom_biology]
+
+    t_figures  = create_task_figures(visualizer, [t_research], run_folder=run_folder)
+    t_hebrew   = create_task_hebrew_prose(hebrew_writer, [t_research] + domain_tasks)
+    t_latex    = create_task_latex(author, [t_hebrew, t_figures], run_folder=run_folder)
+
+    return [
+        t_outline, t_research,
+        t_dom_vision_ai, t_dom_physics, t_dom_algorithms, t_dom_aerospace, t_dom_biology,
+        t_figures, t_hebrew, t_latex,
+    ]

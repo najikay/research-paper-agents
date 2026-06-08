@@ -48,7 +48,21 @@ outputs/quality_report.md
 outputs/token_report.md
 outputs/figures_manifest.md
 outputs/hebrew_prose.md
+outputs/latex_status.md
 outputs/NavigatorCrew_paper.pdf
+outputs/current/
+
+# --- Agent-generated LaTeX files (regenerated each run, not source code) ---
+# Static/protected files (ch01, ch04, cover, main.tex, references.bib) ARE tracked.
+latex/figures/*.png
+latex/chapters/abstract.tex
+latex/chapters/ch02_bio_basis.tex
+latex/chapters/ch03_sensors.tex
+latex/chapters/ch05_fusion.tex
+latex/chapters/ch06_algorithm.tex
+latex/chapters/ch07_oursystem.tex
+latex/chapters/ch08_results.tex
+latex/chapters/ch09_conclusion.tex
 
 # --- Per-run archives (large, reproducible — keep out of git) ---
 outputs/runs/*

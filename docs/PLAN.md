@@ -54,38 +54,49 @@ LaTeXAuthor is a pure formatter — it formats pre-written prose, not a translat
 - [x] 25–30 page target in all task descriptions
 - [x] Token budget documented in `docs/BUDGET.md`
 
-## Phase 3: Run Archiving (COMPLETE)
+## Phase 3: Run-Folder Architecture (COMPLETE)
 
-Each run is automatically archived to its own folder:
+Each run is self-contained in its own folder. Project-root `latex/` is a **read-only template** — agents never touch it.
 
 ```
-outputs/runs/{topic-slug}-{YYYY-MM-DD}/
+outputs/runs/{topic-slug}-{YYYY-MM-DD}/       ← run folder (single source of truth)
 outputs/runs/{topic-slug}-{YYYY-MM-DD}-v2/   ← duplicate dates versioned
 ```
 
-Contents:
+Run folder layout:
 ```
-figures/         ← PNG figures for direct access
-outputs/         ← paper_outline.md, research_briefs.md, hebrew_prose.md,
-                    figures_manifest.md, quality_report.md, token_report.md
-latex/           ← full LaTeX source snapshot (no build artifacts)
-paper.pdf        ← compiled PDF (if successful)
-run_manifest.txt ← human-readable file index
+latex/
+  chapters/   ← template static files + agent-written .tex files
+  figures/    ← agent-generated PNGs (written during pipeline)
+  references.bib
+  main.tex, IEEEtran.cls/bst
+outputs/       ← agent .md reports (moved from staging on completion)
+paper.pdf      ← compiled PDF (copied from latex/main.pdf)
+run_manifest.txt ← file index listing figures and outputs
 ```
 
+Key functions in `main.py`:
+- `setup_run_latex(run_folder)` — copies template into run folder before graph starts
+- `compile_pdf(run_folder)` — xelatex → bibtex → xelatex×2 inside `run_folder/latex/`; deletes stale build artifacts first
+- `finalize_run(run_folder)` — moves staging .md files to `run_folder/outputs/`, writes manifest
+
+`run_folder` is passed via LangGraph state → `build_crew()` → `create_all_tasks()` so every task description references absolute paths inside `run_folder/latex/`.
+
 - [x] `create_run_folder(topic)` — slug + date-stamp, -v2/-v3 for duplicates
-- [x] `archive_run()` — copies figures, outputs, LaTeX snapshot, PDF
+- [x] `setup_run_latex(run_folder)` — template copy before pipeline runs
+- [x] `finalize_run(run_folder)` — staging cleanup + manifest with figure listing
 - [x] `--no-archive` flag for smoke tests
-- [x] `outputs/runs/` excluded from git
+- [x] `outputs/runs/` excluded from git; agent-generated chapters/figures also excluded
 
 ## Phase 4: Bug Fixes Applied (COMPLETE)
 
-Root-cause fixes applied after first real run (score=18):
-
-- [x] `references.bib` overwrite — changed `create_task_latex` `output_file` from `"latex/references.bib"` to `"outputs/latex_status.md"` so CrewAI's auto-write mechanism doesn't destroy the file; added explicit SafeFileWriterTool instruction in task description
-- [x] `\textenglish` hyperref crash — changed `\newcommand{\en}` to use `\texorpdfstring{\textenglish{#1}}{#1}` in `latex/main.tex`
-- [x] PDF duplication — `compile_pdf()` no longer copies to `outputs/NavigatorCrew_paper.pdf`; returns `latex/main.pdf` path directly for the archive
-- [x] Stale outputs cleared — `outputs/runs/` old folder and loose `.md`/`.pdf` files deleted
+- [x] `references.bib` overwrite — `output_file` changed to `outputs/current/latex_status.md`; agent instructed to write bib via SafeFileWriterTool with absolute path
+- [x] `\textenglish` hyperref crash — `\newcommand{\en}` uses `\texorpdfstring`
+- [x] Stale `main.out` crash — build artifacts deleted before every xelatex compile
+- [x] `FileReaderTool` leading-slash fix — LLM-passed `/outputs/X.md` stripped to relative path
+- [x] Math operators added to `main.tex`: `\rect`, `\sinc`, `\sgn`, `\diag`, `\tr`
+- [x] Figure existence check in quality gate — catches hallucinated figure names
+- [x] PROTECTED_FILES basename matching — protection works in both project-root and run-folder paths
 
 ## Phase 5: Pending
 

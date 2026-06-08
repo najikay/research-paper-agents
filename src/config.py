@@ -137,7 +137,11 @@ AGENT_MAX_ITER: dict[str, int] = {
     "data_visualizer":   12,
     "hebrew_writer":     20,   # writes 8 chapter prose sections
     "latex_author":      25,   # formats pre-written prose into XeLaTeX
-    "quality_editor":    20,
+    "biology_expert":   15,   # biological ground-truth for echolocation chapters
+    "vision_ai_expert": 15,   # visual SLAM, depth estimation, semantic perception
+    "physics_expert":          15,   # acoustics, matched filter, Doppler, wave propagation
+    "algorithms_expert":       15,   # probabilistic algorithms, SLAM, estimation theory
+    "aerospace_marine_expert": 15,   # UAV dynamics, INS, submarine/AUV sonar
 }
 
 # Target paper length used in agent prompts
@@ -162,11 +166,16 @@ WRITABLE_DIRS: tuple[str, ...] = ("latex", "outputs", "docs")
 # main.tex is protected because it controls the chapter input order and preamble.
 # ch01_intro.tex and ch04_slam.tex contain static citations that must not change.
 PROTECTED_FILES: tuple[str, ...] = (
-    # Basenames — block the filename regardless of directory
+    # Basenames — block the filename regardless of directory (covers both
+    # project-root latex/ and per-run {run_folder}/latex/ paths)
     ".env",
     ".gitignore",
     "requirements.txt",
-    # Relative paths — block specific files only
+    "main.tex",
+    "cover.tex",
+    "ch01_intro.tex",
+    "ch04_slam.tex",
+    # Relative paths from PROJECT_ROOT — belt-and-suspenders for project root
     "src/config.py",
     "latex/main.tex",
     "latex/chapters/cover.tex",

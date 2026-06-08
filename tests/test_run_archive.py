@@ -2,7 +2,7 @@
 tests/test_run_archive.py
 =========================
 Unit tests for the helper functions in main.py:
-  _topic_slug(), create_run_folder(), archive_run().
+  _topic_slug(), create_run_folder(), finalize_run().
 """
 
 from __future__ import annotations
@@ -11,7 +11,7 @@ from pathlib import Path
 
 import pytest
 
-from main import _topic_slug, archive_run, create_run_folder
+from main import _topic_slug, create_run_folder, finalize_run
 
 
 # ---------------------------------------------------------------------------
@@ -101,103 +101,86 @@ def test_create_run_folder_triple_versioning(tmp_path, monkeypatch):
 
 
 # ---------------------------------------------------------------------------
-# archive_run helpers
+# finalize_run helpers
 # ---------------------------------------------------------------------------
 
-def _setup_project_dirs(tmp_path: Path) -> None:
-    """Create the minimal project structure for archive_run tests."""
-    (tmp_path / "latex" / "figures").mkdir(parents=True)
-    (tmp_path / "latex" / "chapters").mkdir(parents=True)
-    (tmp_path / "outputs").mkdir(parents=True)
-    # Minimal main.tex
-    (tmp_path / "latex" / "main.tex").write_text("% main\n", encoding="utf-8")
+def _setup_run_dirs(run_folder: Path) -> None:
+    """Create the minimal run folder structure expected by finalize_run."""
+    (run_folder / "latex" / "figures").mkdir(parents=True)
+    (run_folder / "latex" / "chapters").mkdir(parents=True)
+    (run_folder / "outputs").mkdir(parents=True, exist_ok=True)
 
 
-def test_archive_run_copies_figures(tmp_path, monkeypatch):
-    """archive_run must copy PNG figures into run_folder/figures/."""
+def test_finalize_run_moves_outputs(tmp_path, monkeypatch):
+    """finalize_run must move agent .md files from outputs/current/ into run_folder/outputs/."""
     import main as m
     import src.config as cfg
 
     monkeypatch.setattr(cfg, "PROJECT_ROOT", tmp_path)
     monkeypatch.setattr(m, "PROJECT_ROOT", tmp_path)
 
-    _setup_project_dirs(tmp_path)
-    (tmp_path / "latex" / "figures" / "fig.png").write_bytes(b"\x89PNG\r\n\x1a\n")  # PNG magic bytes
-
     run_folder = tmp_path / "run_test"
-    run_folder.mkdir()
-    archive_run(run_folder, pdf_path=None)
+    _setup_run_dirs(run_folder)
 
-    assert (run_folder / "figures" / "fig.png").exists()
+    # Staging directory is outputs/current/
+    staging = tmp_path / "outputs" / "current"
+    staging.mkdir(parents=True, exist_ok=True)
+    (staging / "paper_outline.md").write_text("# Outline\n", encoding="utf-8")
 
-
-def test_archive_run_copies_outputs(tmp_path, monkeypatch):
-    """archive_run must copy agent .md output files into run_folder/outputs/."""
-    import main as m
-    import src.config as cfg
-
-    monkeypatch.setattr(cfg, "PROJECT_ROOT", tmp_path)
-    monkeypatch.setattr(m, "PROJECT_ROOT", tmp_path)
-
-    _setup_project_dirs(tmp_path)
-    (tmp_path / "outputs" / "paper_outline.md").write_text("# Outline\n", encoding="utf-8")
-
-    run_folder = tmp_path / "run_test"
-    run_folder.mkdir()
-    archive_run(run_folder, pdf_path=None)
+    finalize_run(run_folder)
 
     assert (run_folder / "outputs" / "paper_outline.md").exists()
 
 
-def test_archive_run_copies_pdf(tmp_path, monkeypatch):
-    """archive_run must copy the PDF to run_folder/paper.pdf when provided."""
+def test_finalize_run_cleans_staging(tmp_path, monkeypatch):
+    """finalize_run must remove the staging directory after moving files."""
     import main as m
     import src.config as cfg
 
     monkeypatch.setattr(cfg, "PROJECT_ROOT", tmp_path)
     monkeypatch.setattr(m, "PROJECT_ROOT", tmp_path)
 
-    _setup_project_dirs(tmp_path)
-    pdf_path = tmp_path / "outputs" / "NavigatorCrew_paper.pdf"
-    pdf_path.write_bytes(b"%PDF-1.4\n")
-
     run_folder = tmp_path / "run_test"
-    run_folder.mkdir()
-    archive_run(run_folder, pdf_path=pdf_path)
+    _setup_run_dirs(run_folder)
 
-    assert (run_folder / "paper.pdf").exists()
+    staging = tmp_path / "outputs" / "current"
+    staging.mkdir(parents=True, exist_ok=True)
+    (staging / "research_briefs.md").write_text("# Briefs\n", encoding="utf-8")
+
+    finalize_run(run_folder)
+
+    assert not staging.exists(), "Staging directory must be removed after finalize_run"
 
 
-def test_archive_run_no_pdf(tmp_path, monkeypatch):
-    """archive_run must not crash and must not create paper.pdf when pdf_path=None."""
+def test_finalize_run_no_crash_without_staging(tmp_path, monkeypatch):
+    """finalize_run must not crash when the staging directory does not exist."""
     import main as m
     import src.config as cfg
 
     monkeypatch.setattr(cfg, "PROJECT_ROOT", tmp_path)
     monkeypatch.setattr(m, "PROJECT_ROOT", tmp_path)
 
-    _setup_project_dirs(tmp_path)
-
     run_folder = tmp_path / "run_test"
-    run_folder.mkdir()
-    archive_run(run_folder, pdf_path=None)  # must not raise
+    _setup_run_dirs(run_folder)
 
-    assert not (run_folder / "paper.pdf").exists()
+    # No staging directory — must not raise
+    finalize_run(run_folder)
+
+    assert (run_folder / "run_manifest.txt").exists()
 
 
-def test_archive_run_writes_manifest(tmp_path, monkeypatch):
-    """archive_run must write run_manifest.txt containing 'NavigatorCrew'."""
+def test_finalize_run_writes_manifest(tmp_path, monkeypatch):
+    """finalize_run must write run_manifest.txt containing 'NavigatorCrew'."""
     import main as m
     import src.config as cfg
 
     monkeypatch.setattr(cfg, "PROJECT_ROOT", tmp_path)
     monkeypatch.setattr(m, "PROJECT_ROOT", tmp_path)
 
-    _setup_project_dirs(tmp_path)
-
     run_folder = tmp_path / "run_test"
-    run_folder.mkdir()
-    archive_run(run_folder, pdf_path=None)
+    _setup_run_dirs(run_folder)
+
+    finalize_run(run_folder)
 
     manifest_path = run_folder / "run_manifest.txt"
     assert manifest_path.exists()
@@ -205,38 +188,44 @@ def test_archive_run_writes_manifest(tmp_path, monkeypatch):
     assert "NavigatorCrew" in content
 
 
-def test_archive_run_manifest_lists_figures(tmp_path, monkeypatch):
-    """run_manifest.txt must include the name of each copied figure."""
+def test_finalize_run_manifest_lists_figures(tmp_path, monkeypatch):
+    """run_manifest.txt must include the name of each figure in run_folder/latex/figures/."""
     import main as m
     import src.config as cfg
 
     monkeypatch.setattr(cfg, "PROJECT_ROOT", tmp_path)
     monkeypatch.setattr(m, "PROJECT_ROOT", tmp_path)
 
-    _setup_project_dirs(tmp_path)
-    fig_name = "fig_trajectory_3d.png"
-    (tmp_path / "latex" / "figures" / fig_name).write_bytes(b"\x89PNG\r\n\x1a\n")
-
     run_folder = tmp_path / "run_test"
-    run_folder.mkdir()
-    archive_run(run_folder, pdf_path=None)
+    _setup_run_dirs(run_folder)
+
+    fig_name = "fig_trajectory_3d.png"
+    (run_folder / "latex" / "figures" / fig_name).write_bytes(b"\x89PNG\r\n\x1a\n")
+
+    finalize_run(run_folder)
 
     manifest = (run_folder / "run_manifest.txt").read_text(encoding="utf-8")
     assert fig_name in manifest
 
 
-def test_archive_run_copies_latex_source(tmp_path, monkeypatch):
-    """archive_run must copy latex/main.tex into run_folder/latex/main.tex."""
+def test_finalize_run_latex_in_run_folder(tmp_path, monkeypatch):
+    """The run folder must contain latex/ as the primary LaTeX source (set up by setup_run_latex).
+    finalize_run must leave it untouched.
+    """
     import main as m
     import src.config as cfg
 
     monkeypatch.setattr(cfg, "PROJECT_ROOT", tmp_path)
     monkeypatch.setattr(m, "PROJECT_ROOT", tmp_path)
 
-    _setup_project_dirs(tmp_path)
-
     run_folder = tmp_path / "run_test"
-    run_folder.mkdir()
-    archive_run(run_folder, pdf_path=None)
+    _setup_run_dirs(run_folder)
+    # Simulate that setup_run_latex already created the latex tree in run_folder
+    (run_folder / "latex" / "main.tex").write_text("% main\n", encoding="utf-8")
 
+    finalize_run(run_folder)
+
+    assert (run_folder / "latex").exists(), (
+        "latex/ must remain in the run folder after finalize_run"
+    )
     assert (run_folder / "latex" / "main.tex").exists()

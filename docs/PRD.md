@@ -24,11 +24,13 @@ main.py --topic "..."
 
 | # | Agent | Input | Output |
 |---|---|---|---|
-| 1 | NavigationDirector | `--topic` | `outputs/paper_outline.md` |
-| 2 | SLAMResearcher | outline | `outputs/research_briefs.md` |
-| 3 | VisualizationEngineer | briefs | `latex/figures/*.png` + `outputs/figures_manifest.md` |
-| 4 | HebrewAcademicWriter | briefs | `outputs/hebrew_prose.md` |
-| 5 | LaTeXAuthor | prose + figures | `latex/chapters/*.tex` + `latex/references.bib` + `outputs/latex_status.md` |
+| 1 | NavigationDirector | `--topic` | `outputs/current/paper_outline.md` |
+| 2 | SLAMResearcher | outline | `outputs/current/research_briefs.md` |
+| 3 | VisualizationEngineer | briefs | `{run_folder}/latex/figures/*.png` + `outputs/current/figures_manifest.md` |
+| 4 | HebrewAcademicWriter | briefs | `outputs/current/hebrew_prose.md` |
+| 5 | LaTeXAuthor | prose + figures | `{run_folder}/latex/chapters/*.tex` + `{run_folder}/latex/references.bib` + `outputs/current/latex_status.md` |
+
+All `outputs/current/` paths are **staging** — moved to `{run_folder}/outputs/` by `finalize_run()` on completion.
 
 ### Quality Gate (programmatic, in LangGraph node)
 
@@ -65,27 +67,36 @@ Research is conducted entirely in English (Serper/ArXiv queries, research briefs
 
 ## 5. Protected Files
 
-The following files are blocked from agent writes in `SafeFileWriterTool`:
+The following files are blocked from agent writes in `SafeFileWriterTool` via both basename and relative-path matching (so protection works in the project root **and** inside run folders):
 
 | File | Reason |
 |---|---|
-| `latex/main.tex` | Controls chapter order and XeLaTeX preamble |
-| `latex/chapters/cover.tex` | `\\[len]` fix for bidi crash; student name/date |
-| `latex/chapters/ch01_intro.tex` | Static intro with fixed citation keys |
-| `latex/chapters/ch04_slam.tex` | Static SLAM chapter with fixed citation keys |
+| `main.tex` | Controls chapter order and XeLaTeX preamble |
+| `cover.tex` | `\\[len]` fix for bidi crash; student name/date |
+| `ch01_intro.tex` | Static intro with fixed citation keys |
+| `ch04_slam.tex` | Static SLAM chapter with fixed citation keys |
 | `src/config.py` | Runtime configuration |
 | `.env`, `.gitignore`, `requirements.txt` | Project hygiene |
 
 ---
 
-## 6. Run Archiving
+## 6. Run-Folder Architecture
 
-Each run is saved to `outputs/runs/{topic-slug}-{YYYY-MM-DD}/` (versioned with `-v2`, `-v3` on same date). Archive contains:
-- `figures/` — PNG figures for direct access
-- `outputs/` — all agent .md reports
-- `latex/` — full LaTeX source snapshot
-- `paper.pdf` — compiled PDF
-- `run_manifest.txt` — file index
+Each run is **self-contained** in `outputs/runs/{topic-slug}-{YYYY-MM-DD}/` (versioned with `-v2`, `-v3`). Project-root `latex/` is a read-only template and is never modified during a run.
+
+```
+outputs/runs/{slug}-{date}/
+  latex/
+    chapters/   ← template static files + agent-written .tex files
+    figures/    ← agent-generated PNGs
+    references.bib
+    main.tex, IEEEtran.cls/bst
+  outputs/      ← agent .md reports (moved from outputs/current/ on completion)
+  paper.pdf     ← compiled PDF
+  run_manifest.txt ← file index with figure listing
+```
+
+`setup_run_latex(run_folder)` copies the template before the pipeline starts. `compile_pdf(run_folder)` compiles inside `run_folder/latex/` and copies the PDF to `run_folder/paper.pdf`. `finalize_run(run_folder)` moves staging .md files and writes the manifest.
 
 ---
 

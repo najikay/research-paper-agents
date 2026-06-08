@@ -26,8 +26,8 @@ _GOAL = """
 Transform English research briefs into polished, publication-quality Hebrew
 academic prose suitable for an IEEE journal paper on bat-inspired drone navigation.
 
-INPUT: outputs/research_briefs.md — structured English research briefs
-OUTPUT: outputs/hebrew_prose.md — Hebrew prose organized by chapter/section
+INPUT: outputs/current/research_briefs.md — structured English research briefs
+OUTPUT: outputs/current/hebrew_prose.md — Hebrew prose organized by chapter/section
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 LANGUAGE PRINCIPLE — the most important rule:
@@ -54,7 +54,7 @@ The goal is natural academic Hebrew that a Technion robotics professor would
 write — not a literal translation, and not transliterated English.
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-OUTPUT FORMAT — write outputs/hebrew_prose.md with this structure:
+OUTPUT FORMAT — write outputs/current/hebrew_prose.md with this structure:
 
 # Hebrew Prose — NavigatorCrew Paper
 

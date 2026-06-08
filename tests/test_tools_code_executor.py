@@ -92,13 +92,10 @@ def test_executor_rejects_non_png():
     assert ".png" in result
 
 
-def test_executor_generates_png(tmp_path, monkeypatch):
+def test_executor_generates_png(tmp_path):
     """Tool must save a PNG file and return SUCCESS for a valid minimal matplotlib script."""
-    import src.tools.code_executor as ce
-
     figures_dir = tmp_path / "figures"
     figures_dir.mkdir(parents=True)
-    monkeypatch.setattr(ce, "FIGURES_DIR", figures_dir)
 
     simple_code = (
         "import matplotlib.pyplot as plt\n"
@@ -109,7 +106,7 @@ def test_executor_generates_png(tmp_path, monkeypatch):
         "plt.close('all')\n"
     )
 
-    tool = PythonCodeExecutorTool()
+    tool = PythonCodeExecutorTool(figures_dir=figures_dir)
     result = tool._run(code=simple_code, output_filename="fig_test_output.png")
 
     assert "SUCCESS" in result, f"Expected SUCCESS, got: {result}"

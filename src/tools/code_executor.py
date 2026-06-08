@@ -35,7 +35,10 @@ APPROVED_IMPORTS: frozenset[str] = frozenset({
     "dataclasses", "enum", "re", "datetime", "textwrap", "warnings", "sys",
 })
 
-FIGURES_DIR: Path = PROJECT_ROOT / "latex" / "figures"
+# Default figures directory — used only when no run_folder is configured.
+# At runtime PythonCodeExecutorTool is always instantiated with figures_dir
+# pointing to {run_folder}/latex/figures/ so this constant is never hit.
+_DEFAULT_FIGURES_DIR: Path = PROJECT_ROOT / "latex" / "figures"
 
 
 # ---------------------------------------------------------------------------
@@ -55,7 +58,7 @@ class CodeExecutorInput(BaseModel):
         ...,
         description=(
             "Basename only (e.g. 'fig_trajectory_3d.png'). "
-            "Must end in .png. Saved to latex/figures/."
+            "Must end in .png. Saved to the run's figures directory."
         ),
     )
 
@@ -117,6 +120,7 @@ def _build_script(code: str, output_path: Path) -> str:
 class PythonCodeExecutorTool(BaseTool):
     """
     Executes a Python matplotlib script in a sandboxed subprocess.
+    Instantiate with figures_dir pointing at {run_folder}/latex/figures/.
     """
 
     name: str = "PythonCodeExecutorTool"
@@ -130,13 +134,15 @@ class PythonCodeExecutorTool(BaseTool):
         "Returns the absolute path on success or an error message on failure."
     )
     args_schema: Type[BaseModel] = CodeExecutorInput
+    # Per-run figures directory — set by crew.py at instantiation time.
+    figures_dir: Path = _DEFAULT_FIGURES_DIR
 
     def _run(self, code: str, output_filename: str, **kwargs: Any) -> str:
         # 0. Sanitise filename
         if not output_filename.endswith(".png"):
             return f"ERROR: output_filename must end in .png, got {output_filename!r}"
         output_filename = Path(output_filename).name  # strip any path component
-        output_path = FIGURES_DIR / output_filename
+        output_path = self.figures_dir / output_filename
 
         # 1. AST import validation
         violations = validate_imports(code)
@@ -148,7 +154,7 @@ class PythonCodeExecutorTool(BaseTool):
             return msg
 
         # 2. Ensure output directory exists
-        FIGURES_DIR.mkdir(parents=True, exist_ok=True)
+        self.figures_dir.mkdir(parents=True, exist_ok=True)
 
         # 3. Build script
         script = _build_script(code, output_path)
@@ -194,7 +200,7 @@ class PythonCodeExecutorTool(BaseTool):
         if not output_path.exists():
             return (
                 f"ERROR: script completed but {output_filename!r} not found in "
-                f"{FIGURES_DIR}. Ensure script calls "
+                f"{self.figures_dir}. Ensure script calls "
                 f"plt.savefig(output_path, dpi=300, bbox_inches='tight')."
             )
 

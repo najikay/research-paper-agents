@@ -104,10 +104,10 @@ def test_read_existing_file(tmp_path: Path):
 
 
 def test_read_missing_file():
-    """FileReaderTool must return the canonical error string for a missing file."""
+    """FileReaderTool must return an error string starting with 'ERROR:' for a missing file."""
     tool = FileReaderTool()
     result = tool._run(file_path="/nonexistent/path/that/does/not/exist.tex")
-    assert result == "ERROR: file not found."
+    assert result.startswith("ERROR:"), f"Expected error message, got: {result!r}"
 
 
 def test_write_content_correct(tmp_path, monkeypatch):

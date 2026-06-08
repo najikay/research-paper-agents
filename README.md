@@ -54,10 +54,10 @@ main.py --topic "..."
 | **Quality gate** | Programmatic checker in LangGraph node — no LLM, no loop risk |
 | **Feedback loop** | LangGraph conditional edge: score < 75 → targeted remediation (max 2 cycles) |
 | **Fault tolerance** | Every task writes an `output_file`; `--resume` skips completed tasks |
-| **Run archiving** | Each run gets its own folder in `outputs/runs/` with figures, LaTeX source, and PDF |
+| **Run-folder architecture** | `outputs/runs/{slug}-{date}/` is the single source of truth per run; project-root `latex/` is a read-only template |
 | **Cost** | DeepSeek V3 via OpenAI-compatible API (~$0.07/run) |
 | **Bilingual LaTeX** | XeLaTeX + polyglossia + bidi; `bidi` must be loaded last; `\\[len]` → `\vspace{}` |
-| **Protected files** | `cover.tex`, `main.tex`, `ch01_intro.tex`, `ch04_slam.tex` blocked from agent writes |
+| **Protected files** | `cover.tex`, `main.tex`, `ch01_intro.tex`, `ch04_slam.tex` blocked by basename matching |
 
 ---
 
@@ -133,29 +133,30 @@ python main.py --topic "..." --no-archive
 
 ### Output Layout
 
-Each run is automatically archived to a uniquely-named folder:
+Each run is self-contained in a uniquely-named folder. The project-root `latex/` is a **read-only template** and is never modified during a run:
 
 ```
 outputs/runs/
 └── bat-inspired-drone-navigation-2026-06-08/   ← {topic-slug}-{date}
-    ├── figures/                   ← 9 PNG figures (300 DPI) — direct access
-    │   ├── fig_bat_sonar.png
-    │   └── ...
-    ├── outputs/                   ← agent reports
+    ├── latex/                     ← primary LaTeX workspace (agents write here)
+    │   ├── main.tex               ← PROTECTED
+    │   ├── chapters/              ← cover + ch01 + ch04 (static) + 8 agent-written .tex files
+    │   ├── figures/               ← 9 agent-generated PNG figures (300 DPI)
+    │   │   ├── fig_bat_vs_artificial.png
+    │   │   └── ...
+    │   ├── references.bib         ← 14+ BibTeX entries (agent-written)
+    │   ├── IEEEtran.cls / .bst
+    │   └── main.log               ← XeLaTeX compile log
+    ├── outputs/                   ← agent .md reports (moved from staging on completion)
     │   ├── paper_outline.md       ← Director's topic decomposition
     │   ├── research_briefs.md     ← Researcher's English-language findings
     │   ├── hebrew_prose.md        ← HebrewAcademicWriter prose (pre-LaTeX)
-    │   ├── figures_manifest.md    ← figure descriptions and PNG paths
+    │   ├── figures_manifest.md    ← figure descriptions and exact PNG filenames
     │   ├── latex_status.md        ← LaTeXAuthor completion status
-    │   ├── quality_report.md      ← programmatic gate verdict (JSON)
+    │   ├── quality_report.md      ← programmatic gate verdict (JSON + score)
     │   └── token_report.md        ← per-agent cost accounting
-    ├── latex/                     ← full LaTeX source snapshot
-    │   ├── main.tex
-    │   ├── chapters/              ← cover + abstract + 9 chapter .tex files
-    │   ├── figures/               ← same PNGs as top-level figures/
-    │   └── references.bib         ← 14+ BibTeX entries
     ├── paper.pdf                  ← compiled IEEE paper
-    └── run_manifest.txt           ← index of all archived files
+    └── run_manifest.txt           ← file index with figure listing
 
 # Duplicate dates get versioned automatically:
 └── bat-inspired-drone-navigation-2026-06-08-v2/
@@ -217,12 +218,12 @@ where $\hat{v}_{r,k}$ comes from the EKF posterior and $\varepsilon_k$ is the fo
 │   ├── tools/                 ← ArXiv, Serper, WebScraper, SafeFileWriter, CodeExecutor
 │   ├── graph/                 ← LangGraph state machine (state, nodes, graph)
 │   └── utils/                 ← TokenAccountant
-├── latex/
+├── latex/                     ← READ-ONLY TEMPLATE (never modified during runs)
 │   ├── main.tex               ← PROTECTED master document
 │   ├── chapters/              ← cover.tex (PROTECTED), ch01_intro.tex (PROTECTED),
-│   │                             ch04_slam.tex (PROTECTED), + agent-written chapters
-│   ├── figures/               ← agent-generated PNG figures
-│   ├── references.bib         ← agent-generated bibliography
+│   │                             ch04_slam.tex (PROTECTED), + seed files
+│   ├── figures/               ← empty; figures go to run_folder/latex/figures/
+│   ├── references.bib         ← seed bibliography (14 required keys)
 │   ├── IEEEtran.cls
 │   └── IEEEtran.bst
 ├── outputs/

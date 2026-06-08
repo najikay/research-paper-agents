@@ -283,7 +283,7 @@ class TokenAccountant:
 
         return "\n".join(lines)
 
-    def save_report(self, path: str = "outputs/token_report.md") -> None:
+    def save_report(self, path: str = "outputs/current/token_report.md") -> None:
         raw = Path(path)
         dest = (PROJECT_ROOT / raw).resolve() if not raw.is_absolute() else raw
         dest.parent.mkdir(parents=True, exist_ok=True)

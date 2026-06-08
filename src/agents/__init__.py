@@ -3,4 +3,8 @@ from .slam_researcher import create_slam_researcher
 from .visualization_engineer import create_visualization_engineer
 from .hebrew_academic_writer import create_hebrew_academic_writer
 from .latex_author import create_latex_author
-from .quality_editor import create_quality_editor
+from .vision_ai_expert import create_vision_ai_expert
+from .physics_expert import create_physics_expert
+from .algorithms_expert import create_algorithms_expert
+from .aerospace_marine_expert import create_aerospace_marine_expert
+from .biology_expert import create_biology_expert
