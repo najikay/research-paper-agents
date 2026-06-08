@@ -143,11 +143,12 @@ def compile_pdf(run_folder: Path) -> Path | None:
         for f in latex_dir.glob(pattern):
             f.unlink(missing_ok=True)
 
-    logger.info("[LaTeX] Compiling PDF (xelatex → bibtex → xelatex × 2)...")
+    logger.info("[LaTeX] Compiling PDF (xelatex → bibtex → xelatex × 3)...")
     run(["xelatex", "-interaction=nonstopmode", "main.tex"])
     run(["bibtex", "main"])
     run(["xelatex", "-interaction=nonstopmode", "main.tex"])
     run(["xelatex", "-interaction=nonstopmode", "main.tex"])
+    run(["xelatex", "-interaction=nonstopmode", "main.tex"])  # 5th pass: resolves rerunfilecheck / cross-ref warnings
 
     if pdf_src.exists():
         shutil.copy2(pdf_src, pdf_dst)

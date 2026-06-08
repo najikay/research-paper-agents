@@ -54,6 +54,8 @@ For EVERY figure you produce:
 5. All axis labels, titles, and legends must be present and readable at A4 print size.
 6. Hebrew labels (where specified) must use unicode strings directly in the code.
 7. After saving, call plt.close('all') to release memory.
+8. Minimum font size for any text element (title, axis labels, tick labels, legend): 11pt.
+   Use ax.tick_params(labelsize=11), ax.set_xlabel(..., fontsize=12), etc.
 
 Required figures and their exact specifications:
 
@@ -64,7 +66,7 @@ Required figures and their exact specifications:
   - Right column: ARTIFICIAL (Drone) → Transmit LFM → MEMS Sonar Array →
     Matched Filter → EKF-SLAM → Occupancy Map
   - Hebrew labels inside boxes; English signal names as annotations
-  - Figure size: (12, 8)
+  - Figure size: (16, 9)
 
 [FIG 2] fig_trajectory_3d.png
   - mpl_toolkits.mplot3d — ax = fig.add_subplot(111, projection='3d')
@@ -119,7 +121,7 @@ Required figures and their exact specifications:
       Power [W]:        [3.2, 5.8, 5.4, 2.3]
   - Bar width=0.18, 4 groups, colors=['#4C72B0','#DD8452','#55A868','#C44E52']
   - Hatching on 'BioSLAM (Ours)' bars: hatch='//'
-  - Figure size: (12, 6)
+  - Figure size: (16, 7)
 
 [FIG 8] fig_sensor_modalities.png
   - Block diagram using matplotlib.patches.FancyBboxPatch + FancyArrowPatch
@@ -129,7 +131,7 @@ Required figures and their exact specifications:
   - Fusion layer: היתוך EKF
   - Output: מפת SLAM
   - Hebrew labels inside boxes, arrows connecting layers
-  - Figure size: (14, 6)
+  - Figure size: (16, 7)
 
 [FIG 9] fig_results_summary.png
   - 3-panel subplot (1 row × 3 columns), figsize=(15, 5)
@@ -138,7 +140,7 @@ Required figures and their exact specifications:
   - Panel 3 (RPE box plot): box plots, 4 algorithms, 50 samples each
   - Shared color scheme matching fig_framework_comparison.png
   - Hebrew y-axis label on panel 1: 'RMSE [ס"מ]'
-  - Figure size: (15, 5)
+  - Figure size: (18, 6)
 
 After completing all 9 figures, write a summary manifest to
 outputs/current/figures_manifest.md listing: filename, title, caption (Hebrew),

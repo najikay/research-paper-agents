@@ -76,6 +76,9 @@ def create_task_figures(visualizer: Agent, context: list[Task], run_folder: Path
     return Task(
         description=(
             f"Generate 9 IEEE-standard figures and save them to {latex_figures}/.\n"
+            f"Wide figures (fig_bat_vs_artificial, fig_sensor_modalities, fig_results_summary, "
+            f"fig_framework_comparison) should use figsize=(16, 7) or larger to ensure all "
+            f"text labels are readable at A4 print size. Minimum font size in any figure: 11pt.\n"
             f"Use the EXACT absolute path '{latex_figures}/' in every plt.savefig() call.\n"
             f"After saving all 9 figures, write the manifest to {_STAGING}/figures_manifest.md."
         ),
@@ -152,15 +155,33 @@ STEP 1 — READ ALL INPUTS (use FileReaderTool for each):
     All other domain files contain PhD-level contributions — incorporate them fully.
 
 STEP 2 — Write Hebrew prose for each chapter (CH02–CH09):
-    For each chapter: 150–250 words of polished Hebrew academic prose.
-    Use judgment to keep standard English technical terms (SLAM, EKF, LiDAR,
-    UAV, etc.) in English — the way a Technion professor writes.
-    Translate generic words to Hebrew. Do not write LaTeX.
-    Mark placements: [EQUATION: name], [FIGURE: name], [TABLE: description].
-    Mark citations: [CITE: BibKey].
-    Integrate domain-expert insights naturally into the prose.
+    TARGET: 25–30 printed pages total. Each chapter must be 3–4 pages ≈ 800–1200 words.
+    Chapters ch06 (algorithm) and ch08 (results) must reach 1200–1500 words each.
+
+    Per-chapter minimum content:
+        • 4+ subsections with substantive prose under each heading
+        • All equations listed in research briefs: write context paragraphs before/after each
+        • All algorithm steps: explain each step in prose (1–2 sentences per step)
+        • All tables: describe what the table shows and what the reader should conclude
+        • Mark placements inline: [EQUATION: name], [FIGURE: filename], [TABLE: description]
+        • Mark citations inline: [CITE: BibKey]
+
+    Language rules (CRITICAL — LaTeX will crash otherwise):
+        • Write prose in Hebrew.
+        • Keep standard technical acronyms in English: SLAM, EKF, UKF, LiDAR, UAV, IMU,
+          GPS, MEMS, ORB-SLAM3, iSAM2, GTSAM, CNN, ViT, ReLU, etc.
+        • NEVER use the em dash character (—). Use colon (:) or comma (,) instead.
+        • Do NOT write LaTeX commands — only prose text with inline markers.
+
+    Integrate ALL domain-expert contributions:
+        • Biology expert: bat mechanics, DSC, acoustic fovea
+        • Physics expert: matched filter math, Doppler, beamforming
+        • Algorithms expert: filter math, complexity, convergence proofs
+        • Aerospace expert: UAV dynamics, INS, AUV parallels
+        • Vision-AI expert: depth estimation, semantic SLAM
+        Each non-SKIP domain file adds mandatory content to at least 2 chapters.
 """.strip(),
-        expected_output=f"{_STAGING}/hebrew_prose.md with Hebrew prose for all 8 chapters incorporating domain expert contributions. Confirmation: 'HEBREW PROSE COMPLETE'.",
+        expected_output=f"{_STAGING}/hebrew_prose.md with Hebrew prose for all 8 chapters incorporating domain expert contributions. ≥800 words per chapter, ≥1200 for ch06/ch08. Confirmation: 'HEBREW PROSE COMPLETE'.",
         agent=writer,
         context=context,
         output_file=f"{_STAGING}/hebrew_prose.md",
@@ -204,12 +225,41 @@ FILES TO WRITE (exact paths — write ALL of these):
     {bib_path}
 
 CONTENT DEPTH — each of ch02–ch09 must have:
-    • Minimum 600 words of Hebrew prose
-    • Minimum 4 \\subsection{{}} blocks
-    • Minimum 3 numbered equations with derivation text
+    • Minimum 1000 words of Hebrew prose
+    • Minimum 5 \\subsection{{}} blocks
+    • Minimum 4 numbered equations with derivation text surrounding each
     • Minimum 2 \\includegraphics{{}} figures (using PNGs from the manifest)
     • Minimum 1 booktabs table
-    ch06 (algorithm) and ch08 (results) must have ≥ 900 words each.
+    ch06 (algorithm) and ch08 (results) must have ≥ 1400 words each.
+
+FIGURE WIDTH RULES (critical for readability):
+    • Single figures spanning one column: [width=0.98\\columnwidth]
+    • Wide figures (flowcharts, block diagrams, multi-panel): [width=\\textwidth]
+    • Figures in {{figure*}} float span both columns: use for fig_bat_vs_artificial,
+      fig_results_summary, fig_sensor_modalities, fig_framework_comparison
+    • NEVER use width smaller than 0.9\\columnwidth — figures must be readable in print.
+    • Prefer {{figure*}} for any figure wider than it is tall.
+
+LABEL UNIQUENESS (prevents multiply-defined label warnings):
+    • Every \\label{{}} must be globally unique across ALL chapter files.
+    • Convention: \\label{{fig:ch02_bat_vs_art}}, \\label{{eq:ch03_lfm}}, \\label{{tab:ch07_specs}}
+    • Prefix every label with the chapter ID (ch02_, ch03_, etc.).
+
+INLINE ENGLISH (prevents bidi language-switch crashes):
+    • Every English word or phrase inside Hebrew prose MUST be wrapped: \\en{{word}}
+    • Examples: \\en{{SLAM}}, \\en{{EKF-SLAM}}, \\en{{LiDAR}}, \\en{{ORB-SLAM3}}
+    • Math environments ($...$, \\begin{{equation}}) are already in a neutral mode — no \\en{{}} needed inside math.
+    • Section titles that mix Hebrew and English: use \\en{{}} for the English parts.
+    • Failure to wrap English causes "Missing character" warnings and corrupt PDF rendering.
+
+APPENDIX: Add an appendix section after ch09 with:
+    \\appendix
+    \\section{{רשימת סמלים ומשתנים}}  (List of symbols and variables)
+    A two-column table: Symbol | Definition | Units
+    Include at least 20 symbols used in the paper's equations.
+    This adds 1–2 pages organically without padding prose.
+    (Appendix content goes at the bottom of ch09_conclusion.tex after the conclusion text,
+    preceded by \\appendix.)
 
 CITATION KEYS — references.bib MUST define ALL of these keys (and may add more):
     Thrun2005ProbRobotics, Kalman1960, Grisetti2010g2o, MurArtal2015ORB,
@@ -242,9 +292,10 @@ Use SafeFileWriterTool for EVERY file you write (chapters AND references.bib).
 """.strip(),
         expected_output=(
             "10 .tex files and references.bib written to latex/. "
-            "Each chapter ≥ 600 words, ≥ 4 subsections, ≥ 3 equations. "
+            "Each chapter ≥ 1000 words, ≥ 5 subsections, ≥ 4 equations. "
             "references.bib contains all 14 required citation keys. "
             "No em dashes in Hebrew prose. No placeholder figure boxes. "
+            "No multiply-defined labels. All English wrapped in \\en{}. "
             "Confirmation: 'LATEX COMPLETE'."
         ),
         agent=author,

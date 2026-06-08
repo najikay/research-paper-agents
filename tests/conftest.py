@@ -20,9 +20,9 @@ import pytest
 def good_chapter_content() -> str:
     """A valid minimal .tex chapter satisfying all quality-gate criteria."""
     # Build a string that has:
-    #   >=2 \begin{equation}, >=1 \includegraphics, >=3 \subsection,
-    #   >=2 \cite{}, >=300 words, no em dashes, no \begin{center}
-    words = " ".join(["מילה"] * 320)  # ~320 Hebrew words to exceed the 300-word threshold
+    #   >=3 \begin{equation}, >=1 \includegraphics, >=3 \subsection,
+    #   >=2 \cite{}, >=600 words, no em dashes, no \begin{center}
+    words = " ".join(["מילה"] * 650)  # ~650 Hebrew words to exceed the 600-word threshold
     return r"""
 \selectlanguage{hebrew}
 \section{פרק לדוגמה}
@@ -48,6 +48,11 @@ def good_chapter_content() -> str:
 
 \subsection{תת-סעיף שלישי}
 תוכן שלישי עם ניתוח תוצאות.
+\begin{equation}
+    z_k = H x_k + v_k
+    \label{eq:measurement}
+\end{equation}
+מודל המדידה מוצג במשוואה~(\ref{eq:measurement}).
 
 \begin{figure}[H]
     \centering

@@ -111,8 +111,8 @@ def run_quality_gate(state: PipelineState) -> dict:
         word_est  = len(text.split())
 
         chapter_issues = []
-        if eq_count < 2:
-            chapter_issues.append(f"equations={eq_count}<2")
+        if eq_count < 3:
+            chapter_issues.append(f"equations={eq_count}<3")
             score -= 3
         if fig_count < 1:
             chapter_issues.append(f"figures={fig_count}<1")
@@ -123,8 +123,8 @@ def run_quality_gate(state: PipelineState) -> dict:
         if cite_count < 2:
             chapter_issues.append(f"citations={cite_count}<2")
             score -= 2
-        if word_est < 300:
-            chapter_issues.append(f"words≈{word_est}<300")
+        if word_est < 600:
+            chapter_issues.append(f"words≈{word_est}<600")
             score -= 4
             failed_sections.append("methodology")
 
@@ -180,7 +180,7 @@ def run_quality_gate(state: PipelineState) -> dict:
         failed_sections.append("figures")
     if emdash_files:
         issues.append(f"Em dashes in Hebrew prose: {emdash_files}")
-        score -= 3
+        score -= 2
     if center_files:
         issues.append(f"\\begin{{center}} at document level (bidi crash risk): {center_files}")
         score -= 10
@@ -210,11 +210,11 @@ def run_quality_gate(state: PipelineState) -> dict:
 ## Checks Performed
 
 - Chapter file existence and minimum size
-- Equations per chapter (≥2 required)
+- Equations per chapter (≥3 required)
 - Figures per chapter (≥1 required)
 - Subsections per chapter (≥3 required)
 - Citations per chapter (≥2 required)
-- Word count estimate per chapter (≥300 required)
+- Word count estimate per chapter (≥600 required)
 - Required BibTeX keys ({len(REQUIRED_CITE_KEYS)} keys checked)
 - Placeholder figure boxes
 - Em dashes in Hebrew prose
