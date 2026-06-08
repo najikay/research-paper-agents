@@ -27,31 +27,37 @@ main.py --topic "..."
 └─────────────────────────────────────────────┘
         │
         ▼
-  CrewAI Sequential Crew (inside each node)
-  ┌──────────────────────────────────────────┐
-  │  1. NavigationDirector   → paper_outline │
-  │  2. SLAMResearcher       → research_briefs│
-  │  3. VisualizationEngineer → 9 PNG figures │
-  │  4. LaTeXAuthor          → .tex + .bib   │
-  │  5. QualityEditor        → quality_report│
-  └──────────────────────────────────────────┘
+  CrewAI Sequential Crew
+  ┌──────────────────────────────────────────────┐
+  │  1. NavigationDirector  → paper_outline.md   │
+  │  2. SLAMResearcher      → research_briefs.md │
+  │  3. VisualizationEngineer → 9 PNG figures    │
+  │  4. HebrewAcademicWriter → hebrew_prose.md   │
+  │  5. LaTeXAuthor         → .tex chapters + .bib│
+  └──────────────────────────────────────────────┘
         │
         ▼
-  XeLaTeX compiler (automatic)
+  Programmatic quality gate (no LLM — deterministic)
         │
         ▼
-  outputs/NavigatorCrew_paper.pdf
+  XeLaTeX compiler (xelatex → bibtex → xelatex × 2)
+        │
+        ▼
+  outputs/runs/{slug}-{date}/paper.pdf
 ```
 
 ### Key Design Decisions
 
 | Feature | Implementation |
 |---|---|
-| **Feedback loop** | LangGraph conditional edge: quality score < 75 → targeted remediation sub-crew |
+| **Language separation** | Research in English → HebrewAcademicWriter → LaTeXAuthor (pure formatter) |
+| **Quality gate** | Programmatic checker in LangGraph node — no LLM, no loop risk |
+| **Feedback loop** | LangGraph conditional edge: score < 75 → targeted remediation (max 2 cycles) |
 | **Fault tolerance** | Every task writes an `output_file`; `--resume` skips completed tasks |
-| **Cost optimization** | DeepSeek V3 (~$0.03/full run vs ~$3+ with GPT-4) |
-| **Strict tools fix** | Patched `crewai/utilities/agent_utils.py` — hardcoded `strict: True` → `False` |
-| **Bilingual LaTeX** | XeLaTeX + polyglossia + bidi; correct package load order (bidi must be last) |
+| **Run archiving** | Each run gets its own folder in `outputs/runs/` with figures, LaTeX source, and PDF |
+| **Cost** | DeepSeek V3 via OpenAI-compatible API (~$0.07/run) |
+| **Bilingual LaTeX** | XeLaTeX + polyglossia + bidi; `bidi` must be loaded last; `\\[len]` → `\vspace{}` |
+| **Protected files** | `cover.tex`, `main.tex`, `ch01_intro.tex`, `ch04_slam.tex` blocked from agent writes |
 
 ---
 
@@ -61,7 +67,6 @@ main.py --topic "..."
 
 - Python 3.11+
 - XeLaTeX: `sudo apt install texlive-xetex texlive-lang-other`
-- bidi (installed automatically via `make setup` or `tlmgr`)
 
 ### 2. Install
 
@@ -76,17 +81,13 @@ pip install -r requirements.txt
 
 ```bash
 cp .env.example .env
-# Edit .env:
+# Edit .env with your keys
 ```
 
 ```env
-# Required
-ANTHROPIC_API_KEY=sk-ant-...     # or leave blank if using DeepSeek
-SERPER_API_KEY=...               # free at serper.dev
-
-# DeepSeek (recommended — much cheaper, fully compatible)
-DEEPSEEK_API_KEY=sk-...          # get at platform.deepseek.com
-ACTIVE_PROVIDER=deepseek         # switch: "anthropic" | "deepseek"
+DEEPSEEK_API_KEY=sk-...     # platform.deepseek.com
+ACTIVE_PROVIDER=deepseek
+SERPER_API_KEY=...          # free at serper.dev
 ```
 
 ### 4. Install bidi (first time only)
@@ -96,7 +97,7 @@ tlmgr init-usertree
 tlmgr --repository http://ftp.math.utah.edu/pub/tex/historic/systems/texlive/2023/tlnet-final install bidi
 ```
 
-And register Windows fonts with fontconfig (WSL only):
+Register Windows fonts with fontconfig (WSL only):
 
 ```bash
 mkdir -p ~/.config/fontconfig
@@ -123,10 +124,10 @@ python main.py --topic "Bat-Inspired Drone Navigation via Bio-Mimetic Sensor Fus
 # Resume after crash (skips tasks with existing output files)
 python main.py --topic "..." --resume
 
-# Content only, skip PDF compilation
+# Content only, no PDF compilation
 python main.py --topic "..." --no-pdf
 
-# Skip archiving (smoke tests)
+# Skip archiving (smoke tests / quick iterations)
 python main.py --topic "..." --no-archive
 ```
 
@@ -139,24 +140,23 @@ outputs/runs/
 └── bat-inspired-drone-navigation-2026-06-08/   ← {topic-slug}-{date}
     ├── figures/                   ← 9 PNG figures (300 DPI) — direct access
     │   ├── fig_bat_sonar.png
-    │   ├── fig_ekf_covariance.png
     │   └── ...
     ├── outputs/                   ← agent reports
     │   ├── paper_outline.md       ← Director's topic decomposition
     │   ├── research_briefs.md     ← Researcher's English-language findings
     │   ├── hebrew_prose.md        ← HebrewAcademicWriter prose (pre-LaTeX)
-    │   ├── figures_manifest.md    ← figure descriptions and generation code
+    │   ├── figures_manifest.md    ← figure descriptions and PNG paths
     │   ├── quality_report.md      ← programmatic gate verdict (JSON)
     │   └── token_report.md        ← per-agent cost accounting
     ├── latex/                     ← full LaTeX source snapshot
     │   ├── main.tex
-    │   ├── chapters/              ← abstract + cover + 8 chapter files
+    │   ├── chapters/              ← cover + abstract + 9 chapter .tex files
     │   ├── figures/               ← same PNGs as top-level figures/
-    │   └── references.bib         ← 14 BibTeX entries
+    │   └── references.bib         ← 14+ BibTeX entries
     ├── paper.pdf                  ← compiled IEEE paper
     └── run_manifest.txt           ← index of all archived files
 
-# If same date already exists, the next run gets -v2, -v3, etc.:
+# Duplicate dates get versioned automatically:
 └── bat-inspired-drone-navigation-2026-06-08-v2/
 ```
 
@@ -168,19 +168,17 @@ outputs/runs/
 
 | Agent | Model | Tools | Role |
 |---|---|---|---|
-| NavigationDirector | DeepSeek V3 | FileWriter | Decomposes topic → 8 sub-domains, writes outline with English search keywords |
-| SLAMResearcher | DeepSeek V3 | Serper, ArXiv, WebScraper | Deep English-language literature research, produces structured briefs |
-| VisualizationEngineer | DeepSeek V3 | CodeExecutor, FileWriter | Generates 9 IEEE-standard figures via matplotlib |
+| NavigationDirector | DeepSeek V3 | FileWriter | Decomposes topic → 8 sub-domains; writes outline with English search keywords |
+| SLAMResearcher | DeepSeek V3 | Serper, ArXiv, WebScraper | English-language literature research; produces structured briefs per chapter |
+| VisualizationEngineer | DeepSeek V3 | CodeExecutor, FileWriter | Generates 9 IEEE-standard PNG figures via matplotlib |
 | HebrewAcademicWriter | DeepSeek V3 | FileReader, FileWriter | Converts English briefs → polished Hebrew academic prose; preserves English technical terms by judgment |
-| LaTeXAuthor | DeepSeek V3 | FileWriter, FileReader | Pure formatter: wraps pre-written Hebrew prose in XeLaTeX environments, inserts equations/figures/tables |
+| LaTeXAuthor | DeepSeek V3 | FileWriter, FileReader | Pure formatter: wraps Hebrew prose in XeLaTeX environments; inserts equations, figures, tables |
 
-> **Quality gate** is programmatic (no LLM agent) — checks equation count, figure count, BibTeX key completeness, forbidden patterns, and word estimates per chapter. Deterministic, zero loop risk.
+**Quality gate** is programmatic (no LLM) — checks equation count, figure count, BibTeX key completeness, forbidden patterns (`\begin{center}`, em dashes, placeholders), and word count per chapter. Deterministic, zero loop risk.
 
 ---
 
-## Originality Contributions
-
-### AF-AFC Controller (Acoustic Fovea — Adaptive Frequency Controller)
+## Originality Contribution: AF-AFC Controller
 
 The paper's central original contribution, derived from the biology of *Rhinolophus ferrumequinum* (horseshoe bats):
 
@@ -196,9 +194,10 @@ where $\hat{v}_{r,k}$ comes from the EKF posterior and $\varepsilon_k$ is the fo
 
 ## Cost
 
-| Provider | Model | Full Run Cost |
+| Provider | Model | Estimated Cost per Run |
 |---|---|---|
 | DeepSeek V3 | deepseek-chat | ~$0.07 |
+| DeepSeek V3 (with 2 remediation cycles) | deepseek-chat | ~$0.14 max |
 
 ---
 
@@ -206,19 +205,26 @@ where $\hat{v}_{r,k}$ comes from the EKF posterior and $\varepsilon_k$ is the fo
 
 ```
 .
-├── main.py                    ← entry point
+├── main.py                    ← entry point; run archiving; PDF compilation
 ├── requirements.txt
 ├── .env.example
 ├── src/
-│   ├── config.py              ← LLM init, model switching, logging
-│   ├── crew.py                ← CrewAI assembly
-│   ├── agents/                ← 5 agent factory functions
-│   ├── tasks/                 ← task factories + remediation task
-│   ├── tools/                 ← ArXiv, Serper, WebScraper, FileWriter, CodeExecutor
+│   ├── config.py              ← LLM init, PROTECTED_FILES, logging
+│   ├── crew.py                ← CrewAI assembly (5 agents, 5 tasks)
+│   ├── agents/                ← factory functions for each agent
+│   ├── tasks/                 ← task factories (outline/research/figures/prose/latex)
+│   ├── tools/                 ← ArXiv, Serper, WebScraper, SafeFileWriter, CodeExecutor
 │   ├── graph/                 ← LangGraph state machine (state, nodes, graph)
 │   └── utils/                 ← TokenAccountant
-├── latex/                     ← generated LaTeX source + figures
-├── outputs/                   ← generated research artifacts + final PDF
-├── docs/                      ← PLAN.md, PRD.md, TODO.md
-└── tests/                     ← agent and tool unit tests
+├── latex/
+│   ├── main.tex               ← PROTECTED master document
+│   ├── chapters/              ← cover.tex (PROTECTED), ch01_intro.tex (PROTECTED),
+│   │                             ch04_slam.tex (PROTECTED), + agent-written chapters
+│   ├── figures/               ← agent-generated PNG figures
+│   ├── references.bib         ← agent-generated bibliography
+│   ├── IEEEtran.cls
+│   └── IEEEtran.bst
+├── outputs/
+│   └── runs/                  ← per-run archives (gitignored)
+└── docs/                      ← PLAN.md, PRD.md, TODO.md, BUDGET.md
 ```

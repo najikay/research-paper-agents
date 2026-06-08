@@ -1,35 +1,101 @@
-# Product Requirements Document (PRD)
-## Assignment 3: NavigatorCrew — Robust Research Platform
-**Version**: 4.0 | **Date**: 2026-06-08
+# Product Requirements Document — NavigatorCrew
+**Version**: 5.1 | **Date**: 2026-06-08
 
 ---
 
-## 1. Executive Summary
-**NavigatorCrew** is a robust, cost-effective multi-agent system designed to autonomously produce high-quality IEEE papers. The 4.0 architecture focuses on **stability**, **budget-friendliness**, and **fault tolerance** to prevent the system from getting "stuck" during long runs.
+## 1. Summary
 
-## 2. Architecture: "The Robust Pipeline"
-- **Process**: `Process.sequential` (Preferred over hierarchical for fixed-path automation to avoid manager loops).
-- **Persistence**: Task-level checkpointing. Every major task saves its output to a JSON/Markdown file. If the system restarts, it skips completed steps.
-- **Model Tiering**:
-    - **Tier 1 (Reasoning)**: `claude-3-5-sonnet-20240620` for Director (Planning) and Editor (Quality).
-    - **Tier 2 (Volume)**: `claude-3-haiku-20240307` (or `gpt-4o-mini`) for Researcher (Heavy searching/summarizing).
-- **Security**: Strict AST-based code validation for the Visualization Engineer.
+NavigatorCrew is an autonomous multi-agent system that takes a research topic as input and produces a complete, compiled IEEE-formatted bilingual (Hebrew/English) academic paper. It is built on CrewAI v1.14+ (sequential process) wrapped in a LangGraph state machine with a programmatic quality gate and automatic run archiving.
 
-## 3. Agents & Model Assignments
-| Agent | Role | Model Tier | Responsibility |
+---
+
+## 2. Pipeline Architecture
+
+```
+main.py --topic "..."
+  └─► LangGraph state machine
+        ├─ run_main_pipeline   → 5-agent CrewAI crew (sequential)
+        ├─ run_quality_gate    → programmatic checker (no LLM)
+        ├─ run_remediation     → targeted fix crew (max 2 cycles)
+        └─ END                 → XeLaTeX compile + run archive
+```
+
+### CrewAI Sequential Pipeline
+
+| # | Agent | Input | Output |
 |---|---|---|---|
-| NavigationDirector | Manager/Planner | Tier 1 (Sonnet) | Decompose topic, plan outline |
-| SLAMResearcher | Deep Researcher | Tier 2 (Haiku) | Web/ArXiv search, raw drafting |
-| VisualizationEngineer | Data Scientist | Tier 1 (Sonnet) | Python code for figures |
-| LaTeXAuthor | Technical Writer | Tier 1 (Sonnet) | LaTeX assembly |
-| QualityEditor | Auditor | Tier 1 (Sonnet) | Consistency check, final review |
+| 1 | NavigationDirector | `--topic` | `outputs/paper_outline.md` |
+| 2 | SLAMResearcher | outline | `outputs/research_briefs.md` |
+| 3 | VisualizationEngineer | briefs | `latex/figures/*.png` + `outputs/figures_manifest.md` |
+| 4 | HebrewAcademicWriter | briefs | `outputs/hebrew_prose.md` |
+| 5 | LaTeXAuthor | prose + figures | `latex/chapters/*.tex` + `latex/references.bib` |
 
-## 4. Fault Tolerance Mechanisms
-- **Max Iterations**: Capped at 5-15 depending on the agent to prevent infinite loops.
-- **Output Files**: Every task MUST have a defined `output_file`.
-- **Validation**: Each agent output is validated before being passed to the next step.
+### Quality Gate (programmatic, in LangGraph node)
 
-## 5. Success Metrics
-- **Zero-Stall Execution**: Kickoff to completion without manual intervention.
-- **Budget Compliance**: < $5.00 per full paper generation.
-- **High Quality**: > 25 pages, correct BiDi Hebrew, 15+ citations, 9 figures.
+Checks per chapter file:
+- Equation count ≥ 2
+- Figure count ≥ 1
+- Subsection count ≥ 3
+- Word estimate ≥ 300
+- Citation count ≥ 2
+- All 14 required BibTeX keys present in `references.bib`
+- No forbidden patterns: `\begin{center}` at document level, em dashes in Hebrew prose, placeholder `\fbox` boxes
+
+Score < 75 → FAIL → remediation crew (max 2 cycles) → re-check.
+
+---
+
+## 3. Agents
+
+| Agent | Model | Max Iter | Tools |
+|---|---|---|---|
+| NavigationDirector | DeepSeek V3 | 12 | SafeFileWriter |
+| SLAMResearcher | DeepSeek V3 | 18 | Serper, ArXiv, WebScraper |
+| VisualizationEngineer | DeepSeek V3 | 12 | CodeExecutor, SafeFileWriter |
+| HebrewAcademicWriter | DeepSeek V3 | 20 | FileReader, SafeFileWriter |
+| LaTeXAuthor | DeepSeek V3 | 25 | SafeFileWriter, FileReader |
+
+---
+
+## 4. Language Separation
+
+Research is conducted entirely in English (Serper/ArXiv queries, research briefs). A dedicated HebrewAcademicWriter converts the English briefs into polished Hebrew academic prose, preserving English technical terms by judgment (not a hardcoded list — the same way a Technion professor writes). LaTeXAuthor is a pure formatter: it wraps pre-written Hebrew prose in XeLaTeX environments without translating or paraphrasing.
+
+---
+
+## 5. Protected Files
+
+The following files are blocked from agent writes in `SafeFileWriterTool`:
+
+| File | Reason |
+|---|---|
+| `latex/main.tex` | Controls chapter order and XeLaTeX preamble |
+| `latex/chapters/cover.tex` | `\\[len]` fix for bidi crash; student name/date |
+| `latex/chapters/ch01_intro.tex` | Static intro with fixed citation keys |
+| `latex/chapters/ch04_slam.tex` | Static SLAM chapter with fixed citation keys |
+| `src/config.py` | Runtime configuration |
+| `.env`, `.gitignore`, `requirements.txt` | Project hygiene |
+
+---
+
+## 6. Run Archiving
+
+Each run is saved to `outputs/runs/{topic-slug}-{YYYY-MM-DD}/` (versioned with `-v2`, `-v3` on same date). Archive contains:
+- `figures/` — PNG figures for direct access
+- `outputs/` — all agent .md reports
+- `latex/` — full LaTeX source snapshot
+- `paper.pdf` — compiled PDF
+- `run_manifest.txt` — file index
+
+---
+
+## 7. Success Criteria
+
+| Criterion | Target |
+|---|---|
+| Paper length | 25–30 printed A4 pages |
+| Quality gate score | ≥ 75/100 |
+| Required BibTeX keys | All 14 present |
+| LaTeX compilation | xelatex exits 0, no `!` errors |
+| Cost per run | ≤ $0.14 (including worst-case remediation) |
+| Execution | Unattended, no manual intervention |

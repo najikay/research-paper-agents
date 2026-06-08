@@ -1,44 +1,52 @@
-# NavigatorCrew — TODO / Status
+# NavigatorCrew — TODO
 
-## COMPLETED ✅
+## Done ✅
 
-### System Architecture
-- [x] CrewAI sequential pipeline (5 agents, 5 tasks)
-- [x] LangGraph state machine wrapping CrewAI (feedback loop / remediation)
-- [x] `--resume` flag with task-level checkpointing via `output_file`
+### Pipeline
+- [x] 5-agent CrewAI sequential crew (Director → Researcher → Visualizer → HebrewWriter → LaTeXAuthor)
+- [x] LangGraph state machine (main pipeline → quality gate → remediation → END)
+- [x] Programmatic quality gate (replaces infinite-loop LLM reviewer)
+- [x] `--resume` flag: task-level checkpointing via `output_file`
 - [x] `--no-pdf` flag for content-only runs
+- [x] `--no-archive` flag for smoke tests
+- [x] Run archiving: `outputs/runs/{slug}-{date}/` with figures/, outputs/, latex/, paper.pdf
 
-### LLM Configuration
-- [x] Migrated from Anthropic Claude to DeepSeek V3 (OpenAI-compatible API)
-- [x] Fixed CrewAI v1.14.6 `strict tools` bug (patched `agent_utils.py`)
-- [x] Model tiering: SONNET_LLM / HAIKU_LLM both point to deepseek-chat
-- [x] `ACTIVE_PROVIDER` env switch: `anthropic` | `deepseek`
+### Agents
+- [x] HebrewAcademicWriter agent (language separation: English research → Hebrew prose)
+- [x] LaTeXAuthor simplified to pure formatter (no translation)
+- [x] Researcher forced to search in English (Serper/ArXiv queries)
+- [x] All agents use DeepSeek V3
 
-### Content
-- [x] Acoustic Fovea + AF-AFC controller section injected (Ch. 4)
-- [x] BibTeX citations added: Schnitzler1968DSC, Schuller1974DSC + 12 others
-- [x] 9/9 figures generated (PNG, 300 DPI)
-- [x] All 9 chapter .tex files generated
-- [x] references.bib with 14 real BibTeX entries
+### LaTeX / Compilation
+- [x] `cover.tex` bidi crash fixed: `\\[length]` → `\vspace{}` throughout
+- [x] `main.tex` restored: ch0X_ naming, cover.tex + abstract.tex included
+- [x] Stale `chapter0X_*.tex` duplicates deleted
+- [x] PROTECTED_FILES blocks agent writes to cover.tex, main.tex, ch01, ch04, config.py
+- [x] SafeFileWriterTool checks both basename and relative path
+- [x] Required 14 BibTeX keys baked into agent prompt and task description
+- [x] Em dash prohibition in LaTeXAuthor goal
+- [x] Package load order: fontspec → polyglossia → bidi (last)
 
-### LaTeX Compilation
-- [x] IEEEtran.cls and IEEEtran.bst downloaded to latex/
-- [x] bidi package installed via tlmgr (user tree)
-- [x] Windows fonts registered with fontconfig (David, Miriam, Times NR, Arial)
-- [x] Package load order fixed (all packages before `\setmainlanguage{hebrew}`)
-- [x] `\textlatin` → `\foreignlanguage{english}` throughout
-- [x] PDF compiles clean: 8 pages, 2.9 MB
-- [x] Automatic PDF compilation integrated into `main.py`
+### Configuration
+- [x] DeepSeek V3 as sole provider (Anthropic removed from .env.example)
+- [x] Provider-aware `validate_config()` (only checks DEEPSEEK_API_KEY)
+- [x] `outputs/NavigatorCrew_paper.pdf` removed from git tracking
 
-### Project Hygiene
-- [x] Junk files deleted (smoke_test, run_log, GEMINI.md, latex/venv/, latex/review/)
-- [x] LaTeX aux files excluded from git
-- [x] .gitignore updated
-- [x] Token report updated (DeepSeek costs, Anthropic failures excluded)
+### Docs
+- [x] README reflects v5.1 architecture, 5-agent crew, run archive layout
+- [x] PRD updated to v5.1
+- [x] PLAN updated to v5.1
 
-## REMAINING / OPTIONAL
+## Next Run Targets 🎯
 
-- [ ] Add student name and institution to `latex/chapters/cover.tex`
-- [ ] Expand chapter content (currently 8 pages; target 25+)
-- [ ] Final README on GitHub
-- [ ] Verify no API keys in git history before push
+- [ ] Paper compiles without xelatex errors
+- [ ] Paper reaches 25–30 pages
+- [ ] Quality gate score ≥ 75
+- [ ] references.bib has all 14 required keys
+- [ ] Push to GitHub
+
+## Backlog
+
+- [ ] ArXiv tool for researcher (real citations)
+- [ ] Post-run references.bib key validator
+- [ ] Token budget enforcement (abort if cost projected > threshold)
