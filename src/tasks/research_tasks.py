@@ -126,8 +126,8 @@ CITATION KEYS — references.bib MUST define ALL of these keys (and may add more
     GriffithBatEcholocation, Simmons1979BatSonar, Schnitzler1968DSC,
     Schuller1974DSC, MossEcholocation, Rihaczek1969MatchedFilter,
     CrewAIDocs, AnthropicClaude
-    These keys are cited in ch01_intro.tex and ch04_slam.tex — if they are
-    missing from references.bib the PDF will have [?] markers.
+    These keys are cited in the static protected chapters (ch01, ch04) — if
+    they are missing from references.bib the PDF will have [?] markers.
 
 EM DASH RULE — the character — is FORBIDDEN in Hebrew prose.
     Use colon (:) or comma (,) instead. Em dash is only permitted inside
