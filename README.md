@@ -117,34 +117,46 @@ fc-cache -f ~/.config/fontconfig
 ```bash
 source venv/bin/activate
 
-# Full run — generates content + compiles PDF
+# Full run — generates content + compiles PDF + archives to outputs/runs/
 python main.py --topic "Bat-Inspired Drone Navigation via Bio-Mimetic Sensor Fusion"
 
-# Resume after crash (skips completed tasks)
+# Resume after crash (skips tasks with existing output files)
 python main.py --topic "..." --resume
 
 # Content only, skip PDF compilation
 python main.py --topic "..." --no-pdf
+
+# Skip archiving (smoke tests)
+python main.py --topic "..." --no-archive
 ```
 
-Output is written to:
-```
-outputs/
-├── NavigatorCrew_paper.pdf    ← final compiled paper
-├── paper_outline.md           ← Director's decomposition
-├── research_briefs.md         ← Researcher's findings
-├── figures_manifest.md        ← figure metadata
-├── quality_report.md          ← Editor's structured review (JSON verdict)
-└── token_report.md            ← cost accounting
+### Output Layout
 
-latex/
-├── main.tex                   ← master document
-├── chapters/                  ← 9 chapter files + abstract + cover
-├── figures/                   ← 9 PNG figures (300 DPI)
-├── references.bib             ← 14 BibTeX entries
-├── IEEEtran.cls               ← IEEE document class
-└── IEEEtran.bst               ← IEEE bibliography style
+Each run is automatically archived to a uniquely-named folder:
+
 ```
+outputs/runs/
+└── bat-inspired-drone-navigation-2026-06-08/   ← {topic-slug}-{date}
+    ├── outputs/
+    │   ├── paper_outline.md       ← Director's topic decomposition
+    │   ├── research_briefs.md     ← Researcher's English-language findings
+    │   ├── hebrew_prose.md        ← HebrewAcademicWriter prose (pre-LaTeX)
+    │   ├── figures_manifest.md    ← figure descriptions and PNG paths
+    │   ├── quality_report.md      ← programmatic gate verdict (JSON)
+    │   └── token_report.md        ← per-agent cost accounting
+    ├── latex/                     ← full LaTeX source snapshot
+    │   ├── main.tex
+    │   ├── chapters/              ← abstract + cover + 8 chapter files
+    │   ├── figures/               ← 9 PNG figures (300 DPI)
+    │   └── references.bib         ← 14 BibTeX entries
+    ├── paper.pdf                  ← compiled IEEE paper
+    └── run_manifest.txt           ← human-readable file index
+
+# If same date already exists, the next run gets -v2, -v3, etc.:
+└── bat-inspired-drone-navigation-2026-06-08-v2/
+```
+
+> `outputs/runs/` is excluded from git — archives are local only.
 
 ---
 
@@ -152,11 +164,13 @@ latex/
 
 | Agent | Model | Tools | Role |
 |---|---|---|---|
-| NavigationDirector | DeepSeek V3 | FileWriter | Decomposes topic → 7 sub-domains, writes outline |
-| SLAMResearcher | DeepSeek V3 | Serper, ArXiv, WebScraper | Deep literature research, produces briefs |
+| NavigationDirector | DeepSeek V3 | FileWriter | Decomposes topic → 8 sub-domains, writes outline with English search keywords |
+| SLAMResearcher | DeepSeek V3 | Serper, ArXiv, WebScraper | Deep English-language literature research, produces structured briefs |
 | VisualizationEngineer | DeepSeek V3 | CodeExecutor, FileWriter | Generates 9 IEEE-standard figures via matplotlib |
-| LaTeXAuthor | DeepSeek V3 | FileWriter, FileReader | Writes bilingual XeLaTeX chapters + BibTeX |
-| QualityEditor | DeepSeek V3 | FileReader | Peer review with structured JSON verdict |
+| HebrewAcademicWriter | DeepSeek V3 | FileReader, FileWriter | Converts English briefs → polished Hebrew academic prose; preserves English technical terms by judgment |
+| LaTeXAuthor | DeepSeek V3 | FileWriter, FileReader | Pure formatter: wraps pre-written Hebrew prose in XeLaTeX environments, inserts equations/figures/tables |
+
+> **Quality gate** is programmatic (no LLM agent) — checks equation count, figure count, BibTeX key completeness, forbidden patterns, and word estimates per chapter. Deterministic, zero loop risk.
 
 ---
 
@@ -180,9 +194,7 @@ where $\hat{v}_{r,k}$ comes from the EKF posterior and $\varepsilon_k$ is the fo
 
 | Provider | Model | Full Run Cost |
 |---|---|---|
-| DeepSeek | deepseek-chat (V3) | ~$0.03 |
-| Anthropic | claude-haiku-4-5 | ~$0.15 |
-| Anthropic | claude-sonnet-4 | ~$1.50 |
+| DeepSeek V3 | deepseek-chat | ~$0.07 |
 
 ---
 

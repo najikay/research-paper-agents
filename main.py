@@ -2,15 +2,129 @@
 main.py
 =======
 CLI Entry point for NavigatorCrew.
-Architecture: LangGraph + CrewAI Sequential Pipeline v5.0.
+Architecture: LangGraph + CrewAI Sequential Pipeline v5.1.
 """
 
 import argparse
 import os
+import re
 import shutil
 import subprocess
+from datetime import date
 from pathlib import Path
 from src.config import logger, PROJECT_ROOT
+
+# ---------------------------------------------------------------------------
+# Output files produced by agents (relative to PROJECT_ROOT/outputs/)
+# ---------------------------------------------------------------------------
+_AGENT_OUTPUT_FILES = [
+    "paper_outline.md",
+    "research_briefs.md",
+    "figures_manifest.md",
+    "hebrew_prose.md",
+    "quality_report.md",
+    "token_report.md",
+]
+
+
+def _topic_slug(topic: str) -> str:
+    """Convert topic string to a safe directory slug (max 40 chars)."""
+    slug = topic.lower()
+    slug = re.sub(r"[^a-z0-9]+", "-", slug)
+    slug = slug.strip("-")
+    return slug[:40].rstrip("-")
+
+
+def create_run_folder(topic: str) -> Path:
+    """
+    Create a uniquely-named run folder under outputs/runs/.
+
+    Naming convention:
+        outputs/runs/{topic-slug}-{YYYY-MM-DD}/
+        outputs/runs/{topic-slug}-{YYYY-MM-DD}-v2/   (if date already exists)
+        outputs/runs/{topic-slug}-{YYYY-MM-DD}-v3/   etc.
+
+    Returns the created Path.
+    """
+    runs_root = PROJECT_ROOT / "outputs" / "runs"
+    runs_root.mkdir(parents=True, exist_ok=True)
+
+    today = date.today().strftime("%Y-%m-%d")
+    slug  = _topic_slug(topic)
+    base  = f"{slug}-{today}"
+
+    # Find next available version
+    candidate = runs_root / base
+    version   = 2
+    while candidate.exists():
+        candidate = runs_root / f"{base}-v{version}"
+        version  += 1
+
+    candidate.mkdir(parents=True)
+    logger.info(f"[RunFolder] Created: {candidate}")
+    return candidate
+
+
+def archive_run(run_folder: Path, pdf_path: Path | None) -> None:
+    """
+    Copy all agent outputs + PDF + LaTeX source into the run folder.
+
+    Layout inside run_folder/:
+        outputs/        ← agent .md outputs
+        latex/          ← full LaTeX source snapshot
+        paper.pdf       ← compiled PDF (if available)
+        run_manifest.txt ← human-readable index
+    """
+    outputs_src = PROJECT_ROOT / "outputs"
+    latex_src   = PROJECT_ROOT / "latex"
+
+    # 1. Copy agent output files
+    run_outputs = run_folder / "outputs"
+    run_outputs.mkdir(exist_ok=True)
+    copied_outputs = []
+    for filename in _AGENT_OUTPUT_FILES:
+        src = outputs_src / filename
+        if src.exists():
+            shutil.copy2(src, run_outputs / filename)
+            copied_outputs.append(filename)
+
+    # 2. Copy LaTeX source snapshot
+    run_latex = run_folder / "latex"
+    if latex_src.exists():
+        shutil.copytree(
+            latex_src, run_latex,
+            ignore=shutil.ignore_patterns(
+                "*.aux", "*.log", "*.toc", "*.out", "*.bbl",
+                "*.blg", "*.fdb_latexmk", "*.fls", "*.synctex.gz",
+                "main.pdf",
+            ),
+        )
+
+    # 3. Copy PDF
+    if pdf_path and pdf_path.exists():
+        shutil.copy2(pdf_path, run_folder / "paper.pdf")
+
+    # 4. Write manifest
+    manifest_lines = [
+        f"NavigatorCrew Run Archive",
+        f"========================",
+        f"Folder  : {run_folder.name}",
+        f"",
+        f"Outputs ({len(copied_outputs)} files):",
+    ]
+    for f in copied_outputs:
+        manifest_lines.append(f"  outputs/{f}")
+    manifest_lines += [
+        f"",
+        f"LaTeX source: latex/ (snapshot)",
+        f"PDF: {'paper.pdf' if (pdf_path and pdf_path.exists()) else 'NOT COMPILED'}",
+    ]
+    (run_folder / "run_manifest.txt").write_text("\n".join(manifest_lines), encoding="utf-8")
+
+    logger.info(
+        f"[RunFolder] Archived {len(copied_outputs)} outputs + LaTeX source "
+        f"→ {run_folder}"
+    )
 
 
 def compile_pdf() -> Path | None:
@@ -51,7 +165,7 @@ def compile_pdf() -> Path | None:
 def main():
     _DEFAULT_TOPIC = "Bat-Inspired Drone Navigation via Bio-Mimetic Multi-Modal Sensor Fusion"
 
-    parser = argparse.ArgumentParser(description="NavigatorCrew v5.0")
+    parser = argparse.ArgumentParser(description="NavigatorCrew v5.1")
     parser.add_argument(
         "--topic",
         default=_DEFAULT_TOPIC,
@@ -66,6 +180,11 @@ def main():
         "--no-pdf",
         action="store_true",
         help="Skip PDF compilation after content generation",
+    )
+    parser.add_argument(
+        "--no-archive",
+        action="store_true",
+        help="Skip archiving outputs to outputs/runs/ (useful for quick smoke tests)",
     )
     args = parser.parse_args()
 
@@ -99,6 +218,17 @@ def main():
     if not args.no_pdf:
         pdf_path = compile_pdf()
 
+    # ------------------------------------------------------------------
+    # Archive this run to outputs/runs/{slug}-{date}/
+    # ------------------------------------------------------------------
+    run_folder = None
+    if not args.no_archive:
+        run_folder = create_run_folder(args.topic)
+        archive_run(run_folder, pdf_path)
+
+    # ------------------------------------------------------------------
+    # Summary
+    # ------------------------------------------------------------------
     print("\n" + "=" * 52)
     print("  NAVIGATORCREW — EXECUTION COMPLETE")
     print("=" * 52)
@@ -107,6 +237,8 @@ def main():
     print(f"  Remediation Runs : {final_state['remediation_count']}")
     if pdf_path:
         print(f"  Final PDF        : {pdf_path}")
+    if run_folder:
+        print(f"  Run Archive      : {run_folder}")
     print("=" * 52)
 
 

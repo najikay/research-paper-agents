@@ -47,9 +47,12 @@ outputs/paper_outline.md
 outputs/quality_report.md
 outputs/token_report.md
 outputs/figures_manifest.md
+outputs/hebrew_prose.md
+outputs/NavigatorCrew_paper.pdf
 
-# Keep the final deliverable PDF
-!outputs/NavigatorCrew_paper.pdf
+# --- Per-run archives (large, reproducible — keep out of git) ---
+outputs/runs/*
+!outputs/runs/.gitkeep
 
 # --- Editor / OS ---
 .DS_Store

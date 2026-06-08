@@ -30,7 +30,8 @@ Sub-domains to cover:
 
 For each chapter specify: title (Hebrew), section label, 4+ subsection titles,
 required equations, required figures (with filenames from latex/figures/),
-required table topics.
+required table topics, and 3–5 English search keywords the researcher should
+use when querying Serper/ArXiv (all searches must be in English).
 """.strip(),
         expected_output="Detailed chapter-by-chapter outline in outputs/paper_outline.md specifying subsections, equations, figures, and tables per chapter. Confirmation: 'OUTLINE COMPLETE'.",
         agent=director,
@@ -68,17 +69,42 @@ def create_task_figures(visualizer: Agent, context: list[Task]) -> Task:
         output_file="outputs/figures_manifest.md"
     )
 
+def create_task_hebrew_prose(writer: Agent, context: list[Task]) -> Task:
+    return Task(
+        description="""
+Read outputs/research_briefs.md and write polished Hebrew academic prose for
+all chapters (CH02–CH09). Save to outputs/hebrew_prose.md.
+
+For each chapter section write 150–250 words of Hebrew prose. Use your judgment
+to keep standard academic English terms (SLAM, EKF, LiDAR, UAV, etc.) in English
+— the same way a Technion robotics professor would write. Translate generic words
+to Hebrew. Do not write LaTeX. Mark equation/figure/table placement with
+[EQUATION: name], [FIGURE: name], [TABLE: description]. Mark citations with
+[CITE: BibKey].
+""".strip(),
+        expected_output="outputs/hebrew_prose.md with Hebrew prose for all 8 chapters. Confirmation: 'HEBREW PROSE COMPLETE'.",
+        agent=writer,
+        context=context,
+        output_file="outputs/hebrew_prose.md",
+    )
+
+
 def create_task_latex(author: Agent, context: list[Task]) -> Task:
     return Task(
         description="""
-Write 10 LaTeX chapter files + references.bib based on the research briefs and figures manifest.
+Write 9 LaTeX chapter files + references.bib based on the research briefs and figures manifest.
 Target: 25–30 printed pages total (A4, IEEEtran, 10pt).
 
-FILES TO WRITE (exact paths):
+PRE-WRITTEN (PROTECTED — do NOT overwrite):
+    latex/chapters/ch01_intro.tex    ← static, already written
+    latex/chapters/ch04_slam.tex     ← static, already written
+    latex/main.tex                   ← protected master document
+    latex/chapters/cover.tex         ← protected cover page
+
+FILES TO WRITE (exact paths — write ALL of these):
     latex/chapters/abstract.tex
     latex/chapters/ch02_bio_basis.tex
     latex/chapters/ch03_sensors.tex
-    latex/chapters/ch04_slam.tex
     latex/chapters/ch05_fusion.tex
     latex/chapters/ch06_algorithm.tex
     latex/chapters/ch07_oursystem.tex
@@ -176,10 +202,15 @@ REMEDIATION TASK. You are fixing specific quality failures identified by the Qua
         output_file=output_file,
     )
 
-def create_all_tasks(director, researcher, visualizer, author, topic) -> list[Task]:
-    """4-task pipeline. Quality review is handled programmatically by the LangGraph gate."""
+def create_all_tasks(director, researcher, visualizer, hebrew_writer, author, topic) -> list[Task]:
+    """
+    5-task pipeline:
+      outline → research → figures → hebrew_prose → latex
+    Quality review is handled programmatically by the LangGraph gate.
+    """
     t_outline  = create_task_outline(director, topic)
     t_research = create_task_research(researcher, [t_outline])
     t_figures  = create_task_figures(visualizer, [t_research])
-    t_latex    = create_task_latex(author, [t_research, t_figures])
-    return [t_outline, t_research, t_figures, t_latex]
+    t_hebrew   = create_task_hebrew_prose(hebrew_writer, [t_research])
+    t_latex    = create_task_latex(author, [t_hebrew, t_figures])
+    return [t_outline, t_research, t_figures, t_hebrew, t_latex]

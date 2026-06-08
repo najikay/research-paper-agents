@@ -1,5 +1,6 @@
 from .navigation_director import create_navigation_director
 from .slam_researcher import create_slam_researcher
 from .visualization_engineer import create_visualization_engineer
+from .hebrew_academic_writer import create_hebrew_academic_writer
 from .latex_author import create_latex_author
 from .quality_editor import create_quality_editor

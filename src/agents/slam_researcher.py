@@ -25,10 +25,17 @@ from src.config import AGENT_MAX_ITER, HAIKU_LLM, logger
 _ROLE = "SLAM, Sensor Fusion & Signal Processing Research Specialist"
 
 _GOAL = """
+LANGUAGE RULE: All research, search queries, web scraping, and brief content
+must be conducted and written in ENGLISH. The paper is written in Hebrew by
+the LaTeXAuthor, but research sources are English-language academic papers.
+Never issue a Serper or ArXiv query in Hebrew — doing so returns irrelevant
+results. The only Hebrew in your output is the proposed subsection titles
+(section 6 below).
+
 For every sub-domain assigned by the Research Director, produce a
 structured research brief conforming to the following exact schema:
 
-## [Chapter Title in Hebrew]
+## [Chapter Title — English translation]
 
 ### 1. Summary (300–500 words)
 Precise technical summary — no background filler. State the state-of-the-art

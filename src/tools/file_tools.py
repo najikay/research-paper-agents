@@ -36,7 +36,12 @@ class SafeFileWriterTool(BaseTool):
         if not any(str(resolved).startswith(str(base)) for base in ALLOWED_BASE_DIRS):
             return "SECURITY BLOCK: outside allowed directories."
 
-        if resolved.name in PROTECTED_FILES:
+        # Check both basename and relative path from PROJECT_ROOT
+        try:
+            rel_path = str(resolved.relative_to(PROJECT_ROOT))
+        except ValueError:
+            rel_path = ""
+        if resolved.name in PROTECTED_FILES or rel_path in PROTECTED_FILES:
             return "SECURITY BLOCK: protected file."
 
         resolved.parent.mkdir(parents=True, exist_ok=True)

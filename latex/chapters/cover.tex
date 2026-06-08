@@ -5,6 +5,8 @@
 % NOTE: \begin{titlepage} is required here (not \begin{center}).
 %       Using \begin{center} at document level in bidi/RTL mode causes
 %       TeX capacity overflow via \@ifnextchar infinite recursion.
+%       Similarly, \\[length] optional args trigger \@ifnextchar in bidi mode —
+%       all spacing uses \vspace{} instead.
 % =============================================================================
 
 \begin{titlepage}
@@ -12,37 +14,55 @@
     \vspace*{1.5cm}
 
     % ── Institution ──────────────────────────────────────────────────────────
-    {\large\textbf{שם המוסד האקדמי}}\\[0.3em]
-    {\normalsize הפקולטה למדעי המחשב, הנדסה ורובוטיקה}\\[1.5cm]
+    {\large\textbf{שם המוסד האקדמי}}\\
+    \vspace{0.3em}
+    {\normalsize הפקולטה למדעי המחשב, הנדסה ורובוטיקה}\\
+    \vspace{1.5cm}
 
     % ── Course ───────────────────────────────────────────────────────────────
-    {\normalsize קורס:}\\[0.2em]
-    {\large\textbf{אורקסטרציה של סוכני בינה מלאכותית}}\\[0.2em]
-    {\normalsize סמסטר ב׳ --- 2026}\\[1.5cm]
+    {\normalsize קורס:}\\
+    \vspace{0.2em}
+    {\large\textbf{אורקסטרציה של סוכני בינה מלאכותית}}\\
+    \vspace{0.2em}
+    {\normalsize סמסטר ב׳ --- 2026}\\
+    \vspace{1.5cm}
 
-    \rule{\linewidth}{1pt}\\[0.5cm]
+    \rule{\linewidth}{1pt}\\
+    \vspace{0.5cm}
 
     % ── Paper Title ──────────────────────────────────────────────────────────
     {\LARGE\bfseries
-        ניווט רחפנים ביומימטי\\[0.4em]
-        מבוסס-עטלף באמצעות\\[0.4em]
+        ניווט רחפנים ביומימטי\\
+        \vspace{0.4em}
+        מבוסס-עטלף באמצעות\\
+        \vspace{0.4em}
         היתוך חישתי מרובה-מודאלי
-    }\\[0.4em]
+    }\\
+    \vspace{0.4em}
     {\large\foreignlanguage{english}{%
-        Bat-Inspired Drone Navigation\\[0.2em]
+        Bat-Inspired Drone Navigation\\
+        \vspace{0.2em}
         via Bio-Mimetic Multi-Modal Sensor Fusion%
-    }}\\[0.3em]
+    }}\\
+    \vspace{0.3em}
 
-    \rule{\linewidth}{1pt}\\[1.5cm]
+    \rule{\linewidth}{1pt}\\
+    \vspace{1.5cm}
 
-    {\large עבודה מס׳ 3}\\[2cm]
+    {\large עבודה מס׳ 3}\\
+    \vspace{2cm}
 
     % ── Author ───────────────────────────────────────────────────────────────
-    {\normalsize מוגש על-ידי:}\\[0.5em]
-    {\large\textbf{נאגי כיאל}}\\[0.2em]
-    {\normalsize מספר ת"ז: XXXXXXXXX}\\[1cm]
+    {\normalsize מוגש על-ידי:}\\
+    \vspace{0.5em}
+    {\large\textbf{נאגי כיאל}}\\
+    \vspace{0.2em}
+    {\normalsize מספר ת"ז: XXXXXXXXX}\\
+    \vspace{1cm}
 
     \vfill
-    {\normalsize תאריך הגשה:}\\[0.2em]
-    {\large\textbf{20 יוני 2026}}\\[1cm]
+    {\normalsize תאריך הגשה:}\\
+    \vspace{0.2em}
+    {\large\textbf{20 יוני 2026}}\\
+    \vspace{1cm}
 \end{titlepage}

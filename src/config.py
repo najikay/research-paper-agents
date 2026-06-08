@@ -135,7 +135,8 @@ AGENT_MAX_ITER: dict[str, int] = {
     "research_director": 12,
     "deep_researcher":   18,
     "data_visualizer":   12,
-    "latex_author":      25,
+    "hebrew_writer":     20,   # writes 8 chapter prose sections
+    "latex_author":      25,   # formats pre-written prose into XeLaTeX
     "quality_editor":    20,
 }
 
@@ -155,16 +156,22 @@ ARXIV_MAX_RESULTS: int     = 5                  # default ArXiv results per quer
 WRITABLE_DIRS: tuple[str, ...] = ("latex", "outputs", "docs")
 
 # Files that must never be overwritten by an agent.
-# cover.tex is protected because \begin{center} in bidi mode crashes XeLaTeX.
+# Entries can be basenames (matched against filename) or PROJECT_ROOT-relative
+# paths (matched against the full relative path).
+# cover.tex is protected because \\[length] optional args in bidi mode crash XeLaTeX.
+# main.tex is protected because it controls the chapter input order and preamble.
+# ch01_intro.tex and ch04_slam.tex contain static citations that must not change.
 PROTECTED_FILES: tuple[str, ...] = (
+    # Basenames — block the filename regardless of directory
     ".env",
     ".gitignore",
     "requirements.txt",
+    # Relative paths — block specific files only
     "src/config.py",
-    "cover.tex",
-    "main.tex",
-    "ch01_intro.tex",
-    "ch04_slam.tex",
+    "latex/main.tex",
+    "latex/chapters/cover.tex",
+    "latex/chapters/ch01_intro.tex",
+    "latex/chapters/ch04_slam.tex",
 )
 
 # ---------------------------------------------------------------------------
@@ -247,45 +254,31 @@ def get_embedder_config() -> dict | None:
 
 def validate_config() -> None:
     """
-    Validate that all required environment variables are set.
+    Validate that required API keys are present for the active provider.
 
     Raises:
-        EnvironmentError: If a required key is missing, with a clear fix instruction.
+        EnvironmentError: If a required key is missing.
     """
-    required: dict[str, str] = {
-        "ANTHROPIC_API_KEY": (
-            "Get yours at https://console.anthropic.com/ "
-            "then add it to your .env file."
-        ),
-        "SERPER_API_KEY": (
-            "Get a free key at https://serper.dev/ "
-            "then add it to your .env file."
-        ),
-    }
-
     missing: list[str] = []
-    for key, instructions in required.items():
-        value = os.getenv(key, "")
-        if not value or value.strip() == "":
-            missing.append(f"  • {key}: {instructions}")
+
+    if ACTIVE_PROVIDER == "deepseek":
+        if not DEEPSEEK_API_KEY:
+            missing.append("  • DEEPSEEK_API_KEY: Get yours at platform.deepseek.com")
+    else:
+        if not ANTHROPIC_API_KEY:
+            missing.append("  • ANTHROPIC_API_KEY: Get yours at console.anthropic.com")
+
+    if not os.getenv("SERPER_API_KEY", ""):
+        missing.append("  • SERPER_API_KEY: Free key at serper.dev")
 
     if missing:
-        missing_list = "\n".join(missing)
         raise EnvironmentError(
-            f"\n\n[ResearchCrew] Missing required environment variables:\n"
-            f"{missing_list}\n\n"
-            f"Copy .env.example → .env and fill in the values.\n"
+            f"\n\n[NavigatorCrew] Missing required environment variables:\n"
+            + "\n".join(missing)
+            + "\n\nCopy .env.example → .env and fill in the values.\n"
         )
 
-    # Optional key — warn but do not abort
-    if not _openai_key_is_real():
-        logger.warning(
-            "OPENAI_API_KEY is not set or is a placeholder. "
-            "Memory will use a local HuggingFace embedding model instead of OpenAI. "
-            "This is fine for development but may reduce research recall quality."
-        )
-
-    logger.success("Config validation passed. All required API keys are present.")
+    logger.success(f"Config validation passed. Provider={ACTIVE_PROVIDER}.")
 
 
 # ---------------------------------------------------------------------------

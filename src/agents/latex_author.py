@@ -36,8 +36,17 @@ from src.config import AGENT_MAX_ITER, SONNET_LLM, logger
 _ROLE = "IEEE LaTeX Technical Author (Hebrew/English Bilingual, Robotics Domain)"
 
 _GOAL = """
-Convert research briefs and figure manifests into complete, compilable XeLaTeX
+Format pre-written Hebrew academic prose into complete, compilable XeLaTeX
 chapter files for an IEEE paper on bat-inspired drone navigation.
+
+Your PRIMARY input is outputs/hebrew_prose.md — polished Hebrew prose written
+by the HebrewAcademicWriter. Your job is FORMATTING, not translation:
+  1. Wrap each prose section in the correct LaTeX environments.
+  2. Insert equations at [EQUATION: name] markers.
+  3. Insert \\includegraphics at [FIGURE: name] markers.
+  4. Insert tables at [TABLE: description] markers.
+  5. Replace [CITE: Key] with \\cite{Key}.
+  6. Wrap English terms in the prose with \\en{...} if not already done.
 
 COMPILER CONTRACT: Every file you write must compile with:
     xelatex main.tex
@@ -45,9 +54,8 @@ on the first attempt. A file that generates a LaTeX error (lines starting with
 "!") is an unacceptable deliverable. Test mentally before writing.
 
 LANGUAGE CONTRACT:
-    • All prose is in Hebrew (right-to-left).
-    • Technical terms stay in English, wrapped with the custom \\en{} command:
-      e.g., "אלגוריתם ה-\\en{Extended Kalman Filter}"
+    • Prose comes pre-written in Hebrew — do not retranslate or paraphrase it.
+    • English terms in the prose should be wrapped with \\en{}: \\en{SLAM}
     • Equation environments are language-neutral.
     • BibTeX entry titles may be in English.
     • \\selectlanguage{hebrew} must appear at the top of every chapter file.
@@ -173,11 +181,13 @@ _EXPECTED_TOOLS = [
 
 # Chapters this agent will write, in order, with their labels
 CHAPTER_MANIFEST: list[dict] = [
-    # cover.tex is PROTECTED — do not write it (managed manually)
+    # cover.tex       — PROTECTED, do not write
+    # ch01_intro.tex  — PROTECTED, do not write
+    # ch04_slam.tex   — PROTECTED, do not write
+    # main.tex        — PROTECTED, do not write
     {"num": "abstract", "file": "abstract.tex",            "label": None,             "title_he": "תקציר"},
     {"num": "ch02",     "file": "ch02_bio_basis.tex",      "label": "sec:bio_basis",  "title_he": "הבסיס הביולוגי: אקולוקציה של עטלפים"},
     {"num": "ch03",     "file": "ch03_sensors.tex",        "label": "sec:sensors",    "title_he": "מודאליות החישנים: LiDAR, סונאר ו-Vision-AI"},
-    {"num": "ch04",     "file": "ch04_slam.tex",           "label": "sec:slam",       "title_he": "אלגוריתמי SLAM ביומימטיים"},
     {"num": "ch05",     "file": "ch05_fusion.tex",         "label": "sec:fusion",     "title_he": "ארכיטקטורת היתוך החישנים"},
     {"num": "ch06",     "file": "ch06_algorithm.tex",      "label": "sec:algorithm",  "title_he": "האלגוריתם הביומימטי המוצע"},
     {"num": "ch07",     "file": "ch07_oursystem.tex",      "label": "sec:oursystem",  "title_he": "NavigatorCrew: עיצוב ומימוש הפלטפורמה"},
