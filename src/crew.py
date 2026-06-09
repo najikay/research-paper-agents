@@ -133,6 +133,9 @@ def build_crew(
         dom_aerospace  = create_aerospace_marine_expert(tools=_research_tools)
         dom_biology    = create_biology_expert(tools=_research_tools)
 
+        # Full-mode author needs extra iterations: 2 LaTeX tasks × ~15 iter each
+        author.max_iter = 40
+
         tasks = create_all_tasks(
             director=director,
             researcher=researcher,

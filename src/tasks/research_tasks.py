@@ -200,13 +200,13 @@ STEP 2 — Write Hebrew prose for ALL nine chapters to {_STAGING}/hebrew_prose.m
     Use SafeFileWriterTool to write the file. Write ALL chapters in a SINGLE tool call.
     Do NOT split across multiple files. Do NOT write to hebrew_prose_remaining.md.
 
-    TARGET: 25–30 printed pages total (~14,000–18,000 Hebrew words).
-    - ch01 (introduction): 1000–1400 words
-    - ch02–ch05: 1400–1800 words each
-    - ch06 (algorithm): 1800–2200 words
-    - ch07 (system): 1400–1800 words
-    - ch08 (results): 1800–2200 words
-    - ch09 (conclusion): 800–1000 words
+    TARGET: 25–30 printed pages total (~16,000–20,000 Hebrew words).
+    - ch01 (introduction): 1800–2400 words
+    - ch02–ch05: 2400–3000 words each
+    - ch06 (algorithm): 3000–3600 words
+    - ch07 (system): 2400–3000 words
+    - ch08 (results): 3000–3600 words
+    - ch09 (conclusion): 1400–1800 words
 
     Per-chapter content:
         • Section marker: ## CH01: <Hebrew title from outline>
@@ -230,7 +230,7 @@ STEP 3 — After writing, output a short confirmation: 'HEBREW PROSE COMPLETE'.
 """.strip(),
         expected_output=(
             f"All 9 chapters written to {_STAGING}/hebrew_prose.md via SafeFileWriterTool. "
-            f"≥1000 words per chapter (ch06/ch08 ≥1800). Zero em dash characters. Confirmation: 'HEBREW PROSE COMPLETE'."
+            f"≥1800 words per chapter (ch06/ch08 ≥3000). Zero em dash characters. Confirmation: 'HEBREW PROSE COMPLETE'."
         ),
         agent=writer,
         context=context,
@@ -242,12 +242,12 @@ def _latex_shared_rules(chapters_dir: str, bib_path: str, latex_dir: str) -> str
     """Shared LaTeX writing rules injected into both latex task descriptions."""
     return f"""
 CONTENT DEPTH — targeting 25–30 printed pages total:
-    • ch01: ≥1000 Hebrew words, ≥3 subsections, ≥2 equations
-    • ch02–ch05: ≥1400 Hebrew words each, ≥5 subsections, ≥4 equations, ≥1 figure, ≥1 table
-    • ch06 (algorithm): ≥1800 Hebrew words, ≥5 subsections, ≥5 equations, ≥1 lstlisting, ≥1 figure
-    • ch07 (system): ≥1400 Hebrew words, ≥4 subsections, ≥3 equations, ≥1 figure
-    • ch08 (results): ≥1800 Hebrew words, ≥5 subsections, ≥3 equations, ≥2 figures, ≥1 table
-    • ch09 (conclusion): ≥800 Hebrew words, ≥3 subsections
+    • ch01: ≥1800 Hebrew words, ≥4 subsections, ≥2 equations
+    • ch02–ch05: ≥2400 Hebrew words each, ≥6 subsections, ≥5 equations, ≥1 figure, ≥1 table
+    • ch06 (algorithm): ≥3000 Hebrew words, ≥6 subsections, ≥6 equations, ≥1 lstlisting, ≥1 figure
+    • ch07 (system): ≥2400 Hebrew words, ≥5 subsections, ≥4 equations, ≥1 figure
+    • ch08 (results): ≥3000 Hebrew words, ≥6 subsections, ≥4 equations, ≥2 figures, ≥1 table
+    • ch09 (conclusion): ≥1400 Hebrew words, ≥3 subsections
 
 FIGURE WIDTH AND PLACEMENT RULES:
     • Single-column figures: \\begin{{figure}}[htbp] with [width=0.98\\columnwidth]
@@ -349,24 +349,24 @@ STEP 3 — WRITE these 7 files ONE AT A TIME (write each immediately after plann
 
   FILE 2: {chapters_dir}/ch01_intro.tex     ← EXACT filename, do NOT change
       Use the Hebrew section title from paper_outline.md for this chapter.
-      ≥1000 words. Cover: motivation, problem statement, contributions overview, paper structure.
-      Must have: ≥3 \\subsection{{}} blocks, ≥2 equations, ≥2 \\cite{{}} calls.
+      ≥1800 words. Cover: motivation, problem statement, contributions overview, paper structure.
+      Must have: ≥4 \\subsection{{}} blocks, ≥2 equations, ≥2 \\cite{{}} calls.
 
   FILE 3: {chapters_dir}/ch02_bio_basis.tex ← EXACT filename, do NOT change
       Use the Hebrew section title from paper_outline.md for chapter 2.
-      ≥1400 words. ≥5 \\subsection{{}}, ≥4 equations, ≥1 figure, ≥1 table, ≥3 citations.
+      ≥2400 words. ≥6 \\subsection{{}}, ≥5 equations, ≥1 figure, ≥1 table, ≥3 citations.
 
   FILE 4: {chapters_dir}/ch03_sensors.tex   ← EXACT filename, do NOT change
       Use the Hebrew section title from paper_outline.md for chapter 3.
-      ≥1400 words. ≥5 \\subsection{{}}, ≥4 equations, ≥1 figure, ≥1 table, ≥3 citations.
+      ≥2400 words. ≥6 \\subsection{{}}, ≥5 equations, ≥1 figure, ≥1 table, ≥3 citations.
 
   FILE 5: {chapters_dir}/ch04_slam.tex      ← EXACT filename, do NOT change
       Use the Hebrew section title from paper_outline.md for chapter 4.
-      ≥1400 words. ≥5 \\subsection{{}}, ≥4 equations, ≥1 figure, ≥1 table, ≥3 citations.
+      ≥2400 words. ≥6 \\subsection{{}}, ≥5 equations, ≥1 figure, ≥1 table, ≥3 citations.
 
   FILE 6: {chapters_dir}/ch05_fusion.tex    ← EXACT filename, do NOT change
       Use the Hebrew section title from paper_outline.md for chapter 5.
-      ≥1400 words. ≥5 \\subsection{{}}, ≥4 equations, ≥1 figure, ≥1 table, ≥3 citations.
+      ≥2400 words. ≥6 \\subsection{{}}, ≥5 equations, ≥1 figure, ≥1 table, ≥3 citations.
 
   FILE 7: {bib_path}
       Full BibTeX file. Collect ALL \\cite{{}} keys you used in the chapters above.
@@ -378,7 +378,7 @@ STEP 3 — WRITE these 7 files ONE AT A TIME (write each immediately after plann
         expected_output=(
             "7 files written: abstract.tex, ch01_intro.tex, ch02–ch05.tex, references.bib. "
             "Each chapter uses Hebrew section title from paper_outline.md. "
-            "≥1000w for ch01, ≥1400w for ch02–ch05, ≥4 equations, ≥1 figure (ch02–ch05). "
+            "≥1800w for ch01, ≥2400w for ch02–ch05, ≥5 equations, ≥1 figure (ch02–ch05). "
             "references.bib has ≥14 entries. "
             "Confirmation: 'LATEX PART 1 COMPLETE'."
         ),
@@ -428,24 +428,24 @@ STEP 3 — WRITE these 4 files ONE AT A TIME:
 
   FILE 1: {chapters_dir}/ch06_algorithm.tex  ← EXACT filename, do NOT change
       Use the Hebrew section title from paper_outline.md for chapter 6.
-      ≥1800 words. The algorithm/methodology chapter — the longest and most detailed.
-      Must have: ≥5 \\subsection{{}}, ≥5 equations (numbered), ≥1 lstlisting pseudocode block,
+      ≥3000 words. The algorithm/methodology chapter — the longest and most detailed.
+      Must have: ≥6 \\subsection{{}}, ≥6 equations (numbered), ≥1 lstlisting pseudocode block,
       ≥1 figure, ≥3 citations, complexity analysis table.
 
   FILE 2: {chapters_dir}/ch07_oursystem.tex  ← EXACT filename, do NOT change
       Use the Hebrew section title from paper_outline.md for chapter 7.
-      ≥1400 words. The system design / implementation chapter.
-      Must have: ≥4 \\subsection{{}}, ≥3 equations, ≥1 figure, ≥3 citations.
+      ≥2400 words. The system design / implementation chapter.
+      Must have: ≥5 \\subsection{{}}, ≥4 equations, ≥1 figure, ≥3 citations.
 
   FILE 3: {chapters_dir}/ch08_results.tex    ← EXACT filename, do NOT change
       Use the Hebrew section title from paper_outline.md for chapter 8.
-      ≥1800 words. Simulation/experimental results — detailed quantitative analysis.
-      Must have: ≥5 \\subsection{{}}, ≥3 equations, ≥2 figures from manifest, ≥2 results tables,
+      ≥3000 words. Simulation/experimental results — detailed quantitative analysis.
+      Must have: ≥6 \\subsection{{}}, ≥4 equations, ≥2 figures from manifest, ≥2 results tables,
       ≥3 citations. Quantitative data with numerical values.
 
   FILE 4: {chapters_dir}/ch09_conclusion.tex ← EXACT filename, do NOT change
       Use the Hebrew section title from paper_outline.md for chapter 9.
-      ≥800 words for conclusion. After the conclusion section, add:
+      ≥1400 words for conclusion. After the conclusion section, add:
           \\appendix
           \\section{{רשימת סמלים ומשתנים}}
           booktabs table: Symbol | Definition | Units (≥15 rows).
@@ -453,8 +453,8 @@ STEP 3 — WRITE these 4 files ONE AT A TIME:
 {rules}
 """.strip(),
         expected_output=(
-            "4 files written: ch06_algorithm.tex (≥1800w), ch07_oursystem.tex (≥1400w), "
-            "ch08_results.tex (≥1800w), ch09_conclusion.tex (≥800w + appendix). "
+            "4 files written: ch06_algorithm.tex (≥3000w), ch07_oursystem.tex (≥2400w), "
+            "ch08_results.tex (≥3000w), ch09_conclusion.tex (≥1400w + appendix). "
             "All use Hebrew section titles from paper_outline.md. Labels unique with chapter prefix. "
             "Confirmation: 'LATEX PART 2 COMPLETE'."
         ),
@@ -543,7 +543,7 @@ STEP 2 — Read ONLY the chapter files that have issues (see failed sections bel
     Do NOT try to read directories — only read specific .tex files.
 
 STEP 3 — Fix the failing chapters. Common fixes:
-    • words too low: expand existing subsections with more detail, add 200+ Hebrew words
+    • words too low: expand existing subsections with more detail, add 400+ Hebrew words per chapter
     • citations missing: add \\cite{{}} references and ensure keys exist in references.bib
     • equations missing: add numbered \\begin{{equation}}...\\end{{equation}} blocks
     • em dashes: replace every — (U+2014) with a colon (:) or comma (,)
@@ -674,7 +674,7 @@ STEP 2 — Write in this exact order, calling SafeFileWriterTool once per file:
 
   2. {chapters_dir}/ch01_intro.tex      ← EXACT name
      \\selectlanguage{{hebrew}} + \\section{{<Hebrew title from outline>}} + \\label{{sec:ch01}}
-     ≥3 \\subsection, ≥1 \\begin{{equation}}...\\end{{equation}}, ≥2 \\cite{{}}, ≥700 Hebrew words.
+     ≥4 \\subsection, ≥1 \\begin{{equation}}...\\end{{equation}}, ≥2 \\cite{{}}, ≥1200 Hebrew words.
 
   3. {chapters_dir}/ch02_bio_basis.tex  ← EXACT name
   4. {chapters_dir}/ch03_sensors.tex    ← EXACT name
@@ -682,15 +682,15 @@ STEP 2 — Write in this exact order, calling SafeFileWriterTool once per file:
   6. {chapters_dir}/ch05_fusion.tex     ← EXACT name
   7. {chapters_dir}/ch06_algorithm.tex  ← EXACT name
   8. {chapters_dir}/ch07_oursystem.tex  ← EXACT name
-     Each: \\selectlanguage{{hebrew}} + \\section + \\label, ≥4 \\subsection, ≥3 equations,
-     ≥1 figure using figures/fig_stub.png, ≥2 \\cite, ≥900 Hebrew words.
+     Each: \\selectlanguage{{hebrew}} + \\section + \\label, ≥5 \\subsection, ≥4 equations,
+     ≥1 figure using figures/fig_stub.png, ≥2 \\cite, ≥1500 Hebrew words.
      ch06 must include one \\begin{{lstlisting}}...\\end{{lstlisting}} pseudocode block.
 
   9. {chapters_dir}/ch08_results.tex    ← EXACT name
-     Same as ch02–ch07 above but ≥2 figures using figures/fig_stub.png and ≥1000 words.
+     Same as ch02–ch07 above but ≥2 figures using figures/fig_stub.png and ≥1800 words.
 
   10. {chapters_dir}/ch09_conclusion.tex ← EXACT name
-     \\selectlanguage{{hebrew}} + \\section + \\label, ≥2 \\subsection, ≥1 \\cite, ≥500 Hebrew words.
+     \\selectlanguage{{hebrew}} + \\section + \\label, ≥3 \\subsection, ≥1 \\cite, ≥800 Hebrew words.
 
   11. {bib_path}
      ≥14 BibTeX entries. Keys MUST match every \\cite{{}} used above. No undefined keys.

@@ -21,8 +21,8 @@ def good_chapter_content() -> str:
     """A valid minimal .tex chapter satisfying all quality-gate criteria."""
     # Build a string that has:
     #   >=3 \begin{equation}, >=1 \includegraphics, >=4 \subsection,
-    #   >=2 \cite{}, >=800 words, no em dashes, no \begin{center}
-    words = " ".join(["מילה"] * 900)  # ~900 Hebrew words to exceed the 800-word threshold
+    #   >=2 \cite{}, >=1200 words, no em dashes, no \begin{center}
+    words = " ".join(["מילה"] * 1350)  # ~1350 Hebrew words to exceed the 1200-word threshold
     return r"""
 \selectlanguage{hebrew}
 \section{פרק לדוגמה}
@@ -227,7 +227,7 @@ def tmp_latex_dir(tmp_path: Path) -> Path:
     good = (
         r"\selectlanguage{hebrew}" + "\n"
         r"\section{Test}" + "\n"
-        + " ".join(["word"] * 500) + "\n"
+        + " ".join(["word"] * 800) + "\n"
         + r"\subsection{A}" + "\n"
         + r"\subsection{B}" + "\n"
         + r"\subsection{C}" + "\n"

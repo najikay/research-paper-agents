@@ -42,8 +42,8 @@ def test_quality_threshold():
 
 
 def test_max_remediations():
-    """MAX_REMEDIATIONS must be 2."""
-    assert MAX_REMEDIATIONS == 2
+    """MAX_REMEDIATIONS must be 3."""
+    assert MAX_REMEDIATIONS == 3
 
 
 # ---------------------------------------------------------------------------

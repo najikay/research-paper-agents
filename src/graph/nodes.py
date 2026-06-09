@@ -29,7 +29,7 @@ from src.tools import (
 from src.config import logger, PROJECT_ROOT
 
 QUALITY_THRESHOLD = 75   # score below this triggers remediation
-MAX_REMEDIATIONS  = 2    # hard cap — prevents infinite loops
+MAX_REMEDIATIONS  = 3    # hard cap — prevents infinite loops
 
 # Minimum number of BibTeX entries required in references.bib.
 # Topic-agnostic — agents cite whatever is relevant to the dynamic topic.
@@ -49,14 +49,14 @@ AGENT_CHAPTERS = [
 # Structural chapters (intro, conclusion, abstract) have relaxed thresholds;
 # core technical chapters need deeper content to hit the page target.
 _CHAPTER_MIN_REQS: dict[str, dict] = {
-    "abstract.tex":        {"eq": 0, "fig": 0, "sub": 0, "cite": 0, "words": 80},
-    "ch01_intro.tex":      {"eq": 1, "fig": 0, "sub": 2, "cite": 2, "words": 600},
-    "ch06_algorithm.tex":  {"eq": 3, "fig": 1, "sub": 4, "cite": 2, "words": 1000},
-    "ch07_oursystem.tex":  {"eq": 2, "fig": 1, "sub": 3, "cite": 2, "words": 800},
-    "ch08_results.tex":    {"eq": 2, "fig": 1, "sub": 4, "cite": 2, "words": 1000},
-    "ch09_conclusion.tex": {"eq": 0, "fig": 0, "sub": 2, "cite": 1, "words": 400},
+    "abstract.tex":        {"eq": 0, "fig": 0, "sub": 0, "cite": 0, "words": 100},
+    "ch01_intro.tex":      {"eq": 1, "fig": 0, "sub": 3, "cite": 2, "words": 900},
+    "ch06_algorithm.tex":  {"eq": 4, "fig": 1, "sub": 5, "cite": 2, "words": 1500},
+    "ch07_oursystem.tex":  {"eq": 2, "fig": 1, "sub": 4, "cite": 2, "words": 1200},
+    "ch08_results.tex":    {"eq": 2, "fig": 1, "sub": 5, "cite": 2, "words": 1500},
+    "ch09_conclusion.tex": {"eq": 0, "fig": 0, "sub": 2, "cite": 1, "words": 600},
 }
-_DEFAULT_MIN_REQS: dict = {"eq": 2, "fig": 1, "sub": 4, "cite": 2, "words": 800}
+_DEFAULT_MIN_REQS: dict = {"eq": 2, "fig": 1, "sub": 4, "cite": 2, "words": 1200}
 
 
 # ---------------------------------------------------------------------------
@@ -245,11 +245,11 @@ def run_quality_gate(state: PipelineState) -> dict:
 ## Checks Performed
 
 - Chapter file existence and minimum size
-- Equations per chapter (≥3 default; abstract=0, ch01=1, ch09=0)
+- Equations per chapter (≥2 default; abstract=0, ch01=1, ch06=4, ch09=0)
 - Figures per chapter (≥1 default; abstract/ch01/ch09=0)
-- Subsections per chapter (≥4 default; abstract=0, ch01/ch09=2, ch07=3)
+- Subsections per chapter (≥4 default; abstract=0, ch01=3, ch06/ch08=5, ch09=2)
 - Citations per chapter (≥2 default; abstract=0, ch09=1)
-- Word count estimate per chapter (≥800 default; abstract=80, ch01=600, ch06/ch08=1000, ch09=400)
+- Word count estimate per chapter (≥1200 default; abstract=100, ch01=900, ch06/ch08=1500, ch07=1200, ch09=600)
 - references.bib entry count (≥{MIN_BIB_ENTRIES} required)
 - Missing figure files (≤-20 total penalty, capped to prevent cascade)
 - Placeholder figure boxes
