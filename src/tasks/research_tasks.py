@@ -74,15 +74,31 @@ Write to {_STAGING}/research_briefs.md.
 def create_task_figures(visualizer: Agent, context: list[Task], run_folder: Path | None = None) -> Task:
     latex_figures = str(run_folder / "latex" / "figures") if run_folder else "latex/figures"
     return Task(
-        description=(
-            f"Generate 9 IEEE-standard figures and save them to {latex_figures}/.\n"
-            f"Wide figures (fig_bat_vs_artificial, fig_sensor_modalities, fig_results_summary, "
-            f"fig_framework_comparison) should use figsize=(16, 7) or larger to ensure all "
-            f"text labels are readable at A4 print size. Minimum font size in any figure: 11pt.\n"
-            f"Use the EXACT absolute path '{latex_figures}/' in every plt.savefig() call.\n"
-            f"After saving all 9 figures, write the manifest to {_STAGING}/figures_manifest.md."
-        ),
-        expected_output=f"9 PNG files in {latex_figures}/ and a manifest in {_STAGING}/figures_manifest.md.",
+        description=f"""
+Generate 9 IEEE-standard figures as 300 DPI PNG files.
+
+HOW TO CALL PythonCodeExecutorTool for each figure:
+    - `code`: a complete matplotlib script ending with
+      plt.savefig(output_path, dpi=300, bbox_inches='tight') and plt.close('all')
+    - `output_filename`: the exact PNG filename (e.g. 'fig_bat_vs_artificial.png')
+
+CRITICAL — `output_path` is a variable that the tool injects automatically into your script.
+Do NOT hardcode any file path in plt.savefig(). Always write:
+    plt.savefig(output_path, dpi=300, bbox_inches='tight')
+The tool will save the file to {latex_figures}/ automatically.
+
+FIGURES TO GENERATE (call the tool once per figure, in order):
+    fig_bat_vs_artificial.png, fig_trajectory_3d.png, fig_sensor_fusion_heatmap.png,
+    fig_cochleagram.png, fig_range_doppler.png, fig_ekf_covariance.png,
+    fig_framework_comparison.png, fig_sensor_modalities.png, fig_results_summary.png
+
+Wide figures (bat_vs_artificial, sensor_modalities, results_summary, framework_comparison):
+    use figsize=(16, 7) or larger. Minimum font size for any text element: 11pt.
+
+After all 9 figures are saved, write a manifest to {_STAGING}/figures_manifest.md listing
+each figure's filename, title, Hebrew caption, and \\label{{fig:...}} key.
+""".strip(),
+        expected_output=f"9 PNG files saved to {latex_figures}/ and manifest at {_STAGING}/figures_manifest.md listing all 9 filenames.",
         agent=visualizer,
         context=context,
         output_file=f"{_STAGING}/figures_manifest.md"
@@ -513,7 +529,9 @@ def create_all_tasks(
     t_figures   = create_task_figures(visualizer, [t_research], run_folder=run_folder)
     t_hebrew    = create_task_hebrew_prose(hebrew_writer, [t_research] + domain_tasks)
     t_latex1    = create_task_latex_part1(author, [t_hebrew, t_figures], run_folder=run_folder)
-    t_latex2    = create_task_latex_part2(author, [t_latex1], run_folder=run_folder)
+    # Part 2 reads the same proven sources (hebrew prose + figures manifest) directly
+    # rather than chaining on t_latex1 — this prevents part1 failures from cascading
+    t_latex2    = create_task_latex_part2(author, [t_hebrew, t_figures], run_folder=run_folder)
 
     return [
         t_outline, t_research,

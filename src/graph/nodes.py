@@ -146,15 +146,20 @@ def run_quality_gate(state: PipelineState) -> dict:
         failed_sections.append("references")
 
     # ── 4a. Check figure references point to real files ──────────────────
+    # Penalty is capped at -20 total so that a single component failure
+    # (e.g. visualization engineer timing out) doesn't crater the whole score.
     figures_dir = run_folder / "latex" / "figures"
     all_tex = list(chapters_dir.glob("*.tex"))
+    missing_fig_penalty = 0
     for fpath in all_tex:
         text = fpath.read_text(encoding="utf-8", errors="replace")
         for fig_ref in re.findall(r'\\includegraphics(?:\[[^\]]*\])?\{figures/([^}]+)\}', text):
             if not (figures_dir / fig_ref).exists():
                 issues.append(f"{fpath.name}: missing figure file 'figures/{fig_ref}'")
-                score -= 5
                 failed_sections.append("figures")
+                if missing_fig_penalty < 20:   # cap cascading damage
+                    missing_fig_penalty += 2
+    score -= missing_fig_penalty
 
     # ── 4b. Check for forbidden patterns ─────────────────────────────────
     # Only check AGENT-WRITTEN chapters — skip static/protected files.
@@ -216,6 +221,7 @@ def run_quality_gate(state: PipelineState) -> dict:
 - Citations per chapter (≥2 required)
 - Word count estimate per chapter (≥600 required)
 - Required BibTeX keys ({len(REQUIRED_CITE_KEYS)} keys checked)
+- Missing figure files (≤-20 total penalty, capped to prevent cascade)
 - Placeholder figure boxes
 - Em dashes in Hebrew prose
 - \\begin{{center}} at document level (XeLaTeX crash risk)

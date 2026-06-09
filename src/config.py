@@ -134,7 +134,7 @@ EMBEDDING_PRICE_PER_1M: float = 0.02
 AGENT_MAX_ITER: dict[str, int] = {
     "research_director": 12,
     "deep_researcher":   18,
-    "data_visualizer":   12,
+    "data_visualizer":   22,   # 9 figures × 1 tool call each + manifest write + reads = 12+ minimum
     "hebrew_writer":     35,   # writes 8 chapter prose sections (8 files × ~3 iterations each)
     "latex_author":      40,   # formats pre-written prose into XeLaTeX (split across 2 tasks)
     "biology_expert":   15,   # biological ground-truth for echolocation chapters
