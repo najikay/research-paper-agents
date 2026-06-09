@@ -84,7 +84,7 @@ if ACTIVE_PROVIDER == "deepseek" and DEEPSEEK_API_KEY:
         model="openai/deepseek-chat",
         api_key=DEEPSEEK_API_KEY,
         base_url="https://api.deepseek.com/v1",
-        max_tokens=8192,
+        max_tokens=16384,  # DeepSeek V3 supports up to 64K; 8K was too small for full chapters
     )
     SONNET_LLM: CrewLLM = CrewLLM(**_DS_KWARGS, temperature=0.3)
     HAIKU_LLM:  CrewLLM = CrewLLM(**_DS_KWARGS, temperature=0.1)
@@ -134,13 +134,13 @@ EMBEDDING_PRICE_PER_1M: float = 0.02
 AGENT_MAX_ITER: dict[str, int] = {
     "research_director": 12,
     "deep_researcher":   18,
-    "data_visualizer":   22,   # 9 figures × 1 tool call each + manifest write + reads = 12+ minimum
+    "data_visualizer":   40,   # 9 figures × ~4 tool calls each (read+write+execute+check) = ~36 needed
     "hebrew_writer":     40,   # writes 9 chapter prose sections; increased to handle fallback reads
     "latex_author":      55,   # writes up to 7 files per task; increased to prevent mid-run cutoff
-    "biology_expert":   15,   # biological ground-truth for echolocation chapters
-    "vision_ai_expert": 15,   # visual SLAM, depth estimation, semantic perception
-    "physics_expert":          15,   # acoustics, matched filter, Doppler, wave propagation
-    "algorithms_expert":       15,   # probabilistic algorithms, SLAM, estimation theory
+    "biology_expert":    15,   # biological ground-truth for echolocation chapters
+    "vision_ai_expert":  15,   # visual SLAM, depth estimation, semantic perception
+    "physics_expert":    15,   # acoustics, matched filter, Doppler, wave propagation
+    "algorithms_expert": 15,   # probabilistic algorithms, SLAM, estimation theory
     "aerospace_marine_expert": 15,   # UAV dynamics, INS, submarine/AUV sonar
 }
 

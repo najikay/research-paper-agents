@@ -14,14 +14,16 @@ from pathlib import Path
 import pytest
 
 from src.config import PROJECT_ROOT
-from src.graph.nodes import REQUIRED_CITE_KEYS
 
 LATEX_DIR    = PROJECT_ROOT / "latex"
 CHAPTERS_DIR = LATEX_DIR / "chapters"
 COVER_TEX    = CHAPTERS_DIR / "cover.tex"
 MAIN_TEX     = LATEX_DIR / "main.tex"
 REFS_BIB     = LATEX_DIR / "references.bib"
-CH01_INTRO   = CHAPTERS_DIR / "ch01_intro.tex"
+
+# Minimum number of BibTeX entries required in the template references.bib.
+# The actual paper BibTeX is written by the agent; this just validates the template.
+_MIN_BIB_ENTRIES = 10
 
 
 def _strip_comments(tex: str) -> str:
@@ -114,22 +116,27 @@ def test_references_bib_exists():
     assert REFS_BIB.exists(), f"references.bib not found at {REFS_BIB}"
 
 
-def test_references_bib_has_required_keys():
-    """references.bib must define all 14 required citation keys."""
+def test_references_bib_has_minimum_entries():
+    """references.bib template must have at least 10 BibTeX entries."""
     import re
     bib_text     = REFS_BIB.read_text(encoding="utf-8", errors="replace")
-    defined_keys = set(re.findall(r"@\w+\{(\w+),", bib_text))
-    missing      = REQUIRED_CITE_KEYS - defined_keys
-    assert not missing, f"references.bib is missing required keys: {sorted(missing)}"
+    entry_count  = len(re.findall(r"@\w+\{", bib_text))
+    assert entry_count >= _MIN_BIB_ENTRIES, (
+        f"references.bib has only {entry_count} entries; need ≥{_MIN_BIB_ENTRIES}"
+    )
 
 
 # ---------------------------------------------------------------------------
-# ch01_intro.tex
+# Template chapters check
 # ---------------------------------------------------------------------------
 
-def test_ch01_intro_exists():
-    """latex/chapters/ch01_intro.tex must exist (protected static file)."""
-    assert CH01_INTRO.exists(), f"ch01_intro.tex not found at {CH01_INTRO}"
+def test_only_cover_is_static():
+    """Only cover.tex must exist in latex/chapters/ — ch01/ch04 are now agent-written."""
+    existing = sorted(f.name for f in CHAPTERS_DIR.glob("*.tex"))
+    assert existing == ["cover.tex"], (
+        f"Expected only cover.tex in latex/chapters/; found: {existing}. "
+        "ch01_intro.tex and ch04_slam.tex are now fully agent-written (dynamic)."
+    )
 
 
 # ---------------------------------------------------------------------------

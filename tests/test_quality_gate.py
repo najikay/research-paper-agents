@@ -16,8 +16,8 @@ import pytest
 from src.graph.nodes import (
     AGENT_CHAPTERS,
     MAX_REMEDIATIONS,
+    MIN_BIB_ENTRIES,
     QUALITY_THRESHOLD,
-    REQUIRED_CITE_KEYS,
     run_quality_gate,
 )
 
@@ -26,14 +26,14 @@ from src.graph.nodes import (
 # Constants tests (pure inspection, no filesystem needed)
 # ---------------------------------------------------------------------------
 
-def test_required_cite_keys_count():
-    """REQUIRED_CITE_KEYS must contain exactly 14 entries."""
-    assert len(REQUIRED_CITE_KEYS) == 14
+def test_min_bib_entries_constant():
+    """MIN_BIB_ENTRIES must be 10 (quality gate threshold for references.bib)."""
+    assert MIN_BIB_ENTRIES == 10
 
 
 def test_agent_chapters_count():
-    """AGENT_CHAPTERS must list exactly 9 chapter files."""
-    assert len(AGENT_CHAPTERS) == 9
+    """AGENT_CHAPTERS must list exactly 10 chapter files (abstract + ch01–ch09)."""
+    assert len(AGENT_CHAPTERS) == 10
 
 
 def test_quality_threshold():

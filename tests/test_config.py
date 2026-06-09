@@ -26,14 +26,22 @@ def test_project_root_exists():
 
 
 def test_protected_files_contains_critical_paths():
-    """PROTECTED_FILES must include all four critical tex files."""
+    """PROTECTED_FILES must include the static-only tex files (cover + main)."""
     for expected in (
         "latex/chapters/cover.tex",
         "latex/main.tex",
-        "latex/chapters/ch01_intro.tex",
-        "latex/chapters/ch04_slam.tex",
     ):
         assert expected in PROTECTED_FILES, f"{expected!r} missing from PROTECTED_FILES"
+
+
+def test_ch01_ch04_not_in_protected_files():
+    """ch01_intro.tex and ch04_slam.tex must NOT be in PROTECTED_FILES (they are now agent-written)."""
+    assert "latex/chapters/ch01_intro.tex" not in PROTECTED_FILES, (
+        "ch01_intro.tex should be dynamic; remove it from PROTECTED_FILES"
+    )
+    assert "latex/chapters/ch04_slam.tex" not in PROTECTED_FILES, (
+        "ch04_slam.tex should be dynamic; remove it from PROTECTED_FILES"
+    )
 
 
 def test_protected_files_contains_env():

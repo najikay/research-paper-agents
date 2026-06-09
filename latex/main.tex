@@ -22,6 +22,7 @@
 \usepackage{float}
 \usepackage{listings}
 \usepackage{multirow}
+\usepackage{xcolor}
 
 % ── References & Links ────────────────────────────────────────────────────────
 \usepackage{cite}
@@ -36,8 +37,52 @@
 % ── Language Setup ────────────────────────────────────────────────────────────
 \setmainlanguage{hebrew}
 \setotherlanguage{english}
-\newfontfamily\hebrewfont[Script=Hebrew]{Arial}
-\newfontfamily\englishfont[Script=Latin]{Times New Roman}
+
+% Font selection with fallback chain:
+%   Try Arial (Windows) → David (Hebrew standard) → FreeSerif (Linux) → default
+\IfFontExistsTF{Arial}{%
+    \newfontfamily\hebrewfont[Script=Hebrew]{Arial}%
+}{%
+    \IfFontExistsTF{David}{%
+        \newfontfamily\hebrewfont[Script=Hebrew]{David}%
+    }{%
+        \IfFontExistsTF{FreeSerif}{%
+            \newfontfamily\hebrewfont[Script=Hebrew]{FreeSerif}%
+        }{%
+            \newfontfamily\hebrewfont[Script=Hebrew]{DejaVu Sans}%
+        }%
+    }%
+}
+\IfFontExistsTF{Times New Roman}{%
+    \newfontfamily\englishfont[Script=Latin]{Times New Roman}%
+}{%
+    \IfFontExistsTF{FreeSerif}{%
+        \newfontfamily\englishfont[Script=Latin]{FreeSerif}%
+    }{%
+        \newfontfamily\englishfont[Script=Latin]{DejaVu Serif}%
+    }%
+}
+
+% Hebrew monospace font (required by polyglossia when lstlisting captions contain Hebrew)
+\IfFontExistsTF{Courier New}{%
+    \newfontfamily\hebrewfonttt[Script=Hebrew]{Courier New}%
+}{%
+    \IfFontExistsTF{DejaVu Sans Mono}{%
+        \newfontfamily\hebrewfonttt[Script=Hebrew]{DejaVu Sans Mono}%
+    }{%
+        \newfontfamily\hebrewfonttt[Script=Hebrew]{FreeMono}%
+    }%
+}
+% Hebrew sans-serif font (prevents polyglossia error if \textsf used in Hebrew)
+\IfFontExistsTF{Arial}{%
+    \newfontfamily\hebrewfontsf[Script=Hebrew]{Arial}%
+}{%
+    \IfFontExistsTF{DejaVu Sans}{%
+        \newfontfamily\hebrewfontsf[Script=Hebrew]{DejaVu Sans}%
+    }{%
+        \newfontfamily\hebrewfontsf[Script=Hebrew]{FreeSans}%
+    }%
+}
 
 % ── Math operators (agents use these — define them so compilation doesn't fail) ──
 \DeclareMathOperator{\rect}{rect}
@@ -45,6 +90,12 @@
 \DeclareMathOperator{\sgn}{sgn}
 \DeclareMathOperator{\diag}{diag}
 \DeclareMathOperator{\tr}{tr}
+\DeclareMathOperator*{\argmin}{arg\,min}
+\DeclareMathOperator*{\argmax}{arg\,max}
+\DeclareMathOperator{\rank}{rank}
+\DeclareMathOperator{\trace}{trace}
+\DeclareMathOperator{\var}{Var}
+\DeclareMathOperator{\cov}{Cov}
 
 % ── Convenience Commands ──────────────────────────────────────────────────────
 % Wrap English technical terms inside Hebrew prose
@@ -53,6 +104,40 @@
 \newcommand{\en}[1]{\texorpdfstring{\textenglish{#1}}{#1}}
 % Figure reference helper
 \newcommand{\figref}[1]{\figurename~\ref{#1}}
+
+% ── Listings Configuration (MUST be LTR — code is always left-to-right) ──────
+% The bidi package reverses lstlisting content in Hebrew mode.
+% Setting every listing to LTR prevents reversed code/pseudocode.
+\lstset{
+  basicstyle=\small\ttfamily\LTR,
+  keywordstyle=\bfseries\color{blue!70!black},
+  commentstyle=\itshape\color{green!50!black},
+  stringstyle=\color{red!60!black},
+  numbers=left,
+  numberstyle=\tiny\color{gray},
+  numbersep=8pt,
+  frame=single,
+  breaklines=true,
+  breakatwhitespace=false,
+  tabsize=4,
+  showstringspaces=false,
+  columns=fullflexible,
+  xleftmargin=2em,
+  framexleftmargin=1.5em,
+}
+
+% ── Float spacing (prevent overlapping in two-column IEEE layout) ─────────────
+\setlength{\textfloatsep}{10pt plus 2pt minus 2pt}
+\setlength{\floatsep}{8pt plus 2pt minus 2pt}
+\setlength{\intextsep}{8pt plus 2pt minus 2pt}
+% Allow more floats per page to prevent float-queue buildup
+\renewcommand{\topfraction}{0.85}
+\renewcommand{\bottomfraction}{0.70}
+\renewcommand{\textfraction}{0.15}
+\renewcommand{\floatpagefraction}{0.65}
+\setcounter{topnumber}{3}
+\setcounter{bottomnumber}{2}
+\setcounter{totalnumber}{5}
 
 % =============================================================================
 \begin{document}

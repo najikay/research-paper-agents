@@ -20,9 +20,9 @@ import pytest
 def good_chapter_content() -> str:
     """A valid minimal .tex chapter satisfying all quality-gate criteria."""
     # Build a string that has:
-    #   >=3 \begin{equation}, >=1 \includegraphics, >=3 \subsection,
-    #   >=2 \cite{}, >=600 words, no em dashes, no \begin{center}
-    words = " ".join(["מילה"] * 650)  # ~650 Hebrew words to exceed the 600-word threshold
+    #   >=3 \begin{equation}, >=1 \includegraphics, >=4 \subsection,
+    #   >=2 \cite{}, >=800 words, no em dashes, no \begin{center}
+    words = " ".join(["מילה"] * 900)  # ~900 Hebrew words to exceed the 800-word threshold
     return r"""
 \selectlanguage{hebrew}
 \section{פרק לדוגמה}
@@ -53,6 +53,9 @@ def good_chapter_content() -> str:
     \label{eq:measurement}
 \end{equation}
 מודל המדידה מוצג במשוואה~(\ref{eq:measurement}).
+
+\subsection{תת-סעיף רביעי}
+תוכן רביעי עם דיון נוסף.
 
 \begin{figure}[H]
     \centering
@@ -171,7 +174,7 @@ def full_bib_content() -> str:
 
 @pytest.fixture
 def partial_bib_content() -> str:
-    """A references.bib missing 3 required keys (CrewAIDocs, AnthropicClaude, MossEcholocation)."""
+    """A references.bib with only 5 entries — below the MIN_BIB_ENTRIES=10 threshold."""
     return r"""
 @book{Thrun2005ProbRobotics,
   author    = {Thrun, Sebastian and Burgard, Wolfram and Fox, Dieter},
@@ -203,42 +206,6 @@ def partial_bib_content() -> str:
   journal = {ACC},
   year    = {1997}
 }
-@article{GriffinBatEcholocation,
-  author  = {Griffin, Donald},
-  title   = {Listening in the Dark},
-  journal = {Yale UP},
-  year    = {1958}
-}
-@article{GriffithBatEcholocation,
-  author  = {Griffith, S.},
-  title   = {Bat Studies},
-  journal = {JEB},
-  year    = {2000}
-}
-@article{Simmons1979BatSonar,
-  author  = {Simmons, James},
-  title   = {Echo Phase},
-  journal = {Science},
-  year    = {1979}
-}
-@article{Schnitzler1968DSC,
-  author  = {Schnitzler, Hans},
-  title   = {Doppler Shift Compensation},
-  journal = {ZCP},
-  year    = {1968}
-}
-@article{Schuller1974DSC,
-  author  = {Schuller, Gerd},
-  title   = {DSC Role},
-  journal = {JCP},
-  year    = {1974}
-}
-@article{Rihaczek1969MatchedFilter,
-  author  = {Rihaczek, A.},
-  title   = {High Resolution Radar},
-  journal = {McGraw-Hill},
-  year    = {1969}
-}
 """
 
 
@@ -260,10 +227,11 @@ def tmp_latex_dir(tmp_path: Path) -> Path:
     good = (
         r"\selectlanguage{hebrew}" + "\n"
         r"\section{Test}" + "\n"
-        + " ".join(["word"] * 320) + "\n"
+        + " ".join(["word"] * 500) + "\n"
         + r"\subsection{A}" + "\n"
         + r"\subsection{B}" + "\n"
         + r"\subsection{C}" + "\n"
+        + r"\subsection{D}" + "\n"
         + r"\begin{equation}x=1\label{eq:a}\end{equation}" + "\n"
         + r"\begin{equation}y=2\label{eq:b}\end{equation}" + "\n"
         + r"\includegraphics{figures/fig.png}" + "\n"

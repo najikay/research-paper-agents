@@ -39,8 +39,8 @@ from src.utils.token_accountant import TokenAccountant
 _DEFAULT_TOPIC = "Bat-Inspired Drone Navigation via Bio-Mimetic Multi-Modal Sensor Fusion"
 
 # max_iter for the single combined latex task in smoke mode.
-# 11 files × ~2.5 iterations each = ~28 minimum. 35 gives a small buffer.
-_SMOKE_AUTHOR_MAX_ITER = 35
+# 11 files × ~3 iterations each = ~33 minimum. 45 gives buffer for longer chapters.
+_SMOKE_AUTHOR_MAX_ITER = 45
 
 
 def build_crew(
