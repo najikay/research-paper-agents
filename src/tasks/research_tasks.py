@@ -293,6 +293,11 @@ FLOAT PLACEMENT — prevent overlapping content:
     • Tables: use \\begin{{table}}[htbp] for consistency.
     • Wide figures (flowcharts, multi-panel): use \\begin{{figure*}}[htbp] with [width=\\textwidth].
 
+COLUMN WIDTH — IEEE two-column is NARROW (~3.5 inches per column):
+    • Tables: max 4 columns in single-column mode. For wider tables use \\begin{{table*}} (spans both columns).
+    • Equations: keep them SHORT. If an equation has >5 terms, split with \\begin{{align}} + \\\\ line breaks.
+    • Do NOT put long equations with many subscripts/superscripts in a single \\begin{{equation}} — they will overflow.
+
 MATH IN CAPTIONS — CRITICAL (prevents PDF crash):
     ALL math symbols and Greek letters inside \\caption{{}} and \\section{{}} MUST be in math mode.
     Write: $2\\sigma$, $\\alpha$, $\\delta_{{k}}$, $\\hat{{x}}$

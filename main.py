@@ -679,7 +679,6 @@ def _sanitize_tex_files(chapters_dir: Path) -> None:
 
         # Fix 10: Replace aggressive [H] float spec with [htbp] for better layout
         # [H] forces exact placement and causes overlapping in two-column IEEE.
-        # Keep [H] only for tables (they're small), use [htbp] for figures.
         text = re.sub(
             r'\\begin\{figure\}\[H\]',
             r'\\begin{figure}[htbp]',
@@ -690,6 +689,46 @@ def _sanitize_tex_files(chapters_dir: Path) -> None:
             r'\\begin{figure*}[htbp]',
             text,
         )
+        text = re.sub(
+            r'\\begin\{table\}\[H\]',
+            r'\\begin{table}[htbp]',
+            text,
+        )
+        text = re.sub(
+            r'\\begin\{table\*\}\[H\]',
+            r'\\begin{table*}[htbp]',
+            text,
+        )
+
+        # Fix 11: Wrap tabular environments in \adjustbox to prevent column overflow.
+        # Tables with many columns overflow IEEE single-column width.
+        # \adjustbox{max width=\columnwidth} shrinks them to fit.
+        # Skip if already wrapped.
+        if r'\begin{tabular}' in text and r'\adjustbox' not in text:
+            text = text.replace(
+                r'\begin{tabular}',
+                r'\adjustbox{max width=\columnwidth}{%' + '\n' + r'\begin{tabular}',
+            )
+            text = text.replace(
+                r'\end{tabular}',
+                r'\end{tabular}%' + '\n' + '}',
+            )
+
+        # Fix 12: Ensure bare math symbols in \section{} and \caption{} are in math mode.
+        # Agents often write \alpha, \sigma etc. without $...$ outside math environments,
+        # which crashes XeLaTeX. Wrap common bare Greek letters and symbols.
+        for cmd in [r'\\alpha', r'\\beta', r'\\gamma', r'\\delta', r'\\epsilon',
+                    r'\\sigma', r'\\theta', r'\\lambda', r'\\mu', r'\\omega',
+                    r'\\phi', r'\\psi', r'\\tau', r'\\eta', r'\\rho',
+                    r'\\Delta', r'\\Sigma', r'\\Omega', r'\\hat\{[^}]+\}',
+                    r'\\dot\{[^}]+\}', r'\\vec\{[^}]+\}', r'\\bar\{[^}]+\}']:
+            # Match bare math commands NOT already inside $...$
+            # Only fix occurrences inside \section{} and \caption{}
+            text = re.sub(
+                r'(\\(?:section|subsection|caption)\{[^}]*?)(?<!\$)(' + cmd + r')(?!\$)',
+                r'\1$\2$',
+                text,
+            )
 
         if text != original:
             tex_file.write_text(text, encoding="utf-8")

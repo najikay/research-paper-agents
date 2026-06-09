@@ -23,6 +23,7 @@
 \usepackage{listings}
 \usepackage{multirow}
 \usepackage{xcolor}
+\usepackage{adjustbox}           % auto-shrink tables that overflow column width
 
 % ── References & Links ────────────────────────────────────────────────────────
 \usepackage{cite}
@@ -142,6 +143,7 @@
 % =============================================================================
 \begin{document}
 \selectlanguage{hebrew}
+\allowdisplaybreaks              % allow page/column breaks inside equation environments
 
 % ── Cover Page (university assignment format) ─────────────────────────────────
 \input{chapters/cover}
