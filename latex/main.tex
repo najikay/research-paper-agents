@@ -22,8 +22,6 @@
 \usepackage{float}
 \usepackage{listings}
 \usepackage{multirow}
-\usepackage{algorithm}
-\usepackage{algpseudocode}
 
 % ── References & Links ────────────────────────────────────────────────────────
 \usepackage{cite}
@@ -65,36 +63,38 @@
 \clearpage
 
 % ── Abstract ──────────────────────────────────────────────────────────────────
+% \IfFileExists guards: xelatex compiles even when agent hasn't written a chapter yet.
+% A missing file produces a warning in main.log, not a fatal error.
 \begin{abstract}
-\input{chapters/abstract}
+\IfFileExists{chapters/abstract.tex}{\input{chapters/abstract}}{}
 \end{abstract}
 
 % ── Chapter 1: Introduction ───────────────────────────────────────────────────
-\input{chapters/ch01_intro}
+\IfFileExists{chapters/ch01_intro.tex}{\input{chapters/ch01_intro}}{}
 
 % ── Chapter 2: Biological Basis ───────────────────────────────────────────────
-\input{chapters/ch02_bio_basis}
+\IfFileExists{chapters/ch02_bio_basis.tex}{\input{chapters/ch02_bio_basis}}{}
 
 % ── Chapter 3: Sensor Modalities ──────────────────────────────────────────────
-\input{chapters/ch03_sensors}
+\IfFileExists{chapters/ch03_sensors.tex}{\input{chapters/ch03_sensors}}{}
 
 % ── Chapter 4: Bio-Mimetic SLAM Algorithms ────────────────────────────────────
-\input{chapters/ch04_slam}
+\IfFileExists{chapters/ch04_slam.tex}{\input{chapters/ch04_slam}}{}
 
 % ── Chapter 5: Sensor Fusion Architecture ─────────────────────────────────────
-\input{chapters/ch05_fusion}
+\IfFileExists{chapters/ch05_fusion.tex}{\input{chapters/ch05_fusion}}{}
 
-% ── Chapter 6: The Proposed Bio-Mimetic Algorithm ────────────────────────────
-\input{chapters/ch06_algorithm}
+% ── Chapter 6: The Proposed Algorithm ────────────────────────────────────────
+\IfFileExists{chapters/ch06_algorithm.tex}{\input{chapters/ch06_algorithm}}{}
 
-% ── Chapter 7: NavigatorCrew Platform Design ─────────────────────────────────
-\input{chapters/ch07_oursystem}
+% ── Chapter 7: System Design ─────────────────────────────────────────────────
+\IfFileExists{chapters/ch07_oursystem.tex}{\input{chapters/ch07_oursystem}}{}
 
-% ── Chapter 8: Simulation Results ────────────────────────────────────────────
-\input{chapters/ch08_results}
+% ── Chapter 8: Results ───────────────────────────────────────────────────────
+\IfFileExists{chapters/ch08_results.tex}{\input{chapters/ch08_results}}{}
 
 % ── Chapter 9: Conclusion ────────────────────────────────────────────────────
-\input{chapters/ch09_conclusion}
+\IfFileExists{chapters/ch09_conclusion.tex}{\input{chapters/ch09_conclusion}}{}
 
 % ── Bibliography ─────────────────────────────────────────────────────────────
 \bibliographystyle{IEEEtran}

@@ -36,14 +36,14 @@ from src.config import AGENT_MAX_ITER, SONNET_LLM, logger
 _ROLE = "IEEE LaTeX Technical Author (Hebrew/English Bilingual, Robotics Domain)"
 
 _GOAL = """
-Format pre-written Hebrew academic prose into complete, compilable XeLaTeX
-chapter files for an IEEE paper on bat-inspired drone navigation.
+Write complete, compilable XeLaTeX chapter files for an IEEE paper.
 
 Your PRIMARY input is outputs/current/hebrew_prose.md — polished Hebrew prose written
-by the HebrewAcademicWriter. Your job is FORMATTING, not translation:
+by the HebrewAcademicWriter. If that file is missing or empty, read research_briefs.md
+and write the Hebrew academic prose yourself. Your job:
   1. Wrap each prose section in the correct LaTeX environments.
-  2. Insert equations at [EQUATION: name] markers.
-  3. Insert \\includegraphics at [FIGURE: name] markers.
+  2. Insert equations at [EQUATION: name] markers (or write them from research content).
+  3. Insert \\includegraphics at [FIGURE: name] markers (using filenames from figures_manifest.md).
   4. Insert tables at [TABLE: description] markers.
   5. Replace [CITE: Key] with \\cite{Key}.
   6. Wrap English terms in the prose with \\en{...} if not already done.
@@ -122,15 +122,10 @@ EM DASH PROHIBITION:
     NEVER write: "NavigatorCrew — פלטפורמת" or "מפת הסביבה — ייצוג"
     Write instead: "NavigatorCrew: פלטפורמת" or "מפת הסביבה, ייצוג"
 
-REQUIRED BIBTEX KEYS (references.bib MUST define exactly these keys):
-    Thrun2005ProbRobotics, Kalman1960, Grisetti2010g2o, MurArtal2015ORB,
-    Julier1997CovarianceIntersection, GriffinBatEcholocation,
-    GriffithBatEcholocation, Simmons1979BatSonar, Schnitzler1968DSC,
-    Schuller1974DSC, MossEcholocation, Rihaczek1969MatchedFilter,
-    CrewAIDocs, AnthropicClaude
-    These exact keys are cited in ch01_intro.tex and ch04_slam.tex.
-    Do NOT invent different keys — BibTeX undefined-citation warnings
-    will propagate to the final PDF as [?] markers.
+BIBLIOGRAPHY CONSISTENCY:
+    Every \\cite{Key} you write in a chapter MUST have a matching @entry in references.bib.
+    Do NOT cite a key that you have not defined in references.bib.
+    Use topic-appropriate references from the research briefs. Minimum 14 entries total.
 
 FORBIDDEN PATTERNS (will cause compilation failure or editorial rejection):
     • \\begin{center}...\\end{center} inside figure/table (use \\centering instead)
@@ -181,18 +176,18 @@ _EXPECTED_TOOLS = [
 
 # Chapters this agent will write, in order, with their labels
 CHAPTER_MANIFEST: list[dict] = [
-    # cover.tex       — PROTECTED, do not write
-    # ch01_intro.tex  — PROTECTED, do not write
-    # ch04_slam.tex   — PROTECTED, do not write
-    # main.tex        — PROTECTED, do not write
-    {"num": "abstract", "file": "abstract.tex",            "label": None,             "title_he": "תקציר"},
-    {"num": "ch02",     "file": "ch02_bio_basis.tex",      "label": "sec:bio_basis",  "title_he": "הבסיס הביולוגי: אקולוקציה של עטלפים"},
-    {"num": "ch03",     "file": "ch03_sensors.tex",        "label": "sec:sensors",    "title_he": "מודאליות החישנים: LiDAR, סונאר ו-Vision-AI"},
-    {"num": "ch05",     "file": "ch05_fusion.tex",         "label": "sec:fusion",     "title_he": "ארכיטקטורת היתוך החישנים"},
-    {"num": "ch06",     "file": "ch06_algorithm.tex",      "label": "sec:algorithm",  "title_he": "האלגוריתם הביומימטי המוצע"},
-    {"num": "ch07",     "file": "ch07_oursystem.tex",      "label": "sec:oursystem",  "title_he": "NavigatorCrew: עיצוב ומימוש הפלטפורמה"},
-    {"num": "ch08",     "file": "ch08_results.tex",        "label": "sec:results",    "title_he": "תוצאות סימולציה וניתוח"},
-    {"num": "ch09",     "file": "ch09_conclusion.tex",     "label": "sec:conclusion", "title_he": "סיכום, מגבלות ועתיד"},
+    # cover.tex  — PROTECTED, do not write
+    # main.tex   — PROTECTED, do not write
+    {"num": "abstract", "file": "abstract.tex",            "label": None,             "title_he": "תקציר (from outline)"},
+    {"num": "ch01",     "file": "ch01_intro.tex",          "label": "sec:intro",      "title_he": "מבוא (from outline)"},
+    {"num": "ch02",     "file": "ch02_bio_basis.tex",      "label": "sec:bio_basis",  "title_he": "(from outline)"},
+    {"num": "ch03",     "file": "ch03_sensors.tex",        "label": "sec:sensors",    "title_he": "(from outline)"},
+    {"num": "ch04",     "file": "ch04_slam.tex",           "label": "sec:slam",       "title_he": "(from outline)"},
+    {"num": "ch05",     "file": "ch05_fusion.tex",         "label": "sec:fusion",     "title_he": "(from outline)"},
+    {"num": "ch06",     "file": "ch06_algorithm.tex",      "label": "sec:algorithm",  "title_he": "(from outline)"},
+    {"num": "ch07",     "file": "ch07_oursystem.tex",      "label": "sec:oursystem",  "title_he": "(from outline)"},
+    {"num": "ch08",     "file": "ch08_results.tex",        "label": "sec:results",    "title_he": "(from outline)"},
+    {"num": "ch09",     "file": "ch09_conclusion.tex",     "label": "sec:conclusion", "title_he": "(from outline)"},
     {"num": "bib",      "file": "references.bib",          "label": None,             "title_he": "ביבליוגרפיה"},
 ]
 

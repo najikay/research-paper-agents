@@ -149,24 +149,21 @@ def test_latex_author_goal_has_em_dash_prohibition():
     assert "FORBIDDEN" in agent.goal or "PROHIBITION" in agent.goal
 
 
-def test_latex_author_goal_has_required_bibtex_keys():
-    """LaTeXAuthor goal must contain the canonical key 'Thrun2005ProbRobotics'."""
+def test_latex_author_goal_has_bibliography_consistency_rule():
+    """LaTeXAuthor goal must contain the topic-agnostic bibliography consistency rule."""
     agent = create_latex_author(tools=[])
-    assert "Thrun2005ProbRobotics" in agent.goal
+    assert "BIBLIOGRAPHY CONSISTENCY" in agent.goal or "bibliography" in agent.goal.lower()
 
 
 def test_latex_author_chapter_manifest_excludes_protected():
-    """CHAPTER_MANIFEST must not include ch04_slam.tex, main.tex, or cover.tex."""
+    """CHAPTER_MANIFEST must include dynamic chapters and exclude only truly protected files."""
     files_in_manifest = [ch["file"] for ch in CHAPTER_MANIFEST]
-    assert "ch04_slam.tex" not in files_in_manifest, (
-        "ch04_slam.tex is protected and must not be in manifest"
-    )
-    assert "main.tex" not in files_in_manifest, (
-        "main.tex is protected and must not be in manifest"
-    )
-    assert "cover.tex" not in files_in_manifest, (
-        "cover.tex is protected and must not be in manifest"
-    )
+    # ch01 and ch04 are now dynamic — they SHOULD be in the manifest
+    assert "ch01_intro.tex" in files_in_manifest, "ch01_intro.tex is dynamic and must be in manifest"
+    assert "ch04_slam.tex" in files_in_manifest, "ch04_slam.tex is dynamic and must be in manifest"
+    # Only static protected files must be absent
+    assert "main.tex" not in files_in_manifest, "main.tex is protected and must not be in manifest"
+    assert "cover.tex" not in files_in_manifest, "cover.tex is protected and must not be in manifest"
 
 
 def test_latex_author_no_delegation():

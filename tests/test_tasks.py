@@ -34,23 +34,8 @@ from src.tasks.research_tasks import (
 # Stable fake run folder used across module-scoped fixtures
 _RUN_FOLDER = Path("/tmp/test_navigator_run")
 
-# Required BibTeX keys that must appear in the latex task description
-REQUIRED_CITE_KEYS = [
-    "Thrun2005ProbRobotics",
-    "Kalman1960",
-    "Grisetti2010g2o",
-    "MurArtal2015ORB",
-    "Julier1997CovarianceIntersection",
-    "GriffinBatEcholocation",
-    "GriffithBatEcholocation",
-    "Simmons1979BatSonar",
-    "Schnitzler1968DSC",
-    "Schuller1974DSC",
-    "MossEcholocation",
-    "Rihaczek1969MatchedFilter",
-    "CrewAIDocs",
-    "AnthropicClaude",
-]
+# Minimum number of BibTeX entries the part-1 task must request (count-based)
+_MIN_BIB_ENTRIES_REQUESTED = 14
 
 
 # Shared real agents (no LLM calls made at instantiation time)
@@ -143,8 +128,11 @@ def test_research_task_has_context(research_task):
 # ---------------------------------------------------------------------------
 
 def test_figures_task_output_file(figures_task):
-    """Figures task must write to outputs/current/figures_manifest.md."""
-    assert figures_task.output_file == "outputs/current/figures_manifest.md"
+    """Figures task output_file must be a separate status file, not figures_manifest.md.
+    The manifest itself is written by SafeFileWriterTool — using the same path for
+    output_file would cause CrewAI to overwrite the manifest with the agent's short
+    final response."""
+    assert figures_task.output_file == "outputs/current/figures_status.md"
 
 
 # ---------------------------------------------------------------------------
@@ -152,8 +140,11 @@ def test_figures_task_output_file(figures_task):
 # ---------------------------------------------------------------------------
 
 def test_hebrew_prose_task_output_file(hebrew_task):
-    """Hebrew prose task must write to outputs/current/hebrew_prose.md."""
-    assert hebrew_task.output_file == "outputs/current/hebrew_prose.md"
+    """Hebrew prose task status file must be hebrew_prose_status.md.
+    The actual prose is written by SafeFileWriterTool to hebrew_prose.md;
+    output_file is the status/summary file so CrewAI doesn't overwrite the prose.
+    """
+    assert hebrew_task.output_file == "outputs/current/hebrew_prose_status.md"
 
 
 # ---------------------------------------------------------------------------
@@ -168,16 +159,24 @@ def test_latex_task_output_file(latex_task):
     assert latex_task.output_file == "outputs/current/latex_status.md"
 
 
-def test_latex_task_does_not_write_ch04_slam(latex_task):
-    """ch04_slam.tex must not appear in the FILES TO WRITE section of the latex task."""
+def test_latex_part1_writes_ch01_and_ch04(latex_part1_task):
+    """Part-1 task description must include ch01_intro.tex and ch04_slam.tex in FILES TO WRITE."""
+    desc = latex_part1_task.description
+    assert "ch01_intro.tex" in desc, "ch01_intro.tex must be in part-1 FILES TO WRITE"
+    assert "ch04_slam.tex" in desc, "ch04_slam.tex must be in part-1 FILES TO WRITE"
+
+
+def test_latex_part2_does_not_write_ch01_ch04(latex_task):
+    """ch01_intro.tex and ch04_slam.tex must NOT appear in the part-2 FILES TO WRITE section."""
     desc = latex_task.description
-    if "FILES TO WRITE" in desc:
-        write_section = desc.split("FILES TO WRITE")[1]
-        assert "ch04_slam.tex" not in write_section, (
-            "ch04_slam.tex must not appear in the FILES TO WRITE section"
+    if "WRITE these" in desc:
+        write_section = desc.split("WRITE these")[1]
+        assert "ch01_intro.tex" not in write_section, (
+            "ch01_intro.tex must not appear in part-2 FILES TO WRITE"
         )
-    else:
-        assert "ch04_slam.tex" in desc, "ch04_slam.tex should be mentioned as protected"
+        assert "ch04_slam.tex" not in write_section, (
+            "ch04_slam.tex must not appear in part-2 FILES TO WRITE"
+        )
 
 
 def test_latex_task_does_not_write_main_tex(latex_task):
@@ -190,10 +189,11 @@ def test_latex_task_does_not_write_main_tex(latex_task):
         )
 
 
-def test_latex_task_has_all_14_citation_keys(latex_part1_task):
-    """All 14 required BibTeX citation keys must appear in the part-1 latex task (bib is written there)."""
-    for key in REQUIRED_CITE_KEYS:
-        assert key in latex_part1_task.description, f"Required citation key missing from part1 task: {key}"
+def test_latex_part1_requests_minimum_bib_entries(latex_part1_task):
+    """Part-1 task must request at least 14 BibTeX entries (count-based, not key-based)."""
+    assert f"≥{_MIN_BIB_ENTRIES_REQUESTED}" in latex_part1_task.description, (
+        f"Part-1 task must mention '≥{_MIN_BIB_ENTRIES_REQUESTED}' BibTeX entries"
+    )
 
 
 # ---------------------------------------------------------------------------

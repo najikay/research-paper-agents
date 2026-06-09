@@ -1,5 +1,5 @@
 # Product Requirements Document — NavigatorCrew
-**Version**: 5.2 | **Date**: 2026-06-09
+**Version**: 5.4 | **Date**: 2026-06-09
 
 ---
 
@@ -12,13 +12,23 @@ NavigatorCrew is an autonomous multi-agent system that takes a research topic as
 ## 2. Pipeline Architecture
 
 ```
-main.py --topic "..."
+main.py --topic "..." [--fast | --smoke | --dry-run]
+  ├─► --dry-run  → write_stub_chapters() → run_quality_gate() → compile_pdf()  (~5–30 sec, 0 LLM calls)
   └─► LangGraph state machine
-        ├─ run_main_pipeline   → 10-agent CrewAI crew (11 tasks, sequential)
+        ├─ run_main_pipeline   → CrewAI crew (10/5/2 agents, 11/6/2 tasks by mode)
         ├─ run_quality_gate    → programmatic checker (no LLM)
         ├─ run_remediation     → targeted fix crew (max 2 cycles)
         └─ END                 → XeLaTeX compile (5 passes) + run archive
 ```
+
+### Speed Modes
+
+| Flag | Agents | Tasks | Est. Time | LLM Calls | Use case |
+|---|---|---|---|---|---|
+| (none) | 10 | 11 | 60–120 min | ~500 | Production runs |
+| `--fast` | 5 | 6 | 20–40 min | ~200 | Dev iteration, skip domain experts |
+| `--smoke` | 2 | 2 | 3–8 min | ~35 | Quick structural test, outline + latex |
+| `--dry-run` | 0 | 0 | 5–30 sec | 0 | PDF compile pipeline verification only |
 
 ### CrewAI Sequential Pipeline (11 tasks)
 
@@ -33,8 +43,8 @@ main.py --topic "..."
 | 7 | BiologyExpert | briefs | `outputs/current/domain_biology.md` |
 | 8 | VisualizationEngineer | briefs | `{run_folder}/latex/figures/*.png` + `figures_manifest.md` |
 | 9 | HebrewAcademicWriter | briefs + all domain files | `outputs/current/hebrew_prose.md` |
-| 10 | LaTeXAuthor (part 1) | prose + figures + domain files | `abstract.tex`, `ch02-03.tex`, `ch05.tex`, `references.bib` |
-| 11 | LaTeXAuthor (part 2) | part 1 output | `ch06-09.tex` + appendix (symbols table) |
+| 10 | LaTeXAuthor (part 1) | prose + figures + domain files | `abstract.tex`, `ch01-05.tex`, `references.bib` (7 files) |
+| 11 | LaTeXAuthor (part 2) | prose + figures manifest | `ch06-09.tex` + appendix (symbols table) (4 files) |
 
 All `outputs/current/` paths are **staging** — moved to `{run_folder}/outputs/` by `finalize_run()` on completion.
 
@@ -50,8 +60,9 @@ Checks per agent-written chapter file:
 - Subsection count ≥ 3
 - Word estimate ≥ 600
 - Citation count ≥ 2
-- All 14 required BibTeX keys present in `references.bib`
-- No forbidden patterns: `\begin{center}` at document level, em dashes in Hebrew prose (outside `\en{}`), placeholder `\fbox` boxes, missing figure files
+- `references.bib` entry count ≥ 10 (topic-agnostic; agent targets ≥14 in task description)
+- Missing figure file penalty capped at −20 total (prevents single-component cascade failure)
+- No forbidden patterns: `\begin{center}` at document level, em dashes in Hebrew prose (outside `\en{}`), placeholder `\fbox` boxes
 
 Score < 75 → FAIL → remediation crew (max 2 cycles) → re-check.
 
@@ -68,7 +79,7 @@ Score < 75 → FAIL → remediation crew (max 2 cycles) → re-check.
 | AlgorithmsExpert | DeepSeek V3 | 15 | FileReader, SafeFileWriter, Serper, ArXiv |
 | AerospaceMarineExpert | DeepSeek V3 | 15 | FileReader, SafeFileWriter, Serper, ArXiv |
 | BiologyExpert | DeepSeek V3 | 15 | FileReader, SafeFileWriter, Serper, ArXiv |
-| VisualizationEngineer | DeepSeek V3 | 12 | CodeExecutor, SafeFileWriter, FileReader |
+| VisualizationEngineer | DeepSeek V3 | 22 | CodeExecutor, SafeFileWriter, FileReader |
 | HebrewAcademicWriter | DeepSeek V3 | 35 | FileReader, SafeFileWriter |
 | LaTeXAuthor | DeepSeek V3 | 40 | SafeFileWriter, FileReader |
 
@@ -88,10 +99,10 @@ The following files are blocked from agent writes in `SafeFileWriterTool` via bo
 |---|---|
 | `main.tex` | Controls chapter order and XeLaTeX preamble |
 | `cover.tex` | `\\[len]` fix for bidi crash; student name/date |
-| `ch01_intro.tex` | Static intro with fixed citation keys |
-| `ch04_slam.tex` | Static SLAM chapter with fixed citation keys |
 | `src/config.py` | Runtime configuration |
 | `.env`, `.gitignore`, `requirements.txt` | Project hygiene |
+
+**Note**: `ch01_intro.tex` and `ch04_slam.tex` are no longer protected — they are fully agent-written (dynamic). Only `cover.tex` remains as a static template chapter.
 
 ---
 
@@ -102,7 +113,7 @@ Each run is **self-contained** in `outputs/runs/{topic-slug}-{YYYY-MM-DD}/` (ver
 ```
 outputs/runs/{slug}-{date}/
   latex/
-    chapters/   ← template static files (ch01, ch04, cover) + 8 agent-written .tex files
+    chapters/   ← cover.tex (static) + 10 agent-written .tex files (abstract + ch01–ch09)
     figures/    ← agent-generated PNGs (300 DPI, min 11pt font)
     references.bib
     main.tex, IEEEtran.cls/bst
@@ -117,12 +128,13 @@ outputs/runs/{slug}-{date}/
 
 ## 7. Figure Requirements
 
-Each of the 9 required figures:
+Exactly 9 figures per paper, topic-determined via `paper_outline.md`:
 - Minimum 300 DPI PNG
 - Minimum font size 11pt for all text elements
 - Wide figures (flowcharts, multi-panel, block diagrams) use `figure*` float with `[width=\textwidth]`
 - Single-column figures use `[width=0.98\columnwidth]`
 - All labels prefixed with chapter ID to prevent multiply-defined-label warnings
+- `VisualizationEngineer` reads outline first; filenames are topic-appropriate (not hardcoded)
 
 ---
 
@@ -132,7 +144,7 @@ Each of the 9 required figures:
 |---|---|
 | Paper length | 25–30 printed A4 pages |
 | Quality gate score | ≥ 75/100 |
-| Required BibTeX keys | All 14 present |
+| BibTeX entries | ≥ 10 in quality gate; agent targets ≥ 14 topic-relevant entries |
 | LaTeX compilation | xelatex exits 0, no `!` errors |
 | Cost per run | ≤ $0.14 (including worst-case remediation) |
 | Execution | Unattended, no manual intervention |

@@ -135,8 +135,8 @@ AGENT_MAX_ITER: dict[str, int] = {
     "research_director": 12,
     "deep_researcher":   18,
     "data_visualizer":   22,   # 9 figures × 1 tool call each + manifest write + reads = 12+ minimum
-    "hebrew_writer":     35,   # writes 8 chapter prose sections (8 files × ~3 iterations each)
-    "latex_author":      40,   # formats pre-written prose into XeLaTeX (split across 2 tasks)
+    "hebrew_writer":     40,   # writes 9 chapter prose sections; increased to handle fallback reads
+    "latex_author":      55,   # writes up to 7 files per task; increased to prevent mid-run cutoff
     "biology_expert":   15,   # biological ground-truth for echolocation chapters
     "vision_ai_expert": 15,   # visual SLAM, depth estimation, semantic perception
     "physics_expert":          15,   # acoustics, matched filter, Doppler, wave propagation
@@ -162,25 +162,20 @@ WRITABLE_DIRS: tuple[str, ...] = ("latex", "outputs", "docs")
 # Files that must never be overwritten by an agent.
 # Entries can be basenames (matched against filename) or PROJECT_ROOT-relative
 # paths (matched against the full relative path).
-# cover.tex is protected because \\[length] optional args in bidi mode crash XeLaTeX.
-# main.tex is protected because it controls the chapter input order and preamble.
-# ch01_intro.tex and ch04_slam.tex contain static citations that must not change.
+# cover.tex is the only static chapter — contains assignment cover page layout.
+# main.tex controls chapter input order and the XeLaTeX preamble.
+# All content chapters (ch01–ch09) are now agent-written and fully dynamic.
 PROTECTED_FILES: tuple[str, ...] = (
-    # Basenames — block the filename regardless of directory (covers both
-    # project-root latex/ and per-run {run_folder}/latex/ paths)
+    # Basenames — block the filename regardless of directory
     ".env",
     ".gitignore",
     "requirements.txt",
     "main.tex",
     "cover.tex",
-    "ch01_intro.tex",
-    "ch04_slam.tex",
-    # Relative paths from PROJECT_ROOT — belt-and-suspenders for project root
+    # Relative paths from PROJECT_ROOT — belt-and-suspenders
     "src/config.py",
     "latex/main.tex",
     "latex/chapters/cover.tex",
-    "latex/chapters/ch01_intro.tex",
-    "latex/chapters/ch04_slam.tex",
 )
 
 # ---------------------------------------------------------------------------

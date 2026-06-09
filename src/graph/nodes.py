@@ -31,22 +31,28 @@ from src.config import logger, PROJECT_ROOT
 QUALITY_THRESHOLD = 75   # score below this triggers remediation
 MAX_REMEDIATIONS  = 2    # hard cap — prevents infinite loops
 
-# Required BibTeX keys that must exist in references.bib
-REQUIRED_CITE_KEYS = {
-    "Thrun2005ProbRobotics", "Kalman1960", "Grisetti2010g2o", "MurArtal2015ORB",
-    "Julier1997CovarianceIntersection", "GriffinBatEcholocation",
-    "GriffithBatEcholocation", "Simmons1979BatSonar", "Schnitzler1968DSC",
-    "Schuller1974DSC", "MossEcholocation", "Rihaczek1969MatchedFilter",
-    "CrewAIDocs", "AnthropicClaude",
-}
+# Minimum number of BibTeX entries required in references.bib.
+# Topic-agnostic — agents cite whatever is relevant to the dynamic topic.
+MIN_BIB_ENTRIES = 10
 
-# Chapters the agent is responsible for writing
+# All content chapters are now agent-written (ch01–ch09 + abstract).
+# cover.tex is the only static file (excluded from quality checks).
 AGENT_CHAPTERS = [
     "abstract.tex",
+    "ch01_intro.tex",
     "ch02_bio_basis.tex", "ch03_sensors.tex", "ch04_slam.tex",
     "ch05_fusion.tex", "ch06_algorithm.tex", "ch07_oursystem.tex",
     "ch08_results.tex", "ch09_conclusion.tex",
 ]
+
+# Per-chapter minimum requirements — relaxed for structural chapters
+# that naturally have fewer equations/figures (intro, conclusion, abstract).
+_CHAPTER_MIN_REQS: dict[str, dict] = {
+    "abstract.tex":        {"eq": 0, "fig": 0, "sub": 0, "cite": 0, "words": 50},
+    "ch01_intro.tex":      {"eq": 1, "fig": 0, "sub": 2, "cite": 2, "words": 400},
+    "ch09_conclusion.tex": {"eq": 0, "fig": 0, "sub": 2, "cite": 1, "words": 300},
+}
+_DEFAULT_MIN_REQS: dict = {"eq": 3, "fig": 1, "sub": 3, "cite": 2, "words": 600}
 
 
 # ---------------------------------------------------------------------------
@@ -59,7 +65,14 @@ def run_main_pipeline(state: PipelineState) -> dict:
     from src.crew import build_crew  # lazy import avoids circular deps
 
     logger.info("[Graph] NODE: run_main_pipeline")
-    crew, accountant = build_crew(topic=state["topic"], run_folder=state["run_folder"])
+    fast_mode  = state.get("fast_mode",  False)
+    smoke_mode = state.get("smoke_mode", False)
+    crew, accountant = build_crew(
+        topic=state["topic"],
+        run_folder=state["run_folder"],
+        fast_mode=fast_mode,
+        smoke_mode=smoke_mode,
+    )
     crew.kickoff()
     return {"quality_verdict": "PENDING"}
 
@@ -95,50 +108,49 @@ def run_quality_gate(state: PipelineState) -> dict:
         failed_sections.extend(["introduction", "methodology", "algorithms"])
 
     # ── 2. Check structural elements per chapter ──────────────────────────
-    content_chapters = [f for f in AGENT_CHAPTERS if f not in ("abstract.tex",)]
-    for fname in content_chapters:
+    for fname in AGENT_CHAPTERS:
         fpath = chapters_dir / fname
         if not fpath.exists():
             continue
         text = fpath.read_text(encoding="utf-8", errors="replace")
-        section_name = fname.replace(".tex", "").replace("ch0", "ch").replace("ch", "")
 
-        eq_count  = len(re.findall(r"\\begin\{equation\}", text))
-        fig_count = len(re.findall(r"\\includegraphics", text))
-        tab_count = len(re.findall(r"\\begin\{table\}", text))
-        sub_count = len(re.findall(r"\\subsection\{", text))
+        reqs = _CHAPTER_MIN_REQS.get(fname, _DEFAULT_MIN_REQS)
+        eq_count   = len(re.findall(r"\\begin\{equation\}", text))
+        fig_count  = len(re.findall(r"\\includegraphics", text))
+        sub_count  = len(re.findall(r"\\subsection\{", text))
         cite_count = len(re.findall(r"\\cite\{", text))
-        word_est  = len(text.split())
+        word_est   = len(text.split())
 
         chapter_issues = []
-        if eq_count < 3:
-            chapter_issues.append(f"equations={eq_count}<3")
+        if eq_count < reqs["eq"]:
+            chapter_issues.append(f"equations={eq_count}<{reqs['eq']}")
             score -= 3
-        if fig_count < 1:
-            chapter_issues.append(f"figures={fig_count}<1")
+        if fig_count < reqs["fig"]:
+            chapter_issues.append(f"figures={fig_count}<{reqs['fig']}")
             score -= 3
-        if sub_count < 3:
-            chapter_issues.append(f"subsections={sub_count}<3")
+        if sub_count < reqs["sub"]:
+            chapter_issues.append(f"subsections={sub_count}<{reqs['sub']}")
             score -= 2
-        if cite_count < 2:
-            chapter_issues.append(f"citations={cite_count}<2")
+        if cite_count < reqs["cite"]:
+            chapter_issues.append(f"citations={cite_count}<{reqs['cite']}")
             score -= 2
-        if word_est < 600:
-            chapter_issues.append(f"words≈{word_est}<600")
+        if word_est < reqs["words"]:
+            chapter_issues.append(f"words≈{word_est}<{reqs['words']}")
             score -= 4
             failed_sections.append("methodology")
 
         if chapter_issues:
             issues.append(f"{fname}: " + ", ".join(chapter_issues))
 
-    # ── 3. Check references.bib has required keys ────────────────────────
+    # ── 3. Check references.bib has enough entries ───────────────────────
+    # Topic-agnostic: we require a minimum count, not specific key names,
+    # since ch01 and ch04 are now dynamic and cite topic-appropriate references.
     if bib_path.exists():
         bib_text = bib_path.read_text(encoding="utf-8", errors="replace")
-        defined_keys = set(re.findall(r"@\w+\{(\w+),", bib_text))
-        missing_keys = REQUIRED_CITE_KEYS - defined_keys
-        if missing_keys:
-            issues.append(f"references.bib missing keys: {sorted(missing_keys)}")
-            score -= 5 * len(missing_keys)
+        entry_count = len(re.findall(r"@\w+\{", bib_text))
+        if entry_count < MIN_BIB_ENTRIES:
+            issues.append(f"references.bib has only {entry_count} entries (need ≥{MIN_BIB_ENTRIES})")
+            score -= max(0, (MIN_BIB_ENTRIES - entry_count) * 2)
             failed_sections.append("references")
     else:
         issues.append("references.bib does not exist")
@@ -162,10 +174,8 @@ def run_quality_gate(state: PipelineState) -> dict:
     score -= missing_fig_penalty
 
     # ── 4b. Check for forbidden patterns ─────────────────────────────────
-    # Only check AGENT-WRITTEN chapters — skip static/protected files.
-    # ch01_intro, ch04_slam, and cover are human-written and may intentionally
-    # contain em dashes; we cannot and should not penalise them.
-    _STATIC = {"ch01_intro.tex", "ch04_slam.tex", "cover.tex"}
+    # Only cover.tex is static now — all chapter files are agent-written.
+    _STATIC = {"cover.tex"}
     agent_tex = [f for f in chapters_dir.glob("*.tex") if f.name not in _STATIC]
     placeholder_files, emdash_files, center_files = [], [], []
     for fpath in agent_tex:
@@ -215,12 +225,12 @@ def run_quality_gate(state: PipelineState) -> dict:
 ## Checks Performed
 
 - Chapter file existence and minimum size
-- Equations per chapter (≥3 required)
-- Figures per chapter (≥1 required)
-- Subsections per chapter (≥3 required)
-- Citations per chapter (≥2 required)
-- Word count estimate per chapter (≥600 required)
-- Required BibTeX keys ({len(REQUIRED_CITE_KEYS)} keys checked)
+- Equations per chapter (≥3 default; abstract=0, ch01=1, ch09=0)
+- Figures per chapter (≥1 default; abstract/ch01/ch09=0)
+- Subsections per chapter (≥3 default; abstract=0, ch01/ch09=2)
+- Citations per chapter (≥2 default; abstract=0, ch09=1)
+- Word count estimate per chapter (≥600 default; abstract=50, ch01=400, ch09=300)
+- references.bib entry count (≥{MIN_BIB_ENTRIES} required)
 - Missing figure files (≤-20 total penalty, capped to prevent cascade)
 - Placeholder figure boxes
 - Em dashes in Hebrew prose

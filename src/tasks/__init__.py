@@ -5,6 +5,8 @@ from .research_tasks import (
     create_task_latex,
     create_task_latex_part1,
     create_task_latex_part2,
+    create_task_latex_smoke,
     create_task_review,
     create_all_tasks,
+    create_smoke_tasks,
 )

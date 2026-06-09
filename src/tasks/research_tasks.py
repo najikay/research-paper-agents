@@ -21,28 +21,32 @@ _STAGING = "outputs/current"
 def create_task_outline(director: Agent, topic: str) -> Task:
     return Task(
         description=f"""
-Decompose the topic '{topic}' into 8 sub-domains and create {_STAGING}/paper_outline.md.
+Analyze the topic '{topic}' and create a chapter-by-chapter outline for a 25–30 page IEEE paper.
+Save the outline to {_STAGING}/paper_outline.md.
 
-TARGET: The final paper must be 25–30 printed A4 pages (IEEEtran, 10pt).
-Each sub-domain chapter should contain at least 4 subsections, 3 equations,
-2 figures, and 1 table — scaffold the outline to enforce this depth.
+STEP 1 — Decompose '{topic}' into 8 content chapters:
+    Chapter 1: Introduction — problem statement, motivation, contributions, paper roadmap
+    Chapters 2–7: Core technical sub-domains SPECIFIC to '{topic}' (you decide the split)
+    Chapter 8: Simulation/Experimental Results and Performance Analysis
+    Chapter 9: Conclusion, Limitations, Future Work
 
-Sub-domains to cover:
-  1. Biological basis: bat echolocation and acoustic fovea
-  2. Sensor modalities: LiDAR, MEMS sonar, Vision-AI depth
-  3. SLAM algorithms: EKF-SLAM, Graph-SLAM, ORB-SLAM3, AF-AFC controller
-  4. Sensor fusion architecture: covariance intersection, EKF update
-  5. Biomimetic algorithm design: full system pipeline
-  6. NavigatorCrew AI system: agents, tools, LangGraph orchestration
-  7. Simulation results and performance analysis
-  8. Conclusion, limitations, future work
+STEP 2 — For each chapter specify:
+    - Hebrew title for \\section{{...}} (use appropriate Hebrew technical terms for the domain)
+    - 3–5 subsection titles (Hebrew)
+    - 3+ equations (with LaTeX math, e.g. $x_{{k+1}} = Ax_k + Bu_k$)
+    - 2 figure filenames: fig_<short_description>.png (exactly 9 figures total across all chapters)
+    - 1 table topic (comparison or summary)
+    - 3–5 English search keywords for Serper/ArXiv queries (ALL searches must be in English)
 
-For each chapter specify: title (Hebrew), section label, 4+ subsection titles,
-required equations, required figures (with filenames from latex/figures/),
-required table topics, and 3–5 English search keywords the researcher should
-use when querying Serper/ArXiv (all searches must be in English).
+STEP 3 — Write the complete outline to {_STAGING}/paper_outline.md.
+    The outline MUST be self-contained: downstream agents read only this file to understand
+    the paper structure. Be specific about equations, figure content, and section labels.
 """.strip(),
-        expected_output=f"Detailed chapter-by-chapter outline in {_STAGING}/paper_outline.md specifying subsections, equations, figures, and tables per chapter. Confirmation: 'OUTLINE COMPLETE'.",
+        expected_output=(
+            f"Detailed chapter-by-chapter outline in {_STAGING}/paper_outline.md with topic-specific "
+            f"Hebrew chapter titles, subsections, equations, figure filenames, and search keywords. "
+            f"Confirmation: 'OUTLINE COMPLETE'."
+        ),
         agent=director,
         output_file=f"{_STAGING}/paper_outline.md"
     )
@@ -75,33 +79,54 @@ def create_task_figures(visualizer: Agent, context: list[Task], run_folder: Path
     latex_figures = str(run_folder / "latex" / "figures") if run_folder else "latex/figures"
     return Task(
         description=f"""
-Generate 9 IEEE-standard figures as 300 DPI PNG files.
+Generate 9 IEEE-standard publication-quality figures as 300 DPI PNG files.
 
-HOW TO CALL PythonCodeExecutorTool for each figure:
+STEP 0 — READ THE OUTLINE to understand the topic and required figures:
+    FileReaderTool("{_STAGING}/paper_outline.md")
+    The outline lists required figures per chapter — use those filenames and topics.
+    If the outline does not specify filenames, invent clear topic-appropriate names
+    following the convention: fig_<topic_keyword>.png (e.g. fig_trajectory_3d.png).
+
+STEP 1 — HOW TO CALL PythonCodeExecutorTool for each figure:
     - `code`: a complete matplotlib script ending with
       plt.savefig(output_path, dpi=300, bbox_inches='tight') and plt.close('all')
-    - `output_filename`: the exact PNG filename (e.g. 'fig_bat_vs_artificial.png')
+    - `output_filename`: the exact PNG filename (e.g. 'fig_trajectory_3d.png')
 
 CRITICAL — `output_path` is a variable that the tool injects automatically into your script.
 Do NOT hardcode any file path in plt.savefig(). Always write:
     plt.savefig(output_path, dpi=300, bbox_inches='tight')
 The tool will save the file to {latex_figures}/ automatically.
 
-FIGURES TO GENERATE (call the tool once per figure, in order):
-    fig_bat_vs_artificial.png, fig_trajectory_3d.png, fig_sensor_fusion_heatmap.png,
-    fig_cochleagram.png, fig_range_doppler.png, fig_ekf_covariance.png,
-    fig_framework_comparison.png, fig_sensor_modalities.png, fig_results_summary.png
+STEP 2 — GENERATE EXACTLY 9 FIGURES (call the tool once per figure, in order):
+    Use the figures specified in the outline. At minimum, produce figures covering:
+    1. A comparative pipeline/architecture flowchart for the paper's main contribution
+    2. A 3D trajectory or spatial map (mpl_toolkits.mplot3d)
+    3. A sensor confidence heatmap or occupancy grid (plt.imshow)
+    4. A signal/spectrum analysis figure (spectrogram or time-frequency plot)
+    5. A range/velocity or signal processing map
+    6. An estimation uncertainty plot (e.g. EKF covariance ellipses or particle filter)
+    7. A performance comparison bar chart (multiple algorithms × multiple metrics)
+    8. A system architecture block diagram
+    9. A multi-panel results summary (RMSE / ATE / RPE or equivalent metrics)
 
-Wide figures (bat_vs_artificial, sensor_modalities, results_summary, framework_comparison):
-    use figsize=(16, 7) or larger. Minimum font size for any text element: 11pt.
+    Name each file to match the outline's specifications.
 
-After all 9 figures are saved, write a manifest to {_STAGING}/figures_manifest.md listing
-each figure's filename, title, Hebrew caption, and \\label{{fig:...}} key.
+FIGURE QUALITY REQUIREMENTS:
+    - plt.style.use('seaborn-v0_8-whitegrid') or equivalent clean base style
+    - Wide/multi-panel figures: figsize=(16, 7) or larger
+    - Minimum font size for ANY text element: 11pt
+      (ax.tick_params(labelsize=11), ax.set_xlabel(..., fontsize=12))
+    - All axes must have labels with units. Legends required when ≥2 series.
+    - Include Hebrew labels/captions where specified in the outline.
+    - Use plt.tight_layout() before savefig.
+
+STEP 3 — After all 9 figures are saved, write a manifest to {_STAGING}/figures_manifest.md:
+    One row per figure: filename | title | Hebrew caption | \\label{{fig:...}} key
 """.strip(),
-        expected_output=f"9 PNG files saved to {latex_figures}/ and manifest at {_STAGING}/figures_manifest.md listing all 9 filenames.",
+        expected_output=f"9 PNG files saved to {latex_figures}/ and manifest at {_STAGING}/figures_manifest.md listing all 9 filenames with captions and label keys.",
         agent=visualizer,
         context=context,
-        output_file=f"{_STAGING}/figures_manifest.md"
+        output_file=f"{_STAGING}/figures_status.md"  # separate from manifest content written via SafeFileWriterTool
     )
 
 
@@ -158,49 +183,57 @@ def create_task_hebrew_prose(writer: Agent, context: list[Task]) -> Task:
     return Task(
         description=f"""
 Read all research and domain-expert materials, then write polished Hebrew academic
-prose for all chapters (CH02–CH09). Save to {_STAGING}/hebrew_prose.md.
+prose for ALL chapters (CH01–CH09). Save prose to {_STAGING}/hebrew_prose.md.
 
 STEP 1 — READ ALL INPUTS (use FileReaderTool for each):
+    FileReaderTool("{_STAGING}/paper_outline.md")         ← chapter structure, titles, equations
     FileReaderTool("{_STAGING}/research_briefs.md")       ← primary technical input
-    FileReaderTool("{_STAGING}/domain_vision_ai.md")      ← Vision-AI expert
-    FileReaderTool("{_STAGING}/domain_physics.md")        ← Physics expert
-    FileReaderTool("{_STAGING}/domain_algorithms.md")     ← Algorithms expert
-    FileReaderTool("{_STAGING}/domain_aerospace.md")      ← Aerospace/Marine expert
-    FileReaderTool("{_STAGING}/domain_biology.md")        ← Biology expert
-    Files that begin with "DOMAIN SKIP:" have no relevant content — ignore them.
-    All other domain files contain PhD-level contributions — incorporate them fully.
+    FileReaderTool("{_STAGING}/domain_vision_ai.md")      ← Vision-AI expert (if not DOMAIN SKIP)
+    FileReaderTool("{_STAGING}/domain_physics.md")        ← Physics expert (if not DOMAIN SKIP)
+    FileReaderTool("{_STAGING}/domain_algorithms.md")     ← Algorithms expert (if not DOMAIN SKIP)
+    FileReaderTool("{_STAGING}/domain_aerospace.md")      ← Aerospace/Marine expert (if not DOMAIN SKIP)
+    FileReaderTool("{_STAGING}/domain_biology.md")        ← Biology expert (if not DOMAIN SKIP)
+    Files that begin with "DOMAIN SKIP:" have no relevant content — skip them.
 
-STEP 2 — Write Hebrew prose for each chapter (CH02–CH09):
-    TARGET: 25–30 printed pages total. Each chapter must be 3–4 pages ≈ 800–1200 words.
-    Chapters ch06 (algorithm) and ch08 (results) must reach 1200–1500 words each.
+STEP 2 — Write Hebrew prose for ALL nine chapters to {_STAGING}/hebrew_prose.md.
+    Use SafeFileWriterTool to write the file. Write ALL chapters in a SINGLE tool call.
+    Do NOT split across multiple files. Do NOT write to hebrew_prose_remaining.md.
 
-    Per-chapter minimum content:
-        • 4+ subsections with substantive prose under each heading
-        • All equations listed in research briefs: write context paragraphs before/after each
-        • All algorithm steps: explain each step in prose (1–2 sentences per step)
-        • All tables: describe what the table shows and what the reader should conclude
-        • Mark placements inline: [EQUATION: name], [FIGURE: filename], [TABLE: description]
-        • Mark citations inline: [CITE: BibKey]
+    TARGET: 25–30 printed pages total.
+    - ch01 (introduction): 600–800 words
+    - ch02–ch05: 800–1000 words each
+    - ch06 (algorithm): 1000–1200 words
+    - ch07 (system): 800–1000 words
+    - ch08 (results): 1000–1200 words
+    - ch09 (conclusion): 600–800 words
 
-    Language rules (CRITICAL — LaTeX will crash otherwise):
-        • Write prose in Hebrew.
-        • Keep standard technical acronyms in English: SLAM, EKF, UKF, LiDAR, UAV, IMU,
-          GPS, MEMS, ORB-SLAM3, iSAM2, GTSAM, CNN, ViT, ReLU, etc.
-        • NEVER use the em dash character (—). Use colon (:) or comma (,) instead.
+    Per-chapter content:
+        • Section marker: ## CH01: <Hebrew title from outline>
+        • 3+ subsections marked: ### <Hebrew subsection title>
+        • Inline markers for equations: [EQUATION: description]
+        • Inline markers for figures: [FIGURE: fig_filename.png]
+        • Inline markers for tables: [TABLE: description]
+        • Citation markers: [CITE: AuthorYear]
+
+    EM DASH PROHIBITION (ABSOLUTE RULE — violating this breaks the PDF):
+        The character — (U+2014) is COMPLETELY FORBIDDEN anywhere in the output.
+        Use colon (:) or comma (,) instead. Check every sentence.
+
+    Language rules:
+        • Prose in Hebrew. Technical acronyms stay in English: SLAM, EKF, LiDAR, UAV, IMU.
         • Do NOT write LaTeX commands — only prose text with inline markers.
 
-    Integrate ALL domain-expert contributions:
-        • Biology expert: bat mechanics, DSC, acoustic fovea
-        • Physics expert: matched filter math, Doppler, beamforming
-        • Algorithms expert: filter math, complexity, convergence proofs
-        • Aerospace expert: UAV dynamics, INS, AUV parallels
-        • Vision-AI expert: depth estimation, semantic SLAM
-        Each non-SKIP domain file adds mandatory content to at least 2 chapters.
+STEP 3 — After writing, output a short confirmation: 'HEBREW PROSE COMPLETE'.
+    Do NOT output the full prose in your final response — just the confirmation.
+    The prose is already saved to the file by SafeFileWriterTool.
 """.strip(),
-        expected_output=f"{_STAGING}/hebrew_prose.md with Hebrew prose for all 8 chapters incorporating domain expert contributions. ≥800 words per chapter, ≥1200 for ch06/ch08. Confirmation: 'HEBREW PROSE COMPLETE'.",
+        expected_output=(
+            f"All 9 chapters written to {_STAGING}/hebrew_prose.md via SafeFileWriterTool. "
+            f"≥600 words per chapter. Zero em dash characters. Confirmation: 'HEBREW PROSE COMPLETE'."
+        ),
         agent=writer,
         context=context,
-        output_file=f"{_STAGING}/hebrew_prose.md",
+        output_file=f"{_STAGING}/hebrew_prose_status.md",
     )
 
 
@@ -216,9 +249,7 @@ CONTENT DEPTH — each chapter file must have:
 
 FIGURE WIDTH RULES:
     • Single-column figures: [width=0.98\\columnwidth]
-    • Wide figures (flowcharts, multi-panel): use {{figure*}} with [width=\\textwidth]
-    • Wide figure names: fig_bat_vs_artificial, fig_results_summary,
-      fig_sensor_modalities, fig_framework_comparison
+    • Wide figures (flowcharts, multi-panel, block diagrams): use {{figure*}} with [width=\\textwidth]
     • NEVER use width smaller than 0.9\\columnwidth.
 
 LABEL UNIQUENESS — every \\label{{}} must be globally unique:
@@ -238,18 +269,29 @@ FIGURES — CRITICAL:
     NEVER invent figure names. Never write \\fbox{{\\parbox{{...PLACEHOLDER...}}}}.
     Format: \\includegraphics[width=0.98\\columnwidth]{{figures/EXACT_NAME.png}}
 
+PSEUDOCODE — use lstlisting, NOT algorithm env:
+    \\begin{{lstlisting}}[language=Python, caption={{Algorithm Name}}]
+    ... pseudocode here ...
+    \\end{{lstlisting}}
+    The \\begin{{algorithm}} environment is NOT available. Use lstlisting for all pseudocode.
+
+MATH IN CAPTIONS — CRITICAL (prevents PDF crash):
+    ALL math symbols and Greek letters inside \\caption{{}} and \\section{{}} MUST be in math mode.
+    Write: $2\\sigma$, $\\alpha$, $\\delta_{{k}}$, $\\hat{{x}}$
+    NOT: 2-\\sigma, \\alpha, \\delta_k (these crash XeLaTeX outside math environments).
+    Rule: if it has a backslash and is not \\en{{}} or \\label{{}} or \\ref{{}} — wrap it in $...$
+
 PROTECTED (never overwrite):
-    {chapters_dir}/ch01_intro.tex  {chapters_dir}/ch04_slam.tex
-    {latex_dir}/main.tex           {chapters_dir}/cover.tex
+    {latex_dir}/main.tex    {chapters_dir}/cover.tex
 
 Use SafeFileWriterTool for EVERY file. COMPILER: XeLaTeX.
+WRITE EACH FILE IMMEDIATELY after completing it — do not buffer all files before writing.
 """.strip()
 
 
 def create_task_latex_part1(author: Agent, context: list[Task], run_folder: Path | None = None) -> Task:
     """
-    Part 1 of 2: writes abstract + early chapters + references.bib.
-    Files: abstract.tex, ch02_bio_basis.tex, ch03_sensors.tex, ch05_fusion.tex, references.bib
+    Part 1 of 2: writes abstract + ch01–ch05 + references.bib.
     """
     latex_dir = str(run_folder / "latex") if run_folder else "latex"
     chapters_dir = f"{latex_dir}/chapters"
@@ -259,57 +301,57 @@ def create_task_latex_part1(author: Agent, context: list[Task], run_folder: Path
         description=f"""
 You are writing the FIRST HALF of a 25–30 page IEEE paper in XeLaTeX (Hebrew primary language).
 
-STEP 1 — READ ALL INPUTS first (FileReaderTool for each):
-    FileReaderTool("{_STAGING}/hebrew_prose.md")      ← primary prose (read fully)
-    FileReaderTool("{_STAGING}/figures_manifest.md")  ← exact figure filenames
-    FileReaderTool("{_STAGING}/domain_biology.md")    ← biological ground truth
-    FileReaderTool("{_STAGING}/domain_physics.md")    ← acoustics, matched filter
-    FileReaderTool("{_STAGING}/domain_vision_ai.md")  ← vision/depth equations
-    Files beginning with "DOMAIN SKIP:" — ignore.
+STEP 1 — READ INPUTS (FileReaderTool for each, in order):
+    FileReaderTool("{_STAGING}/paper_outline.md")      ← chapter titles, structure, figure names
+    FileReaderTool("{_STAGING}/hebrew_prose.md")       ← primary prose content for ALL chapters
+    FileReaderTool("{_STAGING}/research_briefs.md")    ← fallback if hebrew_prose.md is missing/empty
 
-STEP 2 — PLAN before writing. Output a one-line plan per file listing the key
-    sections and equations you will include. Then write each file in order.
+    IMPORTANT: If hebrew_prose.md is missing, contains only "HEBREW PROSE COMPLETE", or is
+    otherwise empty/unusable — write the Hebrew academic prose yourself directly from the
+    research_briefs.md content. Translate/write quality Hebrew academic text. Do NOT skip chapters.
 
-STEP 3 — WRITE these 5 files (ALL are required — do not skip any):
+STEP 2 — PLAN: for each file you will write, state in ONE LINE the section title and key content.
+    Then write each file IMMEDIATELY — do not plan all files before writing any.
+
+STEP 3 — WRITE these 7 files ONE AT A TIME (write each immediately after planning it):
 
   {chapters_dir}/abstract.tex
-      Short abstract (200–300 words Hebrew). No equations, no figures.
-      Summarise: motivation, method, key contributions, main result.
+      Short abstract (200–300 words Hebrew). No equations, no figures, no \\section command.
+      Wrap the text directly — it is inserted inside \\begin{{abstract}}...\\end{{abstract}}.
+
+  {chapters_dir}/ch01_intro.tex
+      Use the Hebrew section title from paper_outline.md for this chapter.
+      ≥600 words. Cover: motivation, problem statement, contributions overview, paper structure.
+      Must have: ≥2 \\subsection{{}} blocks, ≥2 equations, ≥2 \\cite{{}} calls.
 
   {chapters_dir}/ch02_bio_basis.tex
-      \\section{{בסיס ביולוגי: אקולוקציה של עטלפים}}
-      ≥1000 Hebrew words. Integrate biology + physics domain content.
-      Cover: CF-FM pulse design, acoustic fovea mechanics, DSC control loop,
-      neural computation (IC delay-tuned neurons, hippocampal place cells),
-      bio-inspired engineering mappings. Include matched-filter equation.
+      Use the Hebrew section title from paper_outline.md for chapter 2.
+      ≥1000 words. ≥4 \\subsection{{}}, ≥3 equations, ≥1 figure, ≥2 citations.
 
   {chapters_dir}/ch03_sensors.tex
-      \\section{{מודאליות חישה: LiDAR, סונאר MEMS, וראייה ממוחשבת}}
-      ≥1000 Hebrew words. Integrate vision-AI domain content.
-      Cover: LiDAR principle + range equation, MEMS sonar array + beamforming,
-      monocular depth estimation (MonoDepth2/MiDaS), sensor comparison table.
+      Use the Hebrew section title from paper_outline.md for chapter 3.
+      ≥1000 words. ≥4 \\subsection{{}}, ≥3 equations, ≥1 figure, ≥2 citations.
+
+  {chapters_dir}/ch04_slam.tex
+      Use the Hebrew section title from paper_outline.md for chapter 4.
+      ≥1000 words. ≥4 \\subsection{{}}, ≥3 equations, ≥1 figure, ≥2 citations.
 
   {chapters_dir}/ch05_fusion.tex
-      \\section{{ארכיטקטורת היתוך חישנים}}
-      ≥1000 Hebrew words. Integrate algorithms domain content.
-      Cover: covariance intersection formula, EKF update equations,
-      information-theoretic fusion, sensor weighting table.
+      Use the Hebrew section title from paper_outline.md for chapter 5.
+      ≥1000 words. ≥4 \\subsection{{}}, ≥3 equations, ≥1 figure, ≥2 citations.
 
   {bib_path}
-      Full BibTeX file. MUST contain ALL 14 required keys:
-      Thrun2005ProbRobotics, Kalman1960, Grisetti2010g2o, MurArtal2015ORB,
-      Julier1997CovarianceIntersection, GriffinBatEcholocation,
-      GriffithBatEcholocation, Simmons1979BatSonar, Schnitzler1968DSC,
-      Schuller1974DSC, MossEcholocation, Rihaczek1969MatchedFilter,
-      CrewAIDocs, AnthropicClaude.
-      Add domain-expert references from domain files (≥5 additional entries).
+      Full BibTeX file. Collect ALL \\cite{{}} keys you used in the chapters above.
+      MUST contain ≥14 topic-relevant BibTeX entries. Use real author/title/year from
+      the research briefs and domain files. Do NOT fabricate citation metadata.
 
 {rules}
 """.strip(),
         expected_output=(
-            "5 files written: abstract.tex, ch02_bio_basis.tex, ch03_sensors.tex, "
-            "ch05_fusion.tex, references.bib. Each chapter ≥1000 words, ≥5 subsections, "
-            "≥4 equations. references.bib has all 14 required keys. "
+            "7 files written: abstract.tex, ch01_intro.tex, ch02–ch05.tex, references.bib. "
+            "Each chapter uses Hebrew section title from paper_outline.md. "
+            "≥600w for ch01, ≥1000w for ch02–ch05, ≥3 equations, ≥1 figure (ch02–ch05). "
+            "references.bib has ≥14 entries. "
             "Confirmation: 'LATEX PART 1 COMPLETE'."
         ),
         agent=author,
@@ -320,8 +362,8 @@ STEP 3 — WRITE these 5 files (ALL are required — do not skip any):
 
 def create_task_latex_part2(author: Agent, context: list[Task], run_folder: Path | None = None) -> Task:
     """
-    Part 2 of 2: writes the later chapters (algorithm, system, results, conclusion + appendix).
-    Files: ch06_algorithm.tex, ch07_oursystem.tex, ch08_results.tex, ch09_conclusion.tex
+    Part 2 of 2: writes ch06–ch09 + appendix.
+    Context provides hebrew_prose content directly — no need to re-read the file.
     """
     latex_dir = str(run_folder / "latex") if run_folder else "latex"
     chapters_dir = f"{latex_dir}/chapters"
@@ -330,58 +372,57 @@ def create_task_latex_part2(author: Agent, context: list[Task], run_folder: Path
     return Task(
         description=f"""
 You are writing the SECOND HALF of a 25–30 page IEEE paper in XeLaTeX (Hebrew primary language).
-Part 1 (abstract, ch02, ch03, ch05, references.bib) has already been written.
+Part 1 (abstract, ch01–ch05, references.bib) is already written.
+The Hebrew prose content from the previous task is available in your context.
 
-STEP 1 — READ ALL INPUTS first (FileReaderTool for each):
-    FileReaderTool("{_STAGING}/hebrew_prose.md")       ← primary prose (read fully)
-    FileReaderTool("{_STAGING}/figures_manifest.md")   ← exact figure filenames
-    FileReaderTool("{_STAGING}/domain_algorithms.md")  ← algorithm pseudocode/proofs
-    FileReaderTool("{_STAGING}/domain_aerospace.md")   ← UAV/AUV/INS methods
-    FileReaderTool("{_STAGING}/domain_vision_ai.md")   ← semantic SLAM, ViT
-    Files beginning with "DOMAIN SKIP:" — ignore.
+STEP 1 — READ (FileReaderTool for each):
+    FileReaderTool("{_STAGING}/paper_outline.md")      ← chapter titles for ch06–ch09
+    FileReaderTool("{_STAGING}/figures_manifest.md")   ← exact figure filenames and captions
+    FileReaderTool("{_STAGING}/research_briefs.md")    ← fallback for prose if hebrew_prose is missing
 
-STEP 2 — PLAN before writing. Output a one-line plan per file listing key
-    sections and equations. Then write each file in order.
+    IMPORTANT: If figures_manifest.md does not contain actual filenames (e.g. it says only
+    "figures saved" or is a short status message), list the PNG files actually present in the
+    figures/ directory by inferring names from the outline, using the format fig_<keyword>.png.
 
-STEP 3 — WRITE these 4 files (ALL required — do not skip any):
+    IMPORTANT: If hebrew_prose.md content is not available in your context, read it:
+    FileReaderTool("{_STAGING}/hebrew_prose.md") — if still empty/missing, write Hebrew
+    academic prose yourself from research_briefs.md. Do NOT skip any chapter.
+
+STEP 2 — PLAN: for each file, state in ONE LINE the section title and key content.
+    Then write each file IMMEDIATELY — do not plan all files before writing any.
+
+STEP 3 — WRITE these 4 files ONE AT A TIME:
 
   {chapters_dir}/ch06_algorithm.tex
-      \\section{{האלגוריתם הביו-מימטי המוצע}}
-      ≥1400 Hebrew words. Integrate algorithms domain content.
-      Cover: full algorithm description with \\begin{{algorithm}} pseudocode block,
-      EKF predict/update derivation, complexity analysis O(n) table,
-      convergence proof sketch, comparison to baseline algorithms.
+      Use the Hebrew section title from paper_outline.md for chapter 6.
+      ≥1200 words. The algorithm/methodology chapter.
+      Must have: ≥4 \\subsection{{}}, ≥4 equations (numbered), ≥1 lstlisting pseudocode block,
+      ≥1 figure, ≥2 citations, complexity analysis table.
 
   {chapters_dir}/ch07_oursystem.tex
-      \\section{{פלטפורמת NavigatorCrew: עיצוב מערכת}}
-      ≥1000 Hebrew words. Integrate aerospace domain content.
-      Cover: system architecture (LangGraph state machine diagram description),
-      agent pipeline table (role, tools, max_iter per agent),
-      hardware deployment specs (Jetson, MEMS array), UAV dynamics model.
+      Use the Hebrew section title from paper_outline.md for chapter 7.
+      ≥1000 words. The system design / implementation chapter.
+      Must have: ≥4 \\subsection{{}}, ≥3 equations, ≥1 figure, ≥2 citations.
 
   {chapters_dir}/ch08_results.tex
-      \\section{{תוצאות סימולציה וניתוח}}
-      ≥1400 Hebrew words.
-      Cover: simulation setup table, RMSE/ATE/RPE results table (4 algorithms × 3 metrics),
-      ablation study (each sensor modality removed, performance drop),
-      runtime analysis, figures from manifest (trajectory, heatmap, results_summary).
+      Use the Hebrew section title from paper_outline.md for chapter 8.
+      ≥1200 words. Simulation/experimental results.
+      Must have: ≥4 \\subsection{{}}, ≥3 equations, ≥2 figures from manifest, ≥1 results table,
+      ≥2 citations. Quantitative data with numerical values.
 
   {chapters_dir}/ch09_conclusion.tex
-      \\section{{סיכום ומסקנות}}
-      ≥800 Hebrew words for conclusion prose.
-      Cover: contributions summary, limitations, future work (3 directions).
-      After the conclusion, add appendix at the end of this file:
+      Use the Hebrew section title from paper_outline.md for chapter 9.
+      ≥600 words for conclusion. After the conclusion section, add:
           \\appendix
           \\section{{רשימת סמלים ומשתנים}}
-          booktabs table: Symbol | Definition | Units (≥20 rows covering all paper equations).
-          This appendix adds ~1 organic page without padding.
+          booktabs table: Symbol | Definition | Units (≥15 rows).
 
 {rules}
 """.strip(),
         expected_output=(
-            "4 files written: ch06_algorithm.tex (≥1400w), ch07_oursystem.tex (≥1000w), "
-            "ch08_results.tex (≥1400w), ch09_conclusion.tex (≥800w + appendix). "
-            "All labels unique with chapter prefix. All English wrapped in \\en{}. "
+            "4 files written: ch06_algorithm.tex (≥1200w), ch07_oursystem.tex (≥1000w), "
+            "ch08_results.tex (≥1200w), ch09_conclusion.tex (≥600w + appendix). "
+            "All use Hebrew section titles from paper_outline.md. Labels unique with chapter prefix. "
             "Confirmation: 'LATEX PART 2 COMPLETE'."
         ),
         agent=author,
@@ -502,39 +543,126 @@ def create_all_tasks(
     author,
     topic,
     run_folder: Path | None = None,
+    fast_mode: bool = False,
 ) -> list[Task]:
     """
-    11-task pipeline:
+    Full pipeline (fast_mode=False, 11 tasks):
       outline → research
         → domain_vision_ai → domain_physics → domain_algorithms
         → domain_aerospace → domain_biology
         → figures → hebrew_prose
-        → latex_part1 (abstract + ch02/03/05 + bib)
-        → latex_part2 (ch06/07/08/09 + appendix)
+        → latex_part1 → latex_part2
 
-    Splitting LaTeX into two tasks gives each half its own max_iter budget
-    so the author is never cut off mid-paper.
+    Fast pipeline (fast_mode=True, 6 tasks — skips domain experts):
+      outline → research → figures → hebrew_prose → latex_part1 → latex_part2
     """
     t_outline  = create_task_outline(director, topic)
     t_research = create_task_research(researcher, [t_outline])
 
-    t_dom_vision_ai   = create_task_domain_expert(dom_vision_ai,   "vision_ai",   _DOMAIN_DESCRIPTIONS["vision_ai"],   [t_research])
-    t_dom_physics     = create_task_domain_expert(dom_physics,     "physics",     _DOMAIN_DESCRIPTIONS["physics"],     [t_research])
-    t_dom_algorithms  = create_task_domain_expert(dom_algorithms,  "algorithms",  _DOMAIN_DESCRIPTIONS["algorithms"],  [t_research])
-    t_dom_aerospace   = create_task_domain_expert(dom_aerospace,   "aerospace",   _DOMAIN_DESCRIPTIONS["aerospace"],   [t_research])
-    t_dom_biology     = create_task_domain_expert(dom_biology,     "biology",     _DOMAIN_DESCRIPTIONS["biology"],     [t_research])
+    if fast_mode:
+        # Skip all 5 domain expert tasks — use only outline + research as context
+        domain_tasks = []
+        hebrew_context = [t_research]
+    else:
+        t_dom_vision_ai   = create_task_domain_expert(dom_vision_ai,   "vision_ai",   _DOMAIN_DESCRIPTIONS["vision_ai"],   [t_research])
+        t_dom_physics     = create_task_domain_expert(dom_physics,     "physics",     _DOMAIN_DESCRIPTIONS["physics"],     [t_research])
+        t_dom_algorithms  = create_task_domain_expert(dom_algorithms,  "algorithms",  _DOMAIN_DESCRIPTIONS["algorithms"],  [t_research])
+        t_dom_aerospace   = create_task_domain_expert(dom_aerospace,   "aerospace",   _DOMAIN_DESCRIPTIONS["aerospace"],   [t_research])
+        t_dom_biology     = create_task_domain_expert(dom_biology,     "biology",     _DOMAIN_DESCRIPTIONS["biology"],     [t_research])
 
-    domain_tasks = [t_dom_vision_ai, t_dom_physics, t_dom_algorithms, t_dom_aerospace, t_dom_biology]
+        domain_tasks   = [t_dom_vision_ai, t_dom_physics, t_dom_algorithms, t_dom_aerospace, t_dom_biology]
+        hebrew_context = [t_research] + domain_tasks
 
-    t_figures   = create_task_figures(visualizer, [t_research], run_folder=run_folder)
-    t_hebrew    = create_task_hebrew_prose(hebrew_writer, [t_research] + domain_tasks)
-    t_latex1    = create_task_latex_part1(author, [t_hebrew, t_figures], run_folder=run_folder)
-    # Part 2 reads the same proven sources (hebrew prose + figures manifest) directly
-    # rather than chaining on t_latex1 — this prevents part1 failures from cascading
-    t_latex2    = create_task_latex_part2(author, [t_hebrew, t_figures], run_folder=run_folder)
+    t_figures  = create_task_figures(visualizer, [t_research], run_folder=run_folder)
+    t_hebrew   = create_task_hebrew_prose(hebrew_writer, hebrew_context)
+    t_latex1   = create_task_latex_part1(author, [t_hebrew, t_figures], run_folder=run_folder)
+    t_latex2   = create_task_latex_part2(author, [t_hebrew, t_figures], run_folder=run_folder)
 
     return [
         t_outline, t_research,
-        t_dom_vision_ai, t_dom_physics, t_dom_algorithms, t_dom_aerospace, t_dom_biology,
+        *domain_tasks,
         t_figures, t_hebrew, t_latex1, t_latex2,
     ]
+
+
+# ---------------------------------------------------------------------------
+# Smoke pipeline (2 tasks, ~35 LLM calls, ~3–8 minutes)
+# ---------------------------------------------------------------------------
+
+def create_task_latex_smoke(author: Agent, context: list[Task], run_folder: Path | None = None) -> Task:
+    """
+    Single combined task for --smoke mode.
+    Writes ALL 11 files (abstract + ch01–ch09 + references.bib) in one pass.
+    Content is minimal-but-quality-gate-passing — no prose step needed.
+    """
+    latex_dir    = str(run_folder / "latex") if run_folder else "latex"
+    chapters_dir = f"{latex_dir}/chapters"
+    bib_path     = f"{latex_dir}/references.bib"
+
+    return Task(
+        description=f"""
+Write ALL 11 XeLaTeX files for a minimal IEEE paper. Speed is critical — write each file
+IMMEDIATELY, one after another. Do NOT re-read files between writes.
+
+STEP 1 — Read the outline ONCE:
+    FileReaderTool("{_STAGING}/paper_outline.md")
+    Extract all Hebrew section titles. Then write all files without stopping.
+
+STEP 2 — Write in this exact order, calling SafeFileWriterTool once per file:
+
+  1. {chapters_dir}/abstract.tex
+     \\selectlanguage{{hebrew}}
+     150 Hebrew words summarising the paper. No \\section. No equations.
+
+  2. {chapters_dir}/ch01_intro.tex
+     \\selectlanguage{{hebrew}} + \\section{{<Hebrew title from outline>}} + \\label{{sec:ch01}}
+     ≥2 \\subsection, ≥1 \\begin{{equation}}...\\end{{equation}}, ≥2 \\cite{{}}, ≥400 Hebrew words.
+
+  3–8. {chapters_dir}/ch02_bio_basis.tex through ch07_oursystem.tex
+     Each: \\selectlanguage{{hebrew}} + \\section + \\label, ≥3 \\subsection, ≥3 equations,
+     ≥1 figure using figures/fig_stub.png, ≥2 \\cite, ≥600 Hebrew words.
+     ch06 must include one \\begin{{lstlisting}}...\\end{{lstlisting}} pseudocode block.
+
+  9. {chapters_dir}/ch08_results.tex
+     Same as ch02–ch07 above but ≥2 figures using figures/fig_stub.png.
+
+  10. {chapters_dir}/ch09_conclusion.tex
+     \\selectlanguage{{hebrew}} + \\section + \\label, ≥2 \\subsection, ≥1 \\cite, ≥300 Hebrew words.
+
+  11. {bib_path}
+     ≥14 BibTeX entries. Keys MUST match every \\cite{{}} used above. No undefined keys.
+
+ABSOLUTE RULES (breaking any of these crashes XeLaTeX):
+    • \\selectlanguage{{hebrew}} MUST be the first line of every chapter file.
+    • Every English word in Hebrew prose: \\en{{SLAM}}, \\en{{EKF}}, \\en{{UAV}}, etc.
+    • ALL math/Greek in \\caption{{}} or \\section{{}} MUST be inside $...$  (e.g. $\\sigma$, $\\alpha$).
+    • Figures: use \\begin{{figure}}[H]\\centering ... \\end{{figure}}. NEVER \\begin{{center}}.
+    • NO em dash character (—) anywhere in Hebrew prose.
+    • Every \\label{{}} must be globally unique — prefix with chapter: \\label{{eq:ch03_1}}.
+    • Use SafeFileWriterTool for EVERY file. Write file 1, then 2, then 3 … do not skip any.
+""".strip(),
+        expected_output=(
+            "11 files written: abstract.tex + ch01–ch09.tex + references.bib. "
+            "Minimal valid XeLaTeX passing quality gate. "
+            "Confirmation: 'SMOKE LATEX COMPLETE'."
+        ),
+        agent=author,
+        context=context,
+        output_file=f"{_STAGING}/latex_status.md",
+    )
+
+
+def create_smoke_tasks(
+    director,
+    author,
+    topic: str,
+    run_folder: Path | None = None,
+) -> list[Task]:
+    """
+    2-task smoke pipeline: outline (5 iter) → latex_all (45 iter).
+    Total ~35–50 LLM calls → ~3–8 minutes.
+    No research, no domain experts, no figures, no prose step.
+    """
+    t_outline = create_task_outline(director, topic)
+    t_latex   = create_task_latex_smoke(author, [t_outline], run_folder=run_folder)
+    return [t_outline, t_latex]

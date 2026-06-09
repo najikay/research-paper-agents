@@ -14,3 +14,5 @@ class PipelineState(TypedDict):
     failed_sections: list[str]   # Section names that failed quality check
     quality_verdict: str         # "PENDING" | "PASS" | "FAIL"
     quality_score: int           # 0-100 score from editor's structured report
+    fast_mode: bool              # If True, skip domain expert agents (6 tasks)
+    smoke_mode: bool             # If True, 2-task pipeline: outline + latex_all (~5 min)

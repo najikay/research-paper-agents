@@ -17,6 +17,12 @@ Run-folder layout (everything for one run lives here):
 
 The project-root latex/ directory is a READ-ONLY TEMPLATE — nothing writes to it
 during a run. Agents write exclusively to {run_folder}/latex/.
+
+Speed modes (slowest → fastest):
+    (default)  Full pipeline: 10 agents, 11 tasks, ~60–120 min
+    --fast     Skip domain experts: 5 agents, 6 tasks, ~20–40 min
+    --smoke    Minimal: 2 agents, 2 tasks (outline + latex-all), ~3–8 min
+    --dry-run  Zero LLM calls: write pre-canned stubs, compile PDF, ~5–30 sec
 """
 
 import argparse
@@ -94,10 +100,9 @@ def setup_run_latex(run_folder: Path) -> None:
     """
     Copy the latex template into this run's folder.
 
-    The project-root latex/ contains only static/protected files (main.tex,
-    cover.tex, ch01_intro.tex, ch04_slam.tex, IEEEtran.cls/bst, seed
-    references.bib). Agents then write their generated chapters and figures
-    directly into run_folder/latex/.
+    The project-root latex/ contains only the static template files (main.tex,
+    cover.tex, IEEEtran.cls/bst, seed references.bib). Agents write all
+    generated chapters and figures directly into run_folder/latex/.
     """
     template = PROJECT_ROOT / "latex"
     run_latex = run_folder / "latex"
@@ -142,6 +147,22 @@ def compile_pdf(run_folder: Path) -> Path | None:
     for pattern in _BUILD_EXTS:
         for f in latex_dir.glob(pattern):
             f.unlink(missing_ok=True)
+
+    # Stub out any missing figure files so xelatex never crashes on \includegraphics.
+    # Any figure the agent referenced that doesn't exist gets a copy of fig_stub.png.
+    figures_dir = latex_dir / "figures"
+    stub_png = figures_dir / "fig_stub.png"
+    if stub_png.exists():
+        chapters_dir = latex_dir / "chapters"
+        for tex_file in chapters_dir.glob("*.tex"):
+            text = tex_file.read_text(encoding="utf-8", errors="replace")
+            for fig_ref in re.findall(
+                r'\\includegraphics(?:\[[^\]]*\])?\{figures/([^}]+)\}', text
+            ):
+                fig_path = figures_dir / fig_ref
+                if not fig_path.exists():
+                    shutil.copy2(stub_png, fig_path)
+                    logger.debug(f"[LaTeX] Stubbed missing figure: {fig_ref}")
 
     logger.info("[LaTeX] Compiling PDF (xelatex → bibtex → xelatex × 3)...")
     run(["xelatex", "-interaction=nonstopmode", "main.tex"])
@@ -230,9 +251,21 @@ def main():
                         help="Skip PDF compilation")
     parser.add_argument("--no-archive", action="store_true",
                         help="Delete run folder after completion (smoke tests only)")
+    parser.add_argument("--fast", action="store_true",
+                        help="Fast mode: skip domain expert agents (6-task pipeline, ~40%% faster)")
+    parser.add_argument("--smoke", action="store_true",
+                        help="Smoke mode: 2-task pipeline (outline + latex-all), ~3–8 min")
+    parser.add_argument("--dry-run", action="store_true",
+                        help="Dry-run: zero LLM calls — write stub chapters and compile PDF only (~5–30 sec)")
     args = parser.parse_args()
 
     logger.info(f"Topic: {args.topic}")
+    if args.fast:
+        logger.info("Fast mode: domain expert agents DISABLED")
+    if args.smoke:
+        logger.info("Smoke mode: 2-task pipeline (outline + latex-all)")
+    if args.dry_run:
+        logger.info("Dry-run mode: zero LLM calls — writing pre-canned stubs")
 
     # ------------------------------------------------------------------
     # Create (or restore) run folder BEFORE graph runs
@@ -254,6 +287,58 @@ def main():
     # Ensure staging directory exists for .md reports
     (PROJECT_ROOT / _STAGING_DIR).mkdir(parents=True, exist_ok=True)
 
+    # Pre-seed a fallback figure so xelatex never crashes on a missing \includegraphics.
+    # The latex agent is instructed to use fig_stub.png if the real figure isn't ready.
+    from src.stubs import _stub_png
+    _figures_dir = run_folder / "latex" / "figures"
+    _figures_dir.mkdir(parents=True, exist_ok=True)
+    (_figures_dir / "fig_stub.png").write_bytes(_stub_png())
+
+    # ------------------------------------------------------------------
+    # Dry-run bypass: write stubs, skip all LLM calls
+    # ------------------------------------------------------------------
+    if args.dry_run:
+        from src.stubs import write_stub_chapters
+        from src.graph.nodes import run_quality_gate
+        from src.graph.state import PipelineState
+
+        write_stub_chapters(run_folder, args.topic)
+
+        _stub_state: PipelineState = {
+            "topic":             args.topic,
+            "run_folder":        str(run_folder),
+            "remediation_count": 0,
+            "failed_sections":   [],
+            "quality_verdict":   "PENDING",
+            "quality_score":     0,
+            "fast_mode":         False,
+            "smoke_mode":        False,
+        }
+        gate_result = run_quality_gate(_stub_state)
+        final_state = {**_stub_state, **gate_result}
+        logger.info(f"[DryRun] Quality gate: score={final_state['quality_score']} verdict={final_state['quality_verdict']}")
+
+        pdf_path = None
+        if not args.no_pdf:
+            pdf_path = compile_pdf(run_folder)
+
+        finalize_run(run_folder)
+        if args.no_archive:
+            shutil.rmtree(run_folder, ignore_errors=True)
+            run_folder = None
+
+        print("\n" + "=" * 52)
+        print("  NAVIGATORCREW — DRY-RUN COMPLETE")
+        print("=" * 52)
+        print(f"  Quality Score    : {final_state['quality_score']}/100")
+        print(f"  Verdict          : {final_state['quality_verdict']}")
+        if pdf_path:
+            print(f"  PDF              : {pdf_path}")
+        if run_folder:
+            print(f"  Run Folder       : {run_folder}")
+        print("=" * 52)
+        return
+
     # ------------------------------------------------------------------
     # Run LangGraph pipeline
     # ------------------------------------------------------------------
@@ -270,6 +355,8 @@ def main():
         "failed_sections":   [],
         "quality_verdict":   "PENDING",
         "quality_score":     0,
+        "fast_mode":         args.fast,
+        "smoke_mode":        args.smoke,
     }
 
     try:
