@@ -27,20 +27,26 @@ main.py --topic "..."
 └─────────────────────────────────────────────┘
         │
         ▼
-  CrewAI Sequential Crew
-  ┌──────────────────────────────────────────────┐
-  │  1. NavigationDirector  → paper_outline.md   │
-  │  2. SLAMResearcher      → research_briefs.md │
-  │  3. VisualizationEngineer → 9 PNG figures    │
-  │  4. HebrewAcademicWriter → hebrew_prose.md   │
-  │  5. LaTeXAuthor         → .tex chapters + .bib│
-  └──────────────────────────────────────────────┘
+  CrewAI Sequential Crew (10 agents, 11 tasks)
+  ┌──────────────────────────────────────────────────────┐
+  │   1. NavigationDirector    → paper_outline.md        │
+  │   2. SLAMResearcher        → research_briefs.md      │
+  │   3. VisionAIExpert        → domain_vision_ai.md     │
+  │   4. PhysicsExpert         → domain_physics.md       │
+  │   5. AlgorithmsExpert      → domain_algorithms.md    │
+  │   6. AerospaceMarine Expert→ domain_aerospace.md     │
+  │   7. BiologyExpert         → domain_biology.md       │
+  │   8. VisualizationEngineer → 9 PNG figures           │
+  │   9. HebrewAcademicWriter  → hebrew_prose.md         │
+  │  10. LaTeXAuthor (part 1)  → abstract+ch02/03/05+bib │
+  │  11. LaTeXAuthor (part 2)  → ch06/07/08/09+appendix  │
+  └──────────────────────────────────────────────────────┘
         │
         ▼
   Programmatic quality gate (no LLM — deterministic)
         │
         ▼
-  XeLaTeX compiler (xelatex → bibtex → xelatex × 2)
+  XeLaTeX compiler (xelatex → bibtex → xelatex × 3)
         │
         ▼
   outputs/runs/{slug}-{date}/paper.pdf
@@ -51,12 +57,14 @@ main.py --topic "..."
 | Feature | Implementation |
 |---|---|
 | **Language separation** | Research in English → HebrewAcademicWriter → LaTeXAuthor (pure formatter) |
+| **Domain experts** | 5 PhD-level specialists contribute depth; write "DOMAIN SKIP:" when irrelevant |
+| **Split LaTeX task** | Part 1 (early chapters + bib) and Part 2 (later chapters + appendix) — each gets its own 40-iter budget |
 | **Quality gate** | Programmatic checker in LangGraph node — no LLM, no loop risk |
 | **Feedback loop** | LangGraph conditional edge: score < 75 → targeted remediation (max 2 cycles) |
 | **Fault tolerance** | Every task writes an `output_file`; `--resume` skips completed tasks |
-| **Run-folder architecture** | `outputs/runs/{slug}-{date}/` is the single source of truth per run; project-root `latex/` is a read-only template |
+| **Run-folder architecture** | `outputs/runs/{slug}-{date}/` is single source of truth; project-root `latex/` is read-only template |
 | **Cost** | DeepSeek V3 via OpenAI-compatible API (~$0.07/run) |
-| **Bilingual LaTeX** | XeLaTeX + polyglossia + bidi; `bidi` must be loaded last; `\\[len]` → `\vspace{}` |
+| **Bilingual LaTeX** | XeLaTeX + polyglossia + bidi; `bidi` loaded last; `\en{}` wraps all English in Hebrew prose |
 | **Protected files** | `cover.tex`, `main.tex`, `ch01_intro.tex`, `ch04_slam.tex` blocked by basename matching |
 
 ---
@@ -118,8 +126,11 @@ fc-cache -f ~/.config/fontconfig
 ```bash
 source venv/bin/activate
 
-# Full run — generates content + compiles PDF + archives to outputs/runs/
-python main.py --topic "Bat-Inspired Drone Navigation via Bio-Mimetic Sensor Fusion"
+# Full run — default topic
+python main.py
+
+# Custom topic
+python main.py --topic "Autonomous Underwater Vehicle Navigation Using Acoustic SLAM and Bio-Inspired Sonar"
 
 # Resume after crash (skips tasks with existing output files)
 python main.py --topic "..." --resume
@@ -133,73 +144,56 @@ python main.py --topic "..." --no-archive
 
 ### Output Layout
 
-Each run is self-contained in a uniquely-named folder. The project-root `latex/` is a **read-only template** and is never modified during a run:
+Each run is self-contained. The project-root `latex/` is a **read-only template** and is never modified during a run:
 
 ```
 outputs/runs/
 └── bat-inspired-drone-navigation-2026-06-08/   ← {topic-slug}-{date}
     ├── latex/                     ← primary LaTeX workspace (agents write here)
     │   ├── main.tex               ← PROTECTED
-    │   ├── chapters/              ← cover + ch01 + ch04 (static) + 8 agent-written .tex files
+    │   ├── chapters/              ← cover + ch01 + ch04 (static) + 8 agent-written .tex
     │   ├── figures/               ← 9 agent-generated PNG figures (300 DPI)
-    │   │   ├── fig_bat_vs_artificial.png
-    │   │   └── ...
     │   ├── references.bib         ← 14+ BibTeX entries (agent-written)
     │   ├── IEEEtran.cls / .bst
     │   └── main.log               ← XeLaTeX compile log
     ├── outputs/                   ← agent .md reports (moved from staging on completion)
-    │   ├── paper_outline.md       ← Director's topic decomposition
-    │   ├── research_briefs.md     ← Researcher's English-language findings
-    │   ├── hebrew_prose.md        ← HebrewAcademicWriter prose (pre-LaTeX)
-    │   ├── figures_manifest.md    ← figure descriptions and exact PNG filenames
-    │   ├── latex_status.md        ← LaTeXAuthor completion status
-    │   ├── quality_report.md      ← programmatic gate verdict (JSON + score)
-    │   └── token_report.md        ← per-agent cost accounting
+    │   ├── paper_outline.md
+    │   ├── research_briefs.md
+    │   ├── domain_vision_ai.md    ← Vision-AI expert contribution (or "DOMAIN SKIP:")
+    │   ├── domain_physics.md
+    │   ├── domain_algorithms.md
+    │   ├── domain_aerospace.md
+    │   ├── domain_biology.md
+    │   ├── hebrew_prose.md
+    │   ├── figures_manifest.md
+    │   ├── latex_status_part1.md
+    │   ├── latex_status.md        ← part 2 final status
+    │   ├── quality_report.md
+    │   └── token_report.md
     ├── paper.pdf                  ← compiled IEEE paper
     └── run_manifest.txt           ← file index with figure listing
-
-# Duplicate dates get versioned automatically:
-└── bat-inspired-drone-navigation-2026-06-08-v2/
 ```
-
-> `outputs/runs/` is excluded from git — archives are local only.
 
 ---
 
 ## Agents
 
-| Agent | Model | Tools | Role |
-|---|---|---|---|
-| NavigationDirector | DeepSeek V3 | FileWriter | Decomposes topic → 8 sub-domains; writes outline with English search keywords |
-| SLAMResearcher | DeepSeek V3 | Serper, ArXiv, WebScraper | English-language literature research; produces structured briefs per chapter |
-| VisualizationEngineer | DeepSeek V3 | CodeExecutor, FileWriter | Generates 9 IEEE-standard PNG figures via matplotlib |
-| HebrewAcademicWriter | DeepSeek V3 | FileReader, FileWriter | Converts English briefs → polished Hebrew academic prose; preserves English technical terms by judgment |
-| LaTeXAuthor | DeepSeek V3 | FileWriter, FileReader | Pure formatter: wraps Hebrew prose in XeLaTeX environments; inserts equations, figures, tables |
+| Agent | Model | Max Iter | Tools | Role |
+|---|---|---|---|---|
+| NavigationDirector | DeepSeek V3 | 12 | FileReader, FileWriter, Serper, ArXiv | Decomposes topic → 8 sub-domains with outline |
+| SLAMResearcher | DeepSeek V3 | 18 | FileReader, Serper, ArXiv, WebScraper | English-language literature research per chapter |
+| VisionAIExpert | DeepSeek V3 | 15 | FileReader, FileWriter, Serper, ArXiv | Visual SLAM, depth estimation, semantic perception |
+| PhysicsExpert | DeepSeek V3 | 15 | FileReader, FileWriter, Serper, ArXiv | Acoustics, matched filter, Doppler, wave propagation |
+| AlgorithmsExpert | DeepSeek V3 | 15 | FileReader, FileWriter, Serper, ArXiv | EKF/UKF/particle filters, factor graph SLAM, CRLB |
+| AerospaceMarineExpert | DeepSeek V3 | 15 | FileReader, FileWriter, Serper, ArXiv | UAV dynamics, INS, AUV/submarine sonar, DVL |
+| BiologyExpert | DeepSeek V3 | 15 | FileReader, FileWriter, Serper, ArXiv | Bat echolocation, DSC, neural computation, biosonar |
+| VisualizationEngineer | DeepSeek V3 | 12 | CodeExecutor, FileWriter, FileReader | 9 IEEE-standard PNG figures via matplotlib |
+| HebrewAcademicWriter | DeepSeek V3 | 35 | FileReader, FileWriter | English briefs + domain inputs → Hebrew prose (800-1200 words/chapter) |
+| LaTeXAuthor | DeepSeek V3 | 40 | FileWriter, FileReader | Pure formatter: wraps Hebrew prose in XeLaTeX (split across 2 tasks) |
 
-**Quality gate** is programmatic (no LLM) — checks equation count, figure count, BibTeX key completeness, forbidden patterns (`\begin{center}`, em dashes, placeholders), and word count per chapter. Deterministic, zero loop risk.
+**Domain experts** each independently read the research briefs and contribute PhD-level content (equations, algorithms, references) in their specialty. If the topic has no intersection with their field they write `"DOMAIN SKIP: [reason]"` — downstream agents ignore those files.
 
----
-
-## Originality Contribution: AF-AFC Controller
-
-The paper's central original contribution, derived from the biology of *Rhinolophus ferrumequinum* (horseshoe bats):
-
-> Horseshoe bats lower their emission frequency by exactly the expected Doppler shift so the echo always lands at their cochlear "acoustic fovea" — a hyperacuity zone covering 30% of the basilar membrane tuned to 83 kHz.
-
-We translate this into a closed-loop drone sonar controller:
-
-$$f_{e,k}(t) = f_0\!\left(1 - \frac{2\hat{v}_{r,k}(t)}{c}\right) + K_p\varepsilon_k(t) + K_i\int_0^t \varepsilon_k(\tau)\,d\tau$$
-
-where $\hat{v}_{r,k}$ comes from the EKF posterior and $\varepsilon_k$ is the foveal error (echo frequency deviation from $f_0$). This eliminates Doppler smearing in range resolution without sacrificing velocity measurement.
-
----
-
-## Cost
-
-| Provider | Model | Estimated Cost per Run |
-|---|---|---|
-| DeepSeek V3 | deepseek-chat | ~$0.07 |
-| DeepSeek V3 (with 2 remediation cycles) | deepseek-chat | ~$0.14 max |
+**Quality gate** is programmatic (no LLM) — checks equation count (≥3), figure count (≥1), subsection count (≥3), citation count (≥2), word estimate (≥600), BibTeX key completeness (14 keys), and forbidden patterns. Deterministic, zero loop risk.
 
 ---
 
@@ -207,26 +201,35 @@ where $\hat{v}_{r,k}$ comes from the EKF posterior and $\varepsilon_k$ is the fo
 
 ```
 .
-├── main.py                    ← entry point; run archiving; PDF compilation
+├── main.py                    ← entry point; run setup; PDF compilation; finalize
 ├── requirements.txt
 ├── .env.example
 ├── src/
-│   ├── config.py              ← LLM init, PROTECTED_FILES, logging
-│   ├── crew.py                ← CrewAI assembly (5 agents, 5 tasks)
-│   ├── agents/                ← factory functions for each agent
-│   ├── tasks/                 ← task factories (outline/research/figures/prose/latex)
-│   ├── tools/                 ← ArXiv, Serper, WebScraper, SafeFileWriter, CodeExecutor
+│   ├── config.py              ← LLM init, PROTECTED_FILES, AGENT_MAX_ITER, logging
+│   ├── crew.py                ← CrewAI assembly (10 agents, 11 tasks)
+│   ├── agents/                ← factory function per agent (10 files)
+│   │   ├── navigation_director.py
+│   │   ├── slam_researcher.py
+│   │   ├── vision_ai_expert.py
+│   │   ├── physics_expert.py
+│   │   ├── algorithms_expert.py
+│   │   ├── aerospace_marine_expert.py
+│   │   ├── biology_expert.py
+│   │   ├── visualization_engineer.py
+│   │   ├── hebrew_academic_writer.py
+│   │   └── latex_author.py
+│   ├── tasks/                 ← task factories (outline/research/domain/figures/prose/latex×2)
+│   ├── tools/                 ← ArXiv, Serper, WebScraper, SafeFileWriter, CodeExecutor, FileReader
 │   ├── graph/                 ← LangGraph state machine (state, nodes, graph)
 │   └── utils/                 ← TokenAccountant
 ├── latex/                     ← READ-ONLY TEMPLATE (never modified during runs)
 │   ├── main.tex               ← PROTECTED master document
-│   ├── chapters/              ← cover.tex (PROTECTED), ch01_intro.tex (PROTECTED),
-│   │                             ch04_slam.tex (PROTECTED), + seed files
+│   ├── chapters/              ← cover.tex, ch01_intro.tex, ch04_slam.tex (all PROTECTED)
 │   ├── figures/               ← empty; figures go to run_folder/latex/figures/
 │   ├── references.bib         ← seed bibliography (14 required keys)
-│   ├── IEEEtran.cls
-│   └── IEEEtran.bst
+│   ├── IEEEtran.cls / .bst
 ├── outputs/
 │   └── runs/                  ← per-run archives (gitignored)
+├── tests/                     ← 132 tests across 11 files
 └── docs/                      ← PLAN.md, PRD.md, TODO.md, BUDGET.md
 ```
