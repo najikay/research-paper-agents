@@ -25,6 +25,8 @@ from src.tasks.research_tasks import (
     create_task_figures,
     create_task_hebrew_prose,
     create_task_latex,
+    create_task_latex_part1,
+    create_task_latex_part2,
     create_task_outline,
     create_task_research,
 )
@@ -90,8 +92,15 @@ def hebrew_task(agents, research_task):
 
 
 @pytest.fixture(scope="module")
-def latex_task(agents, hebrew_task, figures_task):
-    return create_task_latex(agents["author"], context=[hebrew_task, figures_task], run_folder=_RUN_FOLDER)
+def latex_part1_task(agents, hebrew_task, figures_task):
+    """Part 1: abstract + ch02/03/05 + references.bib."""
+    return create_task_latex_part1(agents["author"], context=[hebrew_task, figures_task], run_folder=_RUN_FOLDER)
+
+
+@pytest.fixture(scope="module")
+def latex_task(agents, latex_part1_task):
+    """Part 2 (final latex task): ch06/07/08/09 + appendix."""
+    return create_task_latex_part2(agents["author"], context=[latex_part1_task], run_folder=_RUN_FOLDER)
 
 
 # ---------------------------------------------------------------------------
@@ -181,10 +190,10 @@ def test_latex_task_does_not_write_main_tex(latex_task):
         )
 
 
-def test_latex_task_has_all_14_citation_keys(latex_task):
-    """All 14 required BibTeX citation keys must appear in the latex task description."""
+def test_latex_task_has_all_14_citation_keys(latex_part1_task):
+    """All 14 required BibTeX citation keys must appear in the part-1 latex task (bib is written there)."""
     for key in REQUIRED_CITE_KEYS:
-        assert key in latex_task.description, f"Required citation key missing from task: {key}"
+        assert key in latex_part1_task.description, f"Required citation key missing from part1 task: {key}"
 
 
 # ---------------------------------------------------------------------------
@@ -209,20 +218,20 @@ def _all_tasks(agents):
     )
 
 
-def test_create_all_tasks_returns_10(agents):
-    """create_all_tasks must return exactly 10 tasks."""
+def test_create_all_tasks_returns_11(agents):
+    """create_all_tasks must return exactly 11 tasks."""
     tasks = _all_tasks(agents)
-    assert len(tasks) == 10
+    assert len(tasks) == 11
 
 
 def test_task_pipeline_order(agents):
-    """Tasks must follow: outline, research, 5×domain, figures, prose, latex."""
+    """Tasks must follow: outline, research, 5×domain, figures, prose, latex_part1, latex_part2."""
     tasks = _all_tasks(agents)
-    assert "outline"   in tasks[0].output_file
-    assert "research"  in tasks[1].output_file
-    # tasks[2..6] are domain expert outputs
+    assert "outline"    in tasks[0].output_file
+    assert "research"   in tasks[1].output_file
     for i in range(2, 7):
         assert "domain_" in tasks[i].output_file
-    assert "figures"   in tasks[7].output_file
-    assert "prose"     in tasks[8].output_file
-    assert "latex"     in tasks[9].output_file  # outputs/current/latex_status.md
+    assert "figures"    in tasks[7].output_file
+    assert "prose"      in tasks[8].output_file
+    assert "part1"      in tasks[9].output_file   # latex_status_part1.md
+    assert "latex"      in tasks[10].output_file  # latex_status.md

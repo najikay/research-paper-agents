@@ -135,8 +135,8 @@ AGENT_MAX_ITER: dict[str, int] = {
     "research_director": 12,
     "deep_researcher":   18,
     "data_visualizer":   12,
-    "hebrew_writer":     20,   # writes 8 chapter prose sections
-    "latex_author":      25,   # formats pre-written prose into XeLaTeX
+    "hebrew_writer":     35,   # writes 8 chapter prose sections (8 files × ~3 iterations each)
+    "latex_author":      40,   # formats pre-written prose into XeLaTeX (split across 2 tasks)
     "biology_expert":   15,   # biological ground-truth for echolocation chapters
     "vision_ai_expert": 15,   # visual SLAM, depth estimation, semantic perception
     "physics_expert":          15,   # acoustics, matched filter, Doppler, wave propagation
