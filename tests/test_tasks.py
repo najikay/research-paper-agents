@@ -229,8 +229,12 @@ def test_task_pipeline_order(agents):
     tasks = _all_tasks(agents)
     assert "outline"    in tasks[0].output_file
     assert "research"   in tasks[1].output_file
+    # Domain expert tasks have no output_file (by design — SafeFileWriterTool writes
+    # the real content; setting output_file would let CrewAI overwrite it).
+    # Verify via description instead.
     for i in range(2, 7):
-        assert "domain_" in tasks[i].output_file
+        assert tasks[i].output_file is None or "domain_" in (tasks[i].output_file or "")
+        assert "domain" in tasks[i].description.lower() or "specialist" in tasks[i].description.lower()
     assert "figures"    in tasks[7].output_file
     assert "prose"      in tasks[8].output_file
     assert "part1"      in tasks[9].output_file   # latex_status_part1.md

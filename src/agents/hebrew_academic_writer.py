@@ -60,7 +60,7 @@ OUTPUT FORMAT — write outputs/current/hebrew_prose.md with this structure:
 
 ## CH02: הבסיס הביולוגי
 ### [subsection title in Hebrew]
-[Hebrew prose paragraph(s) — 150–250 words]
+[Hebrew prose paragraph(s) — 200–350 words]
 ### [next subsection]
 [prose...]
 
@@ -68,15 +68,17 @@ OUTPUT FORMAT — write outputs/current/hebrew_prose.md with this structure:
 ...and so on through CH09.
 
 PER-CHAPTER WORD TARGETS (Hebrew prose words, excluding markers):
-  • CH01 (introduction): ≥1500 words total
-  • CH02–CH05 (technical chapters): ≥2000 words each
-  • CH06 (algorithm, most detailed): ≥2500 words
-  • CH07 (system design): ≥2000 words
-  • CH08 (results): ≥2500 words
-  • CH09 (conclusion): ≥1200 words
+  • CH01 (introduction): ≥1200 words total
+  • CH02–CH05 (technical chapters): ≥1500 words each
+  • CH06 (algorithm, most detailed): ≥1800 words
+  • CH07 (system design): ≥1500 words
+  • CH08 (results): ≥1800 words
+  • CH09 (conclusion): ≥900 words
   These targets are CRITICAL — the LaTeX author wraps your prose in environments
   that add only ~20% overhead. If you write 800 words, the final chapter will be
   too thin for a 25–30 page paper. Write SUBSTANTIVE content, not filler.
+  You write in 3 BATCHES (part1: CH01-03, part2: CH04-06, part3: CH07-09) to
+  avoid token truncation. Each batch is a separate SafeFileWriterTool call.
 
 PROSE QUALITY RULES:
   • Each subsection must be 200–350 words of substantive content.

@@ -139,13 +139,17 @@ class TestQualityGate:
 
         assert "references" in result["failed_sections"]
 
-    def test_quality_gate_fail_em_dash(
+    def test_quality_gate_sanitizer_fixes_em_dash(
         self, tmp_path, monkeypatch, full_bib_content
     ):
-        """A chapter containing em dash (U+2014) must reduce the score."""
+        """Em dashes are auto-fixed by the sanitizer before scoring.
+
+        The quality gate calls _sanitize_tex_files() which replaces em dashes
+        with colons, so the score should remain high — verify the sanitizer
+        actually removes them from the file on disk.
+        """
         _patch_project_root(monkeypatch, tmp_path)
 
-        # Build a chapter that passes content checks but has an em dash
         words = " ".join(["word"] * 2500)
         em_dash_content = (
             r"\selectlanguage{hebrew}" + "\n"
@@ -155,47 +159,33 @@ class TestQualityGate:
             + r"\begin{equation}x=1\label{eq:a}\end{equation}" + "\n"
             + r"\begin{equation}y=2\label{eq:b}\end{equation}" + "\n"
             + r"\begin{equation}z=3\label{eq:c}\end{equation}" + "\n"
-            + r"\includegraphics{fig.png}" + "\n"
+            + r"\includegraphics{figures/fig.png}" + "\n"
             + r"\cite{A}\cite{B}\cite{C}" + "\n"
             + "Em\u2014dash here\n"  # U+2014
         )
         _setup_latex(tmp_path, em_dash_content, full_bib_content)
 
-        # Run twice: once with good content for baseline, once with em dash
-        good_words = " ".join(["word"] * 320)
-        good_content = (
-            r"\selectlanguage{hebrew}" + "\n"
-            r"\section{Test}" + "\n"
-            + good_words + "\n"
-            + r"\subsection{A}" + r"\subsection{B}" + r"\subsection{C}" + r"\subsection{D}" + r"\subsection{E}" + "\n"
-            + r"\begin{equation}x=1\label{eq:a}\end{equation}" + "\n"
-            + r"\begin{equation}y=2\label{eq:b}\end{equation}" + "\n"
-            + r"\begin{equation}z=3\label{eq:c}\end{equation}" + "\n"
-            + r"\includegraphics{fig.png}" + "\n"
-            + r"\cite{A}\cite{B}\cite{C}" + "\n"
-        )
-        chapters_dir = tmp_path / "latex" / "chapters"
-        good_result_path = tmp_path / "outputs" / "quality_report_good.md"
+        # Verify em dash is present before quality gate
+        sample = (tmp_path / "latex" / "chapters" / AGENT_CHAPTERS[1]).read_text()
+        assert "\u2014" in sample, "em dash should be present before quality gate"
 
-        # Write good chapters to get a reference score
-        for fname in AGENT_CHAPTERS:
-            (chapters_dir / fname).write_text(good_content, encoding="utf-8")
-        good_result = run_quality_gate(_make_state(tmp_path))
-        good_score = good_result["quality_score"]
+        result = run_quality_gate(_make_state(tmp_path))
 
-        # Now overwrite with em-dash content
-        for fname in AGENT_CHAPTERS:
-            (chapters_dir / fname).write_text(em_dash_content, encoding="utf-8")
-        bad_result = run_quality_gate(_make_state(tmp_path))
+        # Sanitizer should have removed the em dash from the file
+        cleaned = (tmp_path / "latex" / "chapters" / AGENT_CHAPTERS[1]).read_text()
+        assert "\u2014" not in cleaned, "sanitizer should remove em dashes"
 
-        assert bad_result["quality_score"] <= good_score, (
-            "Score with em dashes should be <= score without em dashes"
-        )
+        # Score should still be high (sanitizer fixed the issue)
+        assert result["quality_score"] >= 75
 
-    def test_quality_gate_fail_center_env(
+    def test_quality_gate_sanitizer_fixes_center_env(
         self, tmp_path, monkeypatch, full_bib_content
     ):
-        r"""A chapter with \begin{center} must reduce score and appear in center_files."""
+        r"""The sanitizer replaces \begin{center} with \centering before scoring.
+
+        Verify the sanitizer actually removes \begin{center} from the file on
+        disk so the quality gate no longer penalises it.
+        """
         _patch_project_root(monkeypatch, tmp_path)
 
         words = " ".join(["word"] * 2500)
@@ -207,7 +197,7 @@ class TestQualityGate:
             + r"\begin{equation}x=1\label{eq:a}\end{equation}" + "\n"
             + r"\begin{equation}y=2\label{eq:b}\end{equation}" + "\n"
             + r"\begin{equation}z=3\label{eq:c}\end{equation}" + "\n"
-            + r"\includegraphics{fig.png}" + "\n"
+            + r"\includegraphics{figures/fig.png}" + "\n"
             + r"\cite{A}\cite{B}\cite{C}" + "\n"
             + r"\begin{center}" + "\n"
             + "centered content\n"
@@ -215,11 +205,19 @@ class TestQualityGate:
         )
         _setup_latex(tmp_path, center_content, full_bib_content)
 
+        # Verify \begin{center} is present before quality gate
+        sample = (tmp_path / "latex" / "chapters" / AGENT_CHAPTERS[1]).read_text()
+        assert r"\begin{center}" in sample
+
         result = run_quality_gate(_make_state(tmp_path))
 
-        # Score should be penalised (10 points per center_files hit)
-        assert result["quality_score"] < 100
-        assert "methodology" in result["failed_sections"]
+        # Sanitizer should have replaced \begin{center} with \centering
+        cleaned = (tmp_path / "latex" / "chapters" / AGENT_CHAPTERS[1]).read_text()
+        assert r"\begin{center}" not in cleaned, "sanitizer should remove \\begin{center}"
+        assert r"\centering" in cleaned, "sanitizer should replace with \\centering"
+
+        # Score should still be high (sanitizer fixed the issue)
+        assert result["quality_score"] >= 75
 
     def test_quality_gate_fail_placeholder(
         self, tmp_path, monkeypatch, full_bib_content

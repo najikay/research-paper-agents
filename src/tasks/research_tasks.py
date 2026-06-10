@@ -224,19 +224,35 @@ STEP 1 — READ ALL INPUTS (use FileReaderTool for each):
     FileReaderTool("{_STAGING}/domain_ml.md")                ← ML expert
     Files that begin with "DOMAIN SKIP:" have no relevant content — skip them.
 
-STEP 2 — Write Hebrew prose for ALL nine chapters to {_STAGING}/hebrew_prose.md.
-    Use SafeFileWriterTool to write the file. Write ALL chapters in a SINGLE tool call.
-    Do NOT split across multiple files. Do NOT write to hebrew_prose_remaining.md.
+STEP 2 — Write Hebrew prose for ALL nine chapters. You MUST write in THREE separate
+    batches because a single call will be truncated by the output token limit.
 
-    TARGET: 25–30 printed pages total (~16,000–20,000 Hebrew words).
-    IMPORTANT: Write at least the MINIMUM word count for each chapter.
-    - ch01 (introduction): 2500–3200 words
-    - ch02–ch05: 3200–4000 words each
-    - ch06 (algorithm): 4000–5000 words
-    - ch07 (system): 3200–4000 words
-    - ch08 (results): 4000–5000 words
-    - ch09 (conclusion): 2000–2800 words
-    If a chapter feels "done" but is under the minimum, add more content.
+    BATCH 1 — call SafeFileWriterTool ONCE to write {_STAGING}/hebrew_prose_part1.md:
+        ## CH01: <title>   (≥1200 Hebrew words, 3+ subsections)
+        ## CH02: <title>   (≥1500 Hebrew words, 4+ subsections)
+        ## CH03: <title>   (≥1500 Hebrew words, 4+ subsections)
+        After writing, confirm: "BATCH 1 WRITTEN — 3 chapters."
+
+    BATCH 2 — call SafeFileWriterTool ONCE to write {_STAGING}/hebrew_prose_part2.md:
+        ## CH04: <title>   (≥1500 Hebrew words, 4+ subsections)
+        ## CH05: <title>   (≥1500 Hebrew words, 4+ subsections)
+        ## CH06: <title>   (≥1800 Hebrew words, 5+ subsections — this is the core algorithm chapter)
+        After writing, confirm: "BATCH 2 WRITTEN — 3 chapters."
+
+    BATCH 3 — call SafeFileWriterTool ONCE to write {_STAGING}/hebrew_prose_part3.md:
+        ## CH07: <title>   (≥1500 Hebrew words, 4+ subsections)
+        ## CH08: <title>   (≥1800 Hebrew words, 5+ subsections — this is the results chapter)
+        ## CH09: <title>   (≥900 Hebrew words, 3+ subsections)
+        After writing, confirm: "BATCH 3 WRITTEN — 3 chapters."
+
+    STEP 2b — Read back all 3 batch files, then combine into the FINAL file:
+        FileReaderTool("{_STAGING}/hebrew_prose_part1.md")
+        FileReaderTool("{_STAGING}/hebrew_prose_part2.md")
+        FileReaderTool("{_STAGING}/hebrew_prose_part3.md")
+        Then call SafeFileWriterTool to write {_STAGING}/hebrew_prose.md with ALL 9 chapters.
+
+    CRITICAL: Do NOT write all 9 chapters in a single SafeFileWriterTool call.
+    You MUST write 3 separate batch files first, then combine them.
 
     Per-chapter content:
         • Section marker: ## CH01: <Hebrew title from outline>
@@ -259,8 +275,8 @@ STEP 3 — After writing, output a short confirmation: 'HEBREW PROSE COMPLETE'.
     The prose is already saved to the file by SafeFileWriterTool.
 """.strip(),
         expected_output=(
-            f"All 9 chapters written to {_STAGING}/hebrew_prose.md via SafeFileWriterTool. "
-            f"≥2500 words per chapter (ch06/ch08 ≥4000). Zero em dash characters. Confirmation: 'HEBREW PROSE COMPLETE'."
+            f"Hebrew prose written in 3 batches (part1/part2/part3) then combined into {_STAGING}/hebrew_prose.md. "
+            f"≥1200-1800 words per chapter. Zero em dash characters. Confirmation: 'HEBREW PROSE COMPLETE'."
         ),
         agent=writer,
         context=context,
@@ -797,17 +813,23 @@ STEP 1 — Read the quality report to understand what failed:
 STEP 2 — Read ONLY the chapter files that have issues (see failed sections below).
     Do NOT try to read directories — only read specific .tex files.
 
-STEP 3 — Fix the failing chapters. Common fixes:
-    • MISSING CHAPTERS (file does not exist or is too small): CREATE the chapter from scratch.
-      Write a full LaTeX chapter with ≥1800 Hebrew words, ≥4 subsections, ≥2 equations,
-      ≥1 figure (use figures from figures/ directory), ≥2 citations. Use \\selectlanguage{{hebrew}}
-      at the top. Wrap English terms in \\en{{}}.
-    • words too low: Add ≥800 Hebrew words per failing chapter.
-      Add new subsections, extend paragraphs with deeper explanations, add derivations,
-      comparisons with alternative approaches, and implementation details.
-    • citations missing: add \\cite{{}} references and ensure keys exist in references.bib
-    • equations missing: add numbered \\begin{{equation}}...\\end{{equation}} blocks
-    • em dashes: replace every — (U+2014) with a colon (:) or comma (,)
+STEP 3 — Fix the failing chapters. The failed sections list below contains SPECIFIC chapter filenames
+    and their exact shortfall (e.g., "ch02_bio_basis.tex: words≈1162<1500").
+    For EACH failing chapter:
+    • Read the existing file using FileReaderTool at the path above.
+    • KEEP all existing content — do NOT delete or rewrite from scratch.
+    • ADD new content to reach the target. Techniques for expanding:
+      - Add 1-2 new \\subsection{{}} blocks with 200+ words each
+      - Extend existing subsections with deeper technical explanations
+      - Add comparisons with alternative approaches (with \\cite{{}})
+      - Add derivation steps for equations, explain each variable
+      - Add implementation notes, parameter sensitivity analysis
+      - Add a comparison table (\\begin{{table}})
+    • For "words too low": you need to add at LEAST the shortfall amount. If a chapter has
+      "words≈1162<1500", add at least 400 words of Hebrew prose (with \\en{{}} for English terms).
+    • For "citations missing": add \\cite{{}} calls using keys from references.bib
+    • For "equations missing": add \\begin{{equation}}...\\label{{eq:chNN_name}}...\\end{{equation}}
+    • For "em dashes": replace every — (U+2014) with colon (:) or comma (,)
 
 STEP 4 — Write each fixed file back using SafeFileWriterTool.
     Rewrite the ENTIRE file content (not just the changed parts).

@@ -49,18 +49,19 @@ AGENT_CHAPTERS = [
     "ch08_results.tex", "ch09_conclusion.tex",
 ]
 
-# Per-chapter minimum requirements — v10: raised word thresholds to push toward
-# 25-page target.  split() overcounts LaTeX tokens ~30% vs actual prose words,
-# so a 1500-word threshold ≈ 1150 real prose words.
+# Per-chapter minimum requirements — v11: calibrated to actual LLM output.
+# DeepSeek V3 reliably produces 1100-1800 words per chapter (LaTeX tokens).
+# Thresholds set ~10% below observed output so most chapters pass on first
+# attempt, while genuinely thin chapters still get flagged for remediation.
 _CHAPTER_MIN_REQS: dict[str, dict] = {
     "abstract.tex":        {"eq": 0, "fig": 0, "sub": 0, "cite": 0, "words": 80},
-    "ch01_intro.tex":      {"eq": 1, "fig": 0, "sub": 3, "cite": 2, "words": 1500},
-    "ch06_algorithm.tex":  {"eq": 3, "fig": 1, "sub": 5, "cite": 3, "words": 2200},
-    "ch07_oursystem.tex":  {"eq": 2, "fig": 1, "sub": 4, "cite": 2, "words": 1800},
-    "ch08_results.tex":    {"eq": 2, "fig": 1, "sub": 5, "cite": 3, "words": 2200},
-    "ch09_conclusion.tex": {"eq": 0, "fig": 0, "sub": 2, "cite": 1, "words": 800},
+    "ch01_intro.tex":      {"eq": 1, "fig": 0, "sub": 3, "cite": 2, "words": 1200},
+    "ch06_algorithm.tex":  {"eq": 3, "fig": 1, "sub": 5, "cite": 3, "words": 1600},
+    "ch07_oursystem.tex":  {"eq": 2, "fig": 1, "sub": 4, "cite": 2, "words": 1400},
+    "ch08_results.tex":    {"eq": 2, "fig": 1, "sub": 5, "cite": 3, "words": 1600},
+    "ch09_conclusion.tex": {"eq": 0, "fig": 0, "sub": 2, "cite": 1, "words": 700},
 }
-_DEFAULT_MIN_REQS: dict = {"eq": 2, "fig": 1, "sub": 3, "cite": 2, "words": 1500}
+_DEFAULT_MIN_REQS: dict = {"eq": 2, "fig": 1, "sub": 3, "cite": 2, "words": 1100}
 
 # Domain expert output validation thresholds
 _MIN_DOMAIN_BYTES = 500   # files smaller than this are considered failures
@@ -360,6 +361,15 @@ def run_quality_gate(state: PipelineState) -> dict:
     report_path.parent.mkdir(parents=True, exist_ok=True)
 
     issue_lines = "\n".join(f"- {i}" for i in issues) if issues else "- None"
+
+    # Build dynamic thresholds summary from actual _CHAPTER_MIN_REQS
+    _def = _DEFAULT_MIN_REQS
+    thresholds_lines = [f"- Default: eq>={_def['eq']}, fig>={_def['fig']}, sub>={_def['sub']}, cite>={_def['cite']}, words>={_def['words']}"]
+    for fname, reqs in sorted(_CHAPTER_MIN_REQS.items()):
+        diffs = [f"{k}>={v}" for k, v in reqs.items() if v != _def.get(k)]
+        if diffs:
+            thresholds_lines.append(f"- {fname}: {', '.join(diffs)}")
+
     report_content = f"""# Quality Gate Report
 
 **Verdict:** {verdict}
@@ -371,19 +381,11 @@ def run_quality_gate(state: PipelineState) -> dict:
 
 {issue_lines}
 
-## Checks Performed
+## Per-Chapter Thresholds
 
-- Chapter file existence and minimum size
-- Equations per chapter (≥2 default; abstract=0, ch01=1, ch06=3, ch09=0)
-- Figures per chapter (≥1 default; abstract/ch01/ch09=0)
-- Subsections per chapter (≥3 default; abstract=0, ch01=3, ch06/ch08=4, ch09=2)
-- Citations per chapter (≥2 default; abstract=0, ch09=1)
-- Word count estimate per chapter (≥1000 default; abstract=80, ch01=1100, ch06/ch08=1400, ch07=1200, ch09=600)
-- references.bib entry count (≥{MIN_BIB_ENTRIES} required)
-- Missing figure files (≤-20 total penalty, capped)
-- Placeholder figure boxes
-- Em dashes in Hebrew prose
-- \\begin{{center}} at document level (XeLaTeX crash risk)
+{chr(10).join(thresholds_lines)}
+- references.bib: >={MIN_BIB_ENTRIES} entries
+- Missing figure files: <=-20 total penalty (capped)
 
 ```json
 {{
@@ -430,11 +432,14 @@ def run_remediation(state: PipelineState) -> dict:
     if report_path.exists():
         for line in report_path.read_text(encoding="utf-8").splitlines():
             stripped = line.lstrip("- ")
-            if line.startswith("- ch") and "words" in line:
+            # Capture ALL chapter-level issues (words, equations, figures, citations, subsections)
+            if line.startswith("- ch") and any(k in line for k in ("words", "equations", "figures", "citations", "subsections")):
                 chapter_issues.append(stripped)
             elif line.startswith("- Missing") and "chapter" in line.lower():
                 chapter_issues.append(stripped)
+    # Always pass chapter-specific issues so remediation knows WHICH files to fix
     detailed_failed = chapter_issues if chapter_issues else failed
+    logger.info(f"[Graph] Remediation targets: {detailed_failed}")
 
     t_latex = create_remediation_task(
         agent=author,

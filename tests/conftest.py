@@ -20,9 +20,9 @@ import pytest
 def good_chapter_content() -> str:
     """A valid minimal .tex chapter satisfying all quality-gate criteria."""
     # Build a string that has:
-    #   >=3 \begin{equation}, >=1 \includegraphics, >=4 \subsection,
-    #   >=3 \cite{}, >=2500 words, no em dashes, no \begin{center}
-    words = " ".join(["מילה"] * 2500)  # ~2500 Hebrew words to exceed the 2200-word ch06/ch08 threshold
+    #   >=3 \begin{equation}, >=1 \includegraphics, >=5 \subsection,
+    #   >=3 \cite{}, >=1800 words, no em dashes, no \begin{center}
+    words = " ".join(["מילה"] * 1800)  # ~1800 Hebrew words to exceed the 1600-word ch06/ch08 threshold
     return r"""
 \selectlanguage{hebrew}
 \section{פרק לדוגמה}
@@ -231,7 +231,7 @@ def tmp_latex_dir(tmp_path: Path) -> Path:
     good = (
         r"\selectlanguage{hebrew}" + "\n"
         r"\section{Test}" + "\n"
-        + " ".join(["word"] * 2500) + "\n"
+        + " ".join(["word"] * 1800) + "\n"
         + r"\subsection{A}" + "\n"
         + r"\subsection{B}" + "\n"
         + r"\subsection{C}" + "\n"
