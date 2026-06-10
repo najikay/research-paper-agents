@@ -1,5 +1,5 @@
 # Product Requirements Document — NavigatorCrew
-**Version**: 10.0 | **Date**: 2026-06-10
+**Version**: 11.0 | **Date**: 2026-06-10
 
 ---
 
@@ -154,7 +154,7 @@ outputs/runs/{slug}-{date}/
 
 ---
 
-## 7. LaTeX Sanitizer (17 fixes)
+## 7. LaTeX Sanitizer (23 fixes)
 
 `_sanitize_tex_files()` in `main.py` auto-fixes common agent errors before compilation:
 
@@ -169,23 +169,27 @@ outputs/runs/{slug}-{date}/
 9. Wrap `lstlisting` in `\begin{english}` for LTR
 10. Replace `[H]` float placement with `[htbp]`
 11. Wrap `tabular` in `\adjustbox{max width=\columnwidth}`
-11b. Escape bare `%` after digits
+11b. Escape bare `%` in running text (prevents comment-swallowing)
 12a-c. Fix `\en{}` in math mode, remove english wrappers around tables, fix `\figref`/`\tabref`
 13. Convert `algorithm`/`algorithmic` environments to `lstlisting`
 14. Fix literal `\\n` sequences in tabular rows
 15. Remove backslash before Hebrew characters
 16. Escape underscores inside `\en{}`
 17. Replace `\°` with Unicode `°` (XeLaTeX handles natively)
+20. Repair truncated files with unbalanced braces (agent token-limit truncation)
+21. Author-name commands (`\Au`, `\Thorp`) → `\en{Word}` (with Greek letter exclusions)
+22. `\ensuremath{$\theta$}` nested math mode → `$\theta$` (brace-counting parser)
+23. Stray `}` removal via brace-depth tracking
 
 ---
 
 ## 8. Success Criteria
 
-| Criterion | Target |
-|---|---|
-| Paper length | 25-30 printed pages |
-| Quality gate score | >= 75/100 |
-| BibTeX entries | >= 10 in quality gate; agent targets >= 14 |
-| LaTeX compilation | PDF > 0 bytes and openable |
-| Cost per run | <= $0.14 (including worst-case remediation) |
-| Execution | Unattended, no manual intervention |
+| Criterion | Target | Current |
+|---|---|---|
+| Paper length | 25-30 printed pages | 19 pages (2 successful runs) |
+| Quality gate score | >= 75/100 | 88/100 |
+| BibTeX entries | >= 10 in quality gate; agent targets >= 14 | 14+ entries |
+| LaTeX compilation | PDF > 0 bytes and openable | 10 MB PDFs, ~78 non-fatal warnings |
+| Cost per run | <= $0.14 (including worst-case remediation) | ~$0.07-0.12 |
+| Execution | Unattended, no manual intervention | Fully autonomous |

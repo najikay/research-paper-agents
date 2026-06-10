@@ -1,4 +1,4 @@
-# NavigatorCrew — Implementation Plan (v10)
+# NavigatorCrew — Implementation Plan (v11)
 
 ## Architecture Summary
 
@@ -91,7 +91,7 @@ remediation:      targeted fix crew (max 3 cycles)
 
 - [x] `\IfFileExists` guards in main.tex
 - [x] `fig_stub.png` pre-seeded; auto-stubbing of missing figures
-- [x] 17-fix LaTeX sanitizer
+- [x] 23-fix LaTeX sanitizer (expanded from 17 in v11)
 
 ## Phase 10: Word Count & Page Targets (COMPLETE)
 
@@ -103,10 +103,21 @@ remediation:      targeted fix crew (max 3 cycles)
 - [x] Hebrew writer reads all 8 domain expert files (including 3 new ones)
 - [x] Test fixtures updated for new thresholds
 
+## Phase 11: Sanitizer Hardening & Compilation (COMPLETE)
+
+- [x] Fix 20: Brace repair for truncated files (unclosed `{` from agent token limit)
+- [x] Fix 21: Author-name commands (`\Au`, `\Thorp`) → `\en{Word}` (with Greek letter exclusions)
+- [x] Fix 22: `\ensuremath{$\theta$}` nested math mode → `$\theta$` (brace-counting parser)
+- [x] Fix 23: Stray `}` removal via brace-depth tracking (replaced dangerous regex)
+- [x] Removed `-halt-on-error` from xelatex — PDFs compile fully past non-fatal errors
+- [x] SafeFileWriterTool added to researcher agent (was missing, causing 380-byte outputs)
+- [x] `output_file` removed from outline/research tasks (CrewAI overwrites SafeFileWriterTool content)
+- [x] Successful runs: bat (19pp, 88/100) + dolphin (19pp, 88/100)
+
 ## Backlog
 
-- [ ] Full run reaching 25-30 pages consistently
-- [ ] LaTeX compilation with zero `!` fatal errors
+- [ ] Push page count to 25-30 pages consistently
+- [ ] Reduce non-fatal LaTeX errors (~78 per run)
 - [ ] ArXiv search for real citations in researcher
 - [ ] Post-run `references.bib` key validator
 - [ ] Token-budget enforcement: abort if projected cost exceeds threshold

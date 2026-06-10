@@ -4,6 +4,13 @@ An autonomous multi-agent research platform that takes a `--topic` argument and 
 
 Built for Assignment 3 — *Orchestration of AI Agents*, Semester B 2026.
 
+### Latest Results (v11)
+
+| Run | Topic | Score | Pages | PDF |
+|---|---|---|---|---|
+| 1 | Bat-Inspired Drone Navigation via Bio-Mimetic SLAM | 88/100 | 19 | 10.0 MB |
+| 2 | Dolphin-Inspired Submarine Drone Navigation | 88/100 | 19 | 10.3 MB |
+
 ---
 
 ## Architecture
@@ -78,7 +85,7 @@ main.py --topic "..."
 | **3 LaTeX writers** | A (abstract+ch01-03+bib), B (ch04-06), C (ch07-09) for better iteration budget |
 | **Quality gate** | Programmatic checker in LangGraph node; no LLM, no loop risk |
 | **Feedback loop** | LangGraph conditional edge: score < 75 -> remediation (max 3 cycles) |
-| **17-fix sanitizer** | Auto-fixes common LLM errors (em dashes, `\begin{center}`, `\degree`, etc.) before compilation |
+| **23-fix sanitizer** | Auto-fixes common LLM errors (em dashes, `\begin{center}`, `\ensuremath`, stray braces, etc.) before compilation |
 | **Fault tolerance** | Every task writes an `output_file`; `--resume` skips completed tasks |
 | **Run isolation** | `outputs/runs/{slug}-{date}/` is self-contained; project-root `latex/` is read-only template |
 | **Cost** | DeepSeek V3 via OpenAI-compatible API (~$0.16/run) |
@@ -306,17 +313,21 @@ Word count targets ensure 25-30 printed pages:
 
 ### LaTeX Sanitizer
 
-Before compilation, `_sanitize_tex_files()` applies 17 automatic fixes to agent-generated LaTeX:
+Before compilation, `_sanitize_tex_files()` applies 23 automatic fixes to agent-generated LaTeX:
 - Removes preamble commands from chapter files (`\documentclass`, `\usepackage`, `\begin{document}`)
 - Replaces `\begin{center}` with `\centering` (prevents bidi crash)
 - Replaces em dashes with colons, en dashes with hyphens
 - Wraps `lstlisting` in `\begin{english}` for LTR rendering
 - Replaces `[H]` float placement with `[htbp]` (prevents overlap in two-column)
 - Wraps `tabular` in `\adjustbox` (prevents column overflow)
-- Escapes bare `%` after digits (prevents comment-swallowing)
+- Escapes bare `%` in running text (prevents comment-swallowing)
 - Converts `algorithm`/`algorithmic` environments to `lstlisting`
 - Replaces `\degree` with Unicode degree sign (prevents undefined control sequence)
 - Wraps bare math symbols in `$...$` (prevents "Missing $ inserted" errors)
+- Repairs truncated files with unbalanced braces (Fix 20)
+- Converts author-name commands `\Au`, `\Thorp` → `\en{Au}` (Fix 21)
+- Resolves `\ensuremath{$\theta$}` nested math mode (Fix 22, brace-counting parser)
+- Removes stray `}` via brace-depth tracking (Fix 23)
 
 ---
 

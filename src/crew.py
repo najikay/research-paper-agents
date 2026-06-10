@@ -76,7 +76,7 @@ def build_research_crew(
 
     # Core agents
     director   = create_navigation_director(tools=[reader, writer, serper, arxiv])
-    researcher = create_slam_researcher(tools=[reader, serper, arxiv, scraper])
+    researcher = create_slam_researcher(tools=[reader, writer, serper, arxiv, scraper])
 
     # Domain experts (8 total: 5 original + 3 new)
     domain_experts = {

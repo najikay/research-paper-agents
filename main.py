@@ -822,12 +822,14 @@ def _sanitize_tex_files(chapters_dir: Path) -> None:
                 r'\end{tabular}%' + '\n' + '}',
             )
 
-        # Fix 11b: Escape bare % that follows a digit (meaning "percent").
-        # LLM agents write "96.3%" but LaTeX treats % as comment-start, eating the
-        # rest of the line. This destroys table alignment and silently drops body text.
-        # Only escape % immediately preceded by a digit — this targets "N%" patterns
-        # without touching intentional LaTeX comments (which start with space/brace + %).
-        text = re.sub(r'(\d)%', r'\1\\%', text)
+        # Fix 11b: Escape bare % in running text (LLM writes "96%" or "(%)").
+        # LaTeX treats % as comment-start, eating the rest of the line. This
+        # destroys table alignment, silently drops body text, and causes "runaway
+        # argument" crashes inside \caption{} or \section{} commands.
+        # Escape % preceded by any char that is NOT: \, {, }, or whitespace.
+        # This preserves: line comments (% at line start), whitespace suppression
+        # ({%  }% at end of line), and already-escaped \%.
+        text = re.sub(r'([^\\{}\s])%', r'\1\\%', text)
 
         # Fix 12a: Unwrap \en{} from math mode — $\en{Word}$ → \en{Word}
         # Also handles \(\en{Word}\) syntax. Polyglossia \en{} does language-group
@@ -924,6 +926,77 @@ def _sanitize_tex_files(chapters_dir: Path) -> None:
             text,
         )
 
+        # Fix 21: Convert \AuthorName patterns to \en{AuthorName}.
+        # LLM agents write \Au, \Thorp, \Ketten etc. as undefined control sequences
+        # (treating author names as commands). This causes "Undefined control sequence"
+        # fatal errors. Convert \CapitalizedWord to \en{CapitalizedWord} when NOT
+        # followed by { and NOT a known LaTeX command.
+        _SAFE_CMDS = {
+            # Greek letters (uppercase)
+            'Alpha', 'Beta', 'Gamma', 'Delta', 'Epsilon', 'Zeta', 'Eta', 'Theta',
+            'Iota', 'Kappa', 'Lambda', 'Mu', 'Nu', 'Xi', 'Pi', 'Rho', 'Sigma',
+            'Tau', 'Upsilon', 'Phi', 'Chi', 'Psi', 'Omega',
+            # LaTeX meta commands
+            'LaTeX', 'TeX', 'BibTeX', 'XeLaTeX',
+            # Document structure
+            'Chapter', 'Section', 'Subsection', 'Paragraph', 'Part',
+            # Common formatting
+            'Large', 'Huge', 'LARGE', 'HUGE', 'Centering',
+            # IEEE / math
+            'Re', 'Im',
+        }
+        def _fix_author_cmd(m):
+            word = m.group(1)
+            if word in _SAFE_CMDS:
+                return m.group(0)
+            return r'\en{' + word + '}'
+        text = re.sub(r'\\([A-Z][a-z]+(?:[A-Z][a-z]*)*)(?!\{|[a-z])', _fix_author_cmd, text)
+
+        # Fix 22: Replace \ensuremath{content} with $content$ (sans inner $).
+        # LLM agents write \ensuremath{$\theta$} (nested math mode) which crashes.
+        # \ensuremath is equivalent to $...$ outside math mode.
+        # Use brace counting to handle nested {} (regex can't do this).
+        _ENSUREMATH = r'\ensuremath{'
+        while _ENSUREMATH in text:
+            idx = text.index(_ENSUREMATH)
+            start = idx + len(_ENSUREMATH)
+            depth, end = 1, start
+            while end < len(text) and depth > 0:
+                if text[end] == '{':
+                    depth += 1
+                elif text[end] == '}':
+                    depth -= 1
+                end += 1
+            inner = text[start:end - 1].replace('$', '')
+            text = text[:idx] + '$' + inner + '$' + text[end:]
+
+        # Fix 23: Remove stray } that have no matching {.
+        # Agents produce excess } after abbreviations (RMSE}, INS/DVL}, etc.).
+        # Walk the text tracking brace depth; drop any } that would make depth < 0.
+        _parts = []
+        _depth = 0
+        for _ch in text:
+            if _ch == '{':
+                _depth += 1
+                _parts.append(_ch)
+            elif _ch == '}':
+                if _depth > 0:
+                    _depth -= 1
+                    _parts.append(_ch)
+                # else: stray } — skip it
+            else:
+                _parts.append(_ch)
+        text = ''.join(_parts)
+
+        # Fix 20: Repair truncated files with unbalanced braces.
+        # When agents hit the output token limit, the file ends mid-\section{}
+        # or mid-\subsection{}, leaving unclosed braces. This causes "File ended
+        # while scanning use of \@xdblarg" fatal errors. Count net braces and
+        # append closing braces if needed.
+        open_braces = text.count('{') - text.count('}')
+        if open_braces > 0:
+            text = text.rstrip() + '\n' + ('}' * open_braces) + '\n'
+
         # Fix 12b: Wrap bare math symbols anywhere in body text with $...$.
         # Agents often write \alpha, \sigma etc. without $...$ outside math
         # environments, causing "Missing $ inserted" errors.
@@ -982,7 +1055,7 @@ def compile_pdf(run_folder: Path) -> Path | None:
                     logger.debug(f"[LaTeX] Stubbed missing figure: {fig_ref}")
 
     logger.info("[LaTeX] Compiling PDF (xelatex → bibtex → xelatex × 3)...")
-    _xe = ["xelatex", "-interaction=nonstopmode", "-halt-on-error", "main.tex"]
+    _xe = ["xelatex", "-interaction=nonstopmode", "main.tex"]
     run(_xe)
     run(["bibtex", "main"])
     run(_xe)

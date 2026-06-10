@@ -92,9 +92,9 @@ def latex_task(agents, latex_part1_task):
 # Outline task
 # ---------------------------------------------------------------------------
 
-def test_outline_task_output_file(outline_task):
-    """Outline task must write to outputs/current/paper_outline.md."""
-    assert outline_task.output_file == "outputs/current/paper_outline.md"
+def test_outline_task_no_output_file(outline_task):
+    """Outline task must NOT have output_file (SafeFileWriterTool writes content; output_file overwrites it)."""
+    assert not outline_task.output_file
 
 
 def test_outline_task_description_has_topic(outline_task):
@@ -112,9 +112,9 @@ def test_outline_task_description_mentions_25_30_pages(outline_task):
 # Research task
 # ---------------------------------------------------------------------------
 
-def test_research_task_output_file(research_task):
-    """Research task must write to outputs/current/research_briefs.md."""
-    assert research_task.output_file == "outputs/current/research_briefs.md"
+def test_research_task_no_output_file(research_task):
+    """Research task must NOT have output_file (SafeFileWriterTool writes content; output_file overwrites it)."""
+    assert not research_task.output_file
 
 
 def test_research_task_has_context(research_task):
@@ -227,13 +227,11 @@ def test_create_all_tasks_returns_11(agents):
 def test_task_pipeline_order(agents):
     """Tasks must follow: outline, research, 5×domain, figures, prose, latex_part1, latex_part2."""
     tasks = _all_tasks(agents)
-    assert "outline"    in tasks[0].output_file
-    assert "research"   in tasks[1].output_file
-    # Domain expert tasks have no output_file (by design — SafeFileWriterTool writes
-    # the real content; setting output_file would let CrewAI overwrite it).
-    # Verify via description instead.
+    # Outline and research tasks have no output_file (SafeFileWriterTool writes content)
+    assert "outline" in tasks[0].description.lower() or "paper_outline" in tasks[0].description
+    assert "research" in tasks[1].description.lower() or "briefs" in tasks[1].description.lower()
+    # Domain expert tasks also have no output_file — verify via description
     for i in range(2, 7):
-        assert tasks[i].output_file is None or "domain_" in (tasks[i].output_file or "")
         assert "domain" in tasks[i].description.lower() or "specialist" in tasks[i].description.lower()
     assert "figures"    in tasks[7].output_file
     assert "prose"      in tasks[8].output_file

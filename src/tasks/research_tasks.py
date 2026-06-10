@@ -48,7 +48,8 @@ STEP 3 — Write the complete outline to {_STAGING}/paper_outline.md.
             f"Confirmation: 'OUTLINE COMPLETE'."
         ),
         agent=director,
-        output_file=f"{_STAGING}/paper_outline.md"
+        # NO output_file — the agent writes via SafeFileWriterTool.
+        # CrewAI's output_file would OVERWRITE the 18 KB outline with a 400-byte summary.
     )
 
 
@@ -58,7 +59,13 @@ def create_task_research(researcher: Agent, context: list[Task]) -> Task:
 Produce 8 detailed technical research briefs based on {_STAGING}/paper_outline.md.
 Each brief must provide enough material for a 3–4 page chapter (600+ words of content).
 
-For each sub-domain include:
+STEP 1 — Read the outline:
+    FileReaderTool("{_STAGING}/paper_outline.md")
+
+STEP 2 — Research each sub-domain using web search:
+    Use SerperDevSearchTool and ArxivSearchTool to find real papers, methods, and data.
+
+STEP 3 — For each sub-domain produce:
   • 2–3 paragraph technical summary (Hebrew-language prose ready to paste)
   • All relevant equations with full variable definitions
   • Algorithm descriptions (pseudocode if applicable)
@@ -66,12 +73,16 @@ For each sub-domain include:
   • Figure descriptions (what to plot and why)
   • A comparison table (at least 3 alternatives compared on 3+ criteria)
 
-Write to {_STAGING}/research_briefs.md.
+STEP 4 — Save ALL briefs using SafeFileWriterTool to {_STAGING}/research_briefs.md.
+    IMPORTANT: Your response text is NOT saved to any file automatically.
+    You MUST call SafeFileWriterTool to write the complete research content.
+    The file must contain all 8 briefs (total ≥4800 words).
 """.strip(),
         expected_output=f"8 structured research briefs in {_STAGING}/research_briefs.md, each providing ≥600 words of technical content. Confirmation: 'RESEARCH COMPLETE'.",
         agent=researcher,
         context=context,
-        output_file=f"{_STAGING}/research_briefs.md"
+        # NO output_file — the agent writes via SafeFileWriterTool.
+        # CrewAI's output_file would OVERWRITE the real research content with a summary.
     )
 
 
@@ -139,12 +150,12 @@ def create_task_domain_expert(
     """
     Generic domain-expert enrichment task.
 
-    Design notes (v6 — anti-loop architecture):
-      • Context injection: previous task outputs are passed via CrewAI's
-        `context` parameter, which injects them into the agent's prompt
-        automatically. Agents do NOT need to call FileReaderTool to read
-        inputs — this eliminates the tool-call loop where DeepSeek V3
-        repeatedly said "let me read the file" without ever invoking the tool.
+    Design notes (v7 — file-read + anti-loop architecture):
+      • File reading: domain experts now READ paper_outline.md and
+        research_briefs.md explicitly via FileReaderTool. CrewAI context
+        only passes the agent's response text (short confirmation), not
+        the 15-32 KB file content. Explicit reads ensure domain experts
+        have full context to produce high-quality contributions.
       • No escape hatch: the DOMAIN SKIP option is removed. Every domain
         expert MUST contribute content. The topic is broad enough for all.
       • Measurable output: the task requires a specific minimum (3 equations,
@@ -156,12 +167,14 @@ def create_task_domain_expert(
     return Task(
         description=f"""
 You are a PhD-level domain specialist. You MUST contribute technical depth
-to the academic paper described in the context you received above.
+to the academic paper being written.
 
 Your domain expertise: {domain_description}
 
-The paper outline and research briefs have already been provided to you
-in the context above — DO NOT try to read any files. Start working immediately.
+STEP 0 — Read the paper outline and research briefs to understand the topic:
+    FileReaderTool("{_STAGING}/paper_outline.md")
+    FileReaderTool("{_STAGING}/research_briefs.md")
+    Then use web search (SerperDevSearchTool, ArxivSearchTool) to find domain-specific content.
 
 YOUR MANDATORY OUTPUT — produce ALL of the following:
 
@@ -739,7 +752,9 @@ Write a complete domain contribution with:
 4. At least 5 BibTeX references (real, verifiable)
 5. Integration notes on how this domain connects to the paper
 
-Use SafeFileWriterTool to write your output to: {_STAGING}/domain_{domain_key}.md
+CRITICAL — use SafeFileWriterTool to write your output to EXACTLY this path:
+    {_STAGING}/domain_{domain_key}.md
+Do NOT change this filename. Do NOT use a different name.
 
 You have web search tools (SerperDevSearchTool, ArxivSearchTool) — use them
 to find real papers and data. Do NOT fabricate citations.

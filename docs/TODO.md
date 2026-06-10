@@ -32,7 +32,12 @@
 - [x] Quality gate word thresholds: default 1500, ch06/ch08 2200, ch01 1500, ch09 800
 
 ### LaTeX / Compilation
-- [x] 17-fix sanitizer in `_sanitize_tex_files()` (em dashes, `\begin{center}`, `\°`, etc.)
+- [x] 23-fix sanitizer in `_sanitize_tex_files()` (em dashes, `\begin{center}`, `\°`, etc.)
+- [x] Fix 20: Brace repair for truncated files (unclosed `{`)
+- [x] Fix 21: Author-name commands (`\Au`, `\Thorp`) → `\en{}`
+- [x] Fix 22: `\ensuremath{$\theta$}` nested math → `$\theta$` (brace-counting parser)
+- [x] Fix 23: Stray `}` removal via brace-depth tracking
+- [x] Removed `-halt-on-error` — PDFs compile fully past non-fatal errors
 - [x] `main.tex` `\IfFileExists` guards for all chapters
 - [x] `fig_stub.png` pre-seeded; auto-stubbing of missing figures
 - [x] Font fallback chain: hebrewfont, hebrewfonttt, hebrewfontsf, englishfont
@@ -51,8 +56,9 @@
 
 ## Active Targets
 
-- [ ] Full run reaching 25-30 pages (v10 pipeline running)
-- [ ] LaTeX compilation with zero `!` fatal errors
+- [x] Full run reaching 19 pages (2 successful runs: bat + dolphin topics)
+- [ ] Push page count to 25-30 pages (currently 19)
+- [ ] Reduce remaining non-fatal LaTeX errors (~78 per run)
 
 ---
 
