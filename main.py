@@ -903,6 +903,27 @@ def _sanitize_tex_files(chapters_dir: Path) -> None:
         # command. XeLaTeX handles the Unicode ° glyph natively via fontspec.
         text = text.replace("\\°", "°")
 
+        # Fix 18: Replace \textquoteright with / (forward slash).
+        # LLM writes "מ\textquoterightש" for "m/s" — \textquoteright is
+        # undefined in this XeLaTeX bidi setup and crashes compilation.
+        text = text.replace("\\textquoteright", "/")
+        text = text.replace("\\textquoteleft", "/")
+
+        # Fix 19: Convert single-row \begin{bmatrix}...\end{bmatrix} to
+        # \left[...\right] notation. bidi package conflicts with bmatrix's
+        # alignment tabs (&) causing "Extra alignment tab" fatal errors.
+        # Only affects row vectors (single line between begin/end).
+        def _fix_row_bmatrix(m):
+            inner = m.group(1).strip()
+            # Replace & with ,\; for comma-separated vector notation
+            inner = inner.replace(" & ", r",\; ")
+            return r"\left[" + inner + r"\right]"
+        text = re.sub(
+            r"\\begin\{bmatrix\}\s*([^\n]*?)\s*\\end\{bmatrix\}",
+            _fix_row_bmatrix,
+            text,
+        )
+
         # Fix 12b: Wrap bare math symbols anywhere in body text with $...$.
         # Agents often write \alpha, \sigma etc. without $...$ outside math
         # environments, causing "Missing $ inserted" errors.
