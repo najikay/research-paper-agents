@@ -534,9 +534,10 @@ You are LaTeX Writer A. Write the OPENING chapters of a 25–30 page IEEE paper 
 STEP 1 — READ INPUTS (FileReaderTool for each):
     FileReaderTool("{_STAGING}/paper_outline.md")
     FileReaderTool("{_STAGING}/hebrew_prose.md")
-    FileReaderTool("{_STAGING}/research_briefs.md")    ← fallback if hebrew_prose is missing
+    FileReaderTool("{_STAGING}/figures_manifest.md")
+    FileReaderTool("{_STAGING}/research_briefs.md")    ← USE for supplementing thin prose
 
-    If hebrew_prose.md is missing or empty — write Hebrew prose yourself from research_briefs.md.
+    If hebrew_prose.md is missing or thin for a chapter — supplement from research_briefs.md.
 
 STEP 2 — WRITE these 5 files ONE AT A TIME using SafeFileWriterTool:
 
@@ -544,7 +545,9 @@ STEP 2 — WRITE these 5 files ONE AT A TIME using SafeFileWriterTool:
       Short abstract (200–300 words Hebrew). No equations, no figures, no \\section command.
 
   FILE 2: {chapters_dir}/ch01_intro.tex
-      ≥2500 words. Introduction: motivation, problem, contributions, paper structure.
+      ≥2500 words (MINIMUM — this must be a FULL introduction, not a short overview).
+      Content: motivation + background, problem statement, contributions (numbered list),
+      mathematical formulation preview, paper structure paragraph.
       ≥4 \\subsection{{}}, ≥2 equations, ≥3 \\cite{{}} calls.
 
   FILE 3: {chapters_dir}/ch02_bio_basis.tex
@@ -583,21 +586,23 @@ STEP 1 — READ INPUTS (FileReaderTool for each):
     FileReaderTool("{_STAGING}/paper_outline.md")
     FileReaderTool("{_STAGING}/hebrew_prose.md")
     FileReaderTool("{_STAGING}/figures_manifest.md")
-    FileReaderTool("{_STAGING}/research_briefs.md")    ← fallback if hebrew_prose is missing
+    FileReaderTool("{bib_path}")                       ← read to know available \\cite{{}} keys
+    FileReaderTool("{_STAGING}/research_briefs.md")    ← fallback if hebrew_prose is thin
 
-    If hebrew_prose.md is missing or empty — write Hebrew prose yourself from research_briefs.md.
+    If hebrew_prose.md is missing or thin for a chapter — supplement from research_briefs.md.
 
 STEP 2 — WRITE these 3 files ONE AT A TIME using SafeFileWriterTool:
 
   FILE 1: {chapters_dir}/ch04_slam.tex
-      ≥3200 words. SLAM and mapping. ≥6 \\subsection{{}}, ≥5 equations, ≥1 figure, ≥1 table, ≥3 citations.
+      ≥3200 words. SLAM and mapping. ≥6 \\subsection{{}}, ≥5 equations, ≥1 figure, ≥1 table, ≥3 \\cite{{}} calls.
 
   FILE 2: {chapters_dir}/ch05_fusion.tex
-      ≥3200 words. Sensor fusion. ≥6 \\subsection{{}}, ≥5 equations, ≥1 figure, ≥1 table, ≥3 citations.
+      ≥3200 words. Sensor fusion. ≥6 \\subsection{{}}, ≥5 equations, ≥1 figure, ≥1 table, ≥3 \\cite{{}} calls.
 
   FILE 3: {chapters_dir}/ch06_algorithm.tex
       ≥4000 words. Algorithm/methodology — the most detailed technical chapter.
-      ≥6 \\subsection{{}}, ≥6 equations, ≥1 lstlisting pseudocode block, ≥1 figure, ≥1 table, ≥4 citations.
+      ≥6 \\subsection{{}}, ≥6 equations, ≥1 lstlisting pseudocode block, ≥1 figure, ≥1 table.
+      CRITICAL: ≥4 \\cite{{}} calls using keys from references.bib. This chapter MUST have citations.
 
 {rules}
 """.strip(),
@@ -625,17 +630,24 @@ STEP 1 — READ INPUTS (FileReaderTool for each):
     FileReaderTool("{_STAGING}/paper_outline.md")
     FileReaderTool("{_STAGING}/hebrew_prose.md")
     FileReaderTool("{_STAGING}/figures_manifest.md")
-    FileReaderTool("{_STAGING}/research_briefs.md")    ← fallback if hebrew_prose is missing
+    FileReaderTool("{bib_path}")                       ← read to know available \\cite{{}} keys
+    FileReaderTool("{_STAGING}/research_briefs.md")    ← USE THIS to expand thin prose sections
 
-    If hebrew_prose.md is missing or empty — write Hebrew prose yourself from research_briefs.md.
+    IMPORTANT: If hebrew_prose.md content for ch07/ch08/ch09 is thin (each section
+    shorter than 800 words), you MUST supplement heavily from research_briefs.md.
+    Write verbose, detailed content — these chapters carry the paper's technical weight.
 
 STEP 2 — WRITE these 3 files ONE AT A TIME using SafeFileWriterTool:
 
   FILE 1: {chapters_dir}/ch07_oursystem.tex
-      ≥3200 words. System design/implementation. ≥5 \\subsection{{}}, ≥4 equations, ≥1 figure, ≥1 table, ≥3 citations.
+      ≥3200 words. System design/implementation. ≥5 \\subsection{{}}, ≥4 equations, ≥1 figure, ≥1 table, ≥3 \\cite{{}} calls.
+      Include: architecture overview, hardware specs, software pipeline, integration details.
 
   FILE 2: {chapters_dir}/ch08_results.tex
-      ≥4000 words. Results and performance. ≥6 \\subsection{{}}, ≥4 equations, ≥2 figures, ≥2 tables, ≥4 citations.
+      ≥4000 words. Results and performance — MUST be the longest chapter after ch06.
+      ≥6 \\subsection{{}}, ≥4 equations, ≥2 figures, ≥2 tables, ≥4 \\cite{{}} calls.
+      Include: experimental setup, datasets, metrics (ATE/RPE/RMSE), ablation study,
+      comparison tables, statistical analysis, failure modes, computational cost.
 
   FILE 3: {chapters_dir}/ch09_conclusion.tex
       ≥2000 words for conclusion. After the conclusion section, add:
