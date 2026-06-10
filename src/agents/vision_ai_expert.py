@@ -31,11 +31,7 @@ _GOAL = """
 Contribute Vision-AI depth to any chapter covering perception, visual odometry,
 depth estimation, or semantic understanding.
 
-If the topic has no vision or perception component (e.g. pure acoustics,
-pure mathematics), respond with exactly:
-  DOMAIN SKIP: topic does not require vision-AI expertise.
-
-Otherwise, produce a structured technical contribution covering the following
+Produce a structured technical contribution covering the following
 areas of expertise as they apply to the assigned chapter:
 
 CORE EXPERTISE DOMAINS:

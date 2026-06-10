@@ -177,14 +177,8 @@ def test_latex_author_no_delegation():
 # ---------------------------------------------------------------------------
 
 def test_all_agents_memory_disabled():
-    """All 5 agents must have memory disabled (falsy — None or False)."""
-    agents = [
-        create_navigation_director(tools=[]),
-        create_slam_researcher(tools=[]),
-        create_visualization_engineer(tools=[]),
-        create_hebrew_academic_writer(tools=[]),
-        create_latex_author(tools=[]),
-    ]
+    """All agents must have memory disabled (falsy — None or False)."""
+    agents = _all_agents()
     for agent in agents:
         assert not agent.memory, (
             f"Agent {agent.role!r} must have memory disabled, got {agent.memory!r}"
@@ -192,13 +186,56 @@ def test_all_agents_memory_disabled():
 
 
 def test_all_agents_verbose():
-    """All 5 agents must have verbose=True."""
-    agents = [
+    """All agents must have verbose=True."""
+    agents = _all_agents()
+    for agent in agents:
+        assert agent.verbose is True, f"Agent {agent.role!r} must have verbose=True"
+
+
+# ---------------------------------------------------------------------------
+# New domain experts (v6)
+# ---------------------------------------------------------------------------
+from src.agents.signal_processing_expert import create_signal_processing_expert
+from src.agents.control_systems_expert import create_control_systems_expert
+from src.agents.ml_expert import create_ml_expert
+
+
+def _all_agents():
+    """Helper: instantiate all agents for cross-cutting tests."""
+    return [
         create_navigation_director(tools=[]),
         create_slam_researcher(tools=[]),
         create_visualization_engineer(tools=[]),
         create_hebrew_academic_writer(tools=[]),
         create_latex_author(tools=[]),
+        create_signal_processing_expert(tools=[]),
+        create_control_systems_expert(tools=[]),
+        create_ml_expert(tools=[]),
     ]
+
+
+def test_signal_processing_expert_instantiates():
+    agent = create_signal_processing_expert(tools=[])
+    assert agent is not None
+    assert agent.allow_delegation is False
+
+
+def test_control_systems_expert_instantiates():
+    agent = create_control_systems_expert(tools=[])
+    assert agent is not None
+    assert agent.allow_delegation is False
+
+
+def test_ml_expert_instantiates():
+    agent = create_ml_expert(tools=[])
+    assert agent is not None
+    assert agent.allow_delegation is False
+
+
+def test_no_domain_skip_in_any_agent():
+    """No agent goal should contain DOMAIN SKIP — all must always contribute."""
+    agents = _all_agents()
     for agent in agents:
-        assert agent.verbose is True, f"Agent {agent.role!r} must have verbose=True"
+        assert "DOMAIN SKIP" not in agent.goal, (
+            f"Agent {agent.role!r} still has DOMAIN SKIP in goal"
+        )

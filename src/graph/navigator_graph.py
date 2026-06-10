@@ -1,12 +1,17 @@
 """
 src/graph/navigator_graph.py
 =============================
-Builds and returns the compiled LangGraph state machine that orchestrates
-the NavigatorCrew pipeline with a feedback loop.
+Builds and returns the compiled LangGraph state machine (v6 — split pipeline).
 
-Graph topology:
+Graph topology (full mode):
 
-  [run_main_pipeline]
+  [run_research_phase]          ← 10 agents: director + researcher + 8 domain experts
+          |
+          v
+  [validate_and_fix_research]   ← programmatic check + Fixer crew for failures
+          |
+          v
+  [run_writing_phase]           ← 5 agents: visualizer + Hebrew writer + 3 LaTeX authors
           |
           v
   [run_quality_gate]  ──PASS──>  [END]
@@ -22,7 +27,19 @@ Graph topology:
          FAIL (if remediation_count >= MAX_REMEDIATIONS)
           |
           v
-         [END]  (graceful degradation with whatever we have)
+         [END]  (graceful degradation)
+
+Graph topology (fast/smoke mode — legacy single crew):
+
+  [run_main_pipeline]
+          |
+          v
+  [run_quality_gate]  ──PASS──>  [END]
+          |
+         FAIL
+          |
+          v
+  [run_remediation] → [run_quality_gate] → ...
 """
 from __future__ import annotations
 from langgraph.graph import StateGraph, END
@@ -30,6 +47,9 @@ from langgraph.graph import StateGraph, END
 from src.graph.state import PipelineState
 from src.graph.nodes import (
     run_main_pipeline,
+    run_research_phase,
+    validate_and_fix_research,
+    run_writing_phase,
     run_quality_gate,
     run_remediation,
     QUALITY_THRESHOLD,
@@ -39,10 +59,7 @@ from src.config import logger
 
 
 def _route_after_quality_gate(state: PipelineState) -> str:
-    """
-    Conditional edge: decides what happens after the quality gate runs.
-    This is the heart of the feedback loop.
-    """
+    """Conditional edge: decides what happens after the quality gate."""
     if state["quality_verdict"] == "PASS":
         logger.info("[Graph] ROUTE: Quality PASSED → END")
         return "end"
@@ -61,23 +78,40 @@ def _route_after_quality_gate(state: PipelineState) -> str:
     return "remediate"
 
 
-def build_navigator_graph():
+def build_navigator_graph(split_mode: bool = True):
     """
     Compile and return the NavigatorCrew LangGraph state machine.
+
+    Args:
+        split_mode: If True (default), use the v6 split pipeline with validation.
+                    If False, use the legacy single-crew pipeline (fast/smoke modes).
     """
     graph = StateGraph(PipelineState)
 
-    # Register nodes
-    graph.add_node("run_main_pipeline", run_main_pipeline)
-    graph.add_node("run_quality_gate",  run_quality_gate)
-    graph.add_node("run_remediation",   run_remediation)
+    if split_mode:
+        # v6 split architecture: research → validate → writing → quality → remediation
+        graph.add_node("run_research_phase",         run_research_phase)
+        graph.add_node("validate_and_fix_research",  validate_and_fix_research)
+        graph.add_node("run_writing_phase",          run_writing_phase)
+        graph.add_node("run_quality_gate",           run_quality_gate)
+        graph.add_node("run_remediation",            run_remediation)
 
-    # Linear edges
-    graph.set_entry_point("run_main_pipeline")
-    graph.add_edge("run_main_pipeline", "run_quality_gate")
-    graph.add_edge("run_remediation",   "run_quality_gate")
+        graph.set_entry_point("run_research_phase")
+        graph.add_edge("run_research_phase",        "validate_and_fix_research")
+        graph.add_edge("validate_and_fix_research", "run_writing_phase")
+        graph.add_edge("run_writing_phase",         "run_quality_gate")
+        graph.add_edge("run_remediation",           "run_quality_gate")
+    else:
+        # Legacy single-crew pipeline (fast/smoke modes)
+        graph.add_node("run_main_pipeline", run_main_pipeline)
+        graph.add_node("run_quality_gate",  run_quality_gate)
+        graph.add_node("run_remediation",   run_remediation)
 
-    # THE KEY: conditional edge from the quality gate
+        graph.set_entry_point("run_main_pipeline")
+        graph.add_edge("run_main_pipeline", "run_quality_gate")
+        graph.add_edge("run_remediation",   "run_quality_gate")
+
+    # Conditional edge from quality gate (shared by both modes)
     graph.add_conditional_edges(
         "run_quality_gate",
         _route_after_quality_gate,

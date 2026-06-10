@@ -146,16 +146,17 @@ class TestQualityGate:
         _patch_project_root(monkeypatch, tmp_path)
 
         # Build a chapter that passes content checks but has an em dash
-        words = " ".join(["word"] * 320)
+        words = " ".join(["word"] * 2500)
         em_dash_content = (
             r"\selectlanguage{hebrew}" + "\n"
             r"\section{Test}" + "\n"
             + words + "\n"
-            + r"\subsection{A}" + r"\subsection{B}" + r"\subsection{C}" + "\n"
+            + r"\subsection{A}" + r"\subsection{B}" + r"\subsection{C}" + r"\subsection{D}" + r"\subsection{E}" + "\n"
             + r"\begin{equation}x=1\label{eq:a}\end{equation}" + "\n"
             + r"\begin{equation}y=2\label{eq:b}\end{equation}" + "\n"
+            + r"\begin{equation}z=3\label{eq:c}\end{equation}" + "\n"
             + r"\includegraphics{fig.png}" + "\n"
-            + r"\cite{A}\cite{B}" + "\n"
+            + r"\cite{A}\cite{B}\cite{C}" + "\n"
             + "Em\u2014dash here\n"  # U+2014
         )
         _setup_latex(tmp_path, em_dash_content, full_bib_content)
@@ -166,11 +167,12 @@ class TestQualityGate:
             r"\selectlanguage{hebrew}" + "\n"
             r"\section{Test}" + "\n"
             + good_words + "\n"
-            + r"\subsection{A}" + r"\subsection{B}" + r"\subsection{C}" + "\n"
+            + r"\subsection{A}" + r"\subsection{B}" + r"\subsection{C}" + r"\subsection{D}" + r"\subsection{E}" + "\n"
             + r"\begin{equation}x=1\label{eq:a}\end{equation}" + "\n"
             + r"\begin{equation}y=2\label{eq:b}\end{equation}" + "\n"
+            + r"\begin{equation}z=3\label{eq:c}\end{equation}" + "\n"
             + r"\includegraphics{fig.png}" + "\n"
-            + r"\cite{A}\cite{B}" + "\n"
+            + r"\cite{A}\cite{B}\cite{C}" + "\n"
         )
         chapters_dir = tmp_path / "latex" / "chapters"
         good_result_path = tmp_path / "outputs" / "quality_report_good.md"
@@ -196,16 +198,17 @@ class TestQualityGate:
         r"""A chapter with \begin{center} must reduce score and appear in center_files."""
         _patch_project_root(monkeypatch, tmp_path)
 
-        words = " ".join(["word"] * 320)
+        words = " ".join(["word"] * 2500)
         center_content = (
             r"\selectlanguage{hebrew}" + "\n"
             r"\section{Test}" + "\n"
             + words + "\n"
-            + r"\subsection{A}" + r"\subsection{B}" + r"\subsection{C}" + "\n"
+            + r"\subsection{A}" + r"\subsection{B}" + r"\subsection{C}" + r"\subsection{D}" + r"\subsection{E}" + "\n"
             + r"\begin{equation}x=1\label{eq:a}\end{equation}" + "\n"
             + r"\begin{equation}y=2\label{eq:b}\end{equation}" + "\n"
+            + r"\begin{equation}z=3\label{eq:c}\end{equation}" + "\n"
             + r"\includegraphics{fig.png}" + "\n"
-            + r"\cite{A}\cite{B}" + "\n"
+            + r"\cite{A}\cite{B}\cite{C}" + "\n"
             + r"\begin{center}" + "\n"
             + "centered content\n"
             + r"\end{center}" + "\n"
@@ -224,16 +227,17 @@ class TestQualityGate:
         """A chapter with PLACEHOLDER text must reduce the score."""
         _patch_project_root(monkeypatch, tmp_path)
 
-        words = " ".join(["word"] * 320)
+        words = " ".join(["word"] * 2500)
         placeholder_content = (
             r"\selectlanguage{hebrew}" + "\n"
             r"\section{Test}" + "\n"
             + words + "\n"
-            + r"\subsection{A}" + r"\subsection{B}" + r"\subsection{C}" + "\n"
+            + r"\subsection{A}" + r"\subsection{B}" + r"\subsection{C}" + r"\subsection{D}" + r"\subsection{E}" + "\n"
             + r"\begin{equation}x=1\label{eq:a}\end{equation}" + "\n"
             + r"\begin{equation}y=2\label{eq:b}\end{equation}" + "\n"
+            + r"\begin{equation}z=3\label{eq:c}\end{equation}" + "\n"
             + r"\includegraphics{fig.png}" + "\n"
-            + r"\cite{A}\cite{B}" + "\n"
+            + r"\cite{A}\cite{B}\cite{C}" + "\n"
             + "PLACEHOLDER content here\n"
         )
         _setup_latex(tmp_path, placeholder_content, full_bib_content)

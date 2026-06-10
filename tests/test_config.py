@@ -56,13 +56,21 @@ def test_writable_dirs():
 
 
 def test_agent_max_iter_keys():
-    """All five active agent keys must be present in AGENT_MAX_ITER."""
+    """All agent keys must be present in AGENT_MAX_ITER."""
     expected_keys = {
         "research_director",
         "deep_researcher",
         "data_visualizer",
         "hebrew_writer",
         "latex_author",
+        "biology_expert",
+        "vision_ai_expert",
+        "physics_expert",
+        "algorithms_expert",
+        "aerospace_marine_expert",
+        "signal_processing_expert",
+        "control_systems_expert",
+        "ml_expert",
     }
     assert expected_keys.issubset(AGENT_MAX_ITER.keys()), (
         f"Missing keys: {expected_keys - set(AGENT_MAX_ITER.keys())}"

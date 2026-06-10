@@ -138,45 +138,70 @@ def create_task_domain_expert(
 ) -> Task:
     """
     Generic domain-expert enrichment task.
-    Each specialist reads the outline + research briefs and contributes
-    domain-specific depth (equations, algorithms, insights, references).
-    If the topic is outside their domain they write a single DOMAIN SKIP line.
+
+    Design notes (v6 — anti-loop architecture):
+      • Context injection: previous task outputs are passed via CrewAI's
+        `context` parameter, which injects them into the agent's prompt
+        automatically. Agents do NOT need to call FileReaderTool to read
+        inputs — this eliminates the tool-call loop where DeepSeek V3
+        repeatedly said "let me read the file" without ever invoking the tool.
+      • No escape hatch: the DOMAIN SKIP option is removed. Every domain
+        expert MUST contribute content. The topic is broad enough for all.
+      • Measurable output: the task requires a specific minimum (3 equations,
+        5 references, 500+ words). Agents cannot shortcut to "COMPLETE."
+      • No output_file: CrewAI's output_file parameter OVERWRITES the file
+        that SafeFileWriterTool wrote with the agent's short final response.
+        We intentionally omit it so the real 20 KB content is preserved.
     """
     return Task(
         description=f"""
-You are a PhD-level domain specialist contributing technical depth to an academic paper.
+You are a PhD-level domain specialist. You MUST contribute technical depth
+to the academic paper described in the context you received above.
 
-STEP 1 — Read existing work (use FileReaderTool for each):
-    FileReaderTool("{_STAGING}/paper_outline.md")
-    FileReaderTool("{_STAGING}/research_briefs.md")
+Your domain expertise: {domain_description}
 
-STEP 2 — Assess relevance of your domain to this paper topic:
-    Your domain: {domain_description}
+The paper outline and research briefs have already been provided to you
+in the context above — DO NOT try to read any files. Start working immediately.
 
-STEP 3a — If your domain IS relevant to the topic:
-    Contribute content NOT already covered in the research briefs:
-    • Domain-specific equations with full derivations and variable definitions
-      (numbered, LaTeX-ready format)
-    • Algorithms, methods, or design principles unique to your field
-    • Physical, biological, or theoretical insights that deepen any chapter
-    • 3–5 key BibTeX-formatted references from your domain
-      (format: @article{{Key, author=..., title=..., journal=..., year=..., doi=...}})
-    Precision standard: PhD-level. Cite primary sources. No padding.
+YOUR MANDATORY OUTPUT — produce ALL of the following:
 
-STEP 3b — If your domain has NO meaningful intersection with this topic:
-    Write exactly one line: "DOMAIN SKIP: [brief reason]"
-    Do NOT pad with generic content — professional silence is valued.
+1. TECHNICAL ANALYSIS (500+ words):
+   State-of-the-art methods, dominant approaches, and known failure modes
+   from YOUR domain that are relevant to the paper topic. Be specific:
+   name methods, cite years, give quantitative performance numbers.
 
-Write your output to {_STAGING}/domain_{domain_key}.md
+2. EQUATIONS (minimum 3, LaTeX-ready):
+   Each as: \\begin{{equation}} ... \\label{{eq:domain_{domain_key}_N}} \\end{{equation}}
+   Include variable definitions after each equation.
+   Only equations from YOUR domain — not already in the research briefs.
+
+3. ALGORITHMS OR METHODS (minimum 2):
+   Pseudocode or step-by-step descriptions of key algorithms from your field.
+
+4. BIBTEX REFERENCES (minimum 5):
+   Full BibTeX entries: @article{{Key, author=..., title=..., journal=..., year=..., doi=...}}
+   Only real, verifiable references. No fabricated citations.
+
+5. INTEGRATION NOTES (200+ words):
+   How your domain contributions connect to the paper's overall system.
+
+Write your complete contribution using SafeFileWriterTool to:
+    {_STAGING}/domain_{domain_key}.md
+
+IMPORTANT: You MUST produce all 5 sections. Do not skip any section.
+Do not write "DOMAIN SKIP" or "DOMAIN EXPERT COMPLETE" without content.
+Your output will be validated — empty or trivial responses will be flagged.
 """.strip(),
         expected_output=(
-            f"Domain contribution at {_STAGING}/domain_{domain_key}.md "
-            f"with equations, algorithms, and references, OR a single 'DOMAIN SKIP:' line. "
-            f"Confirmation: 'DOMAIN EXPERT COMPLETE'."
+            f"Complete domain contribution saved to {_STAGING}/domain_{domain_key}.md "
+            f"containing: technical analysis (500+ words), 3+ LaTeX equations, "
+            f"2+ algorithms, 5+ BibTeX references, and integration notes."
         ),
         agent=expert,
         context=context,
-        output_file=f"{_STAGING}/domain_{domain_key}.md",
+        # NO output_file here — CrewAI's output_file overwrites what SafeFileWriterTool
+        # wrote (20 KB content → 2 KB summary). The real content lives in the file
+        # written by the agent via SafeFileWriterTool during task execution.
     )
 
 
@@ -194,6 +219,9 @@ STEP 1 — READ ALL INPUTS (use FileReaderTool for each):
     FileReaderTool("{_STAGING}/domain_algorithms.md")     ← Algorithms expert (if not DOMAIN SKIP)
     FileReaderTool("{_STAGING}/domain_aerospace.md")      ← Aerospace/Marine expert (if not DOMAIN SKIP)
     FileReaderTool("{_STAGING}/domain_biology.md")        ← Biology expert (if not DOMAIN SKIP)
+    FileReaderTool("{_STAGING}/domain_signal_processing.md") ← Signal processing expert
+    FileReaderTool("{_STAGING}/domain_control_systems.md")   ← Control systems expert
+    FileReaderTool("{_STAGING}/domain_ml.md")                ← ML expert
     Files that begin with "DOMAIN SKIP:" have no relevant content — skip them.
 
 STEP 2 — Write Hebrew prose for ALL nine chapters to {_STAGING}/hebrew_prose.md.
@@ -201,12 +229,14 @@ STEP 2 — Write Hebrew prose for ALL nine chapters to {_STAGING}/hebrew_prose.m
     Do NOT split across multiple files. Do NOT write to hebrew_prose_remaining.md.
 
     TARGET: 25–30 printed pages total (~16,000–20,000 Hebrew words).
-    - ch01 (introduction): 1800–2400 words
-    - ch02–ch05: 2400–3000 words each
-    - ch06 (algorithm): 3000–3600 words
-    - ch07 (system): 2400–3000 words
-    - ch08 (results): 3000–3600 words
-    - ch09 (conclusion): 1400–1800 words
+    IMPORTANT: Write at least the MINIMUM word count for each chapter.
+    - ch01 (introduction): 2500–3200 words
+    - ch02–ch05: 3200–4000 words each
+    - ch06 (algorithm): 4000–5000 words
+    - ch07 (system): 3200–4000 words
+    - ch08 (results): 4000–5000 words
+    - ch09 (conclusion): 2000–2800 words
+    If a chapter feels "done" but is under the minimum, add more content.
 
     Per-chapter content:
         • Section marker: ## CH01: <Hebrew title from outline>
@@ -230,7 +260,7 @@ STEP 3 — After writing, output a short confirmation: 'HEBREW PROSE COMPLETE'.
 """.strip(),
         expected_output=(
             f"All 9 chapters written to {_STAGING}/hebrew_prose.md via SafeFileWriterTool. "
-            f"≥1800 words per chapter (ch06/ch08 ≥3000). Zero em dash characters. Confirmation: 'HEBREW PROSE COMPLETE'."
+            f"≥2500 words per chapter (ch06/ch08 ≥4000). Zero em dash characters. Confirmation: 'HEBREW PROSE COMPLETE'."
         ),
         agent=writer,
         context=context,
@@ -242,12 +272,13 @@ def _latex_shared_rules(chapters_dir: str, bib_path: str, latex_dir: str) -> str
     """Shared LaTeX writing rules injected into both latex task descriptions."""
     return f"""
 CONTENT DEPTH — targeting 25–30 printed pages total:
-    • ch01: ≥1800 Hebrew words, ≥4 subsections, ≥2 equations
-    • ch02–ch05: ≥2400 Hebrew words each, ≥6 subsections, ≥5 equations, ≥1 figure, ≥1 table
-    • ch06 (algorithm): ≥3000 Hebrew words, ≥6 subsections, ≥6 equations, ≥1 lstlisting, ≥1 figure
-    • ch07 (system): ≥2400 Hebrew words, ≥5 subsections, ≥4 equations, ≥1 figure
-    • ch08 (results): ≥3000 Hebrew words, ≥6 subsections, ≥4 equations, ≥2 figures, ≥1 table
-    • ch09 (conclusion): ≥1400 Hebrew words, ≥3 subsections
+    • ch01: ≥2500 Hebrew words, ≥4 subsections, ≥2 equations
+    • ch02–ch05: ≥3200 Hebrew words each, ≥6 subsections, ≥5 equations, ≥1 figure, ≥1 table
+    • ch06 (algorithm): ≥4000 Hebrew words, ≥6 subsections, ≥6 equations, ≥1 lstlisting, ≥1 figure
+    • ch07 (system): ≥3200 Hebrew words, ≥5 subsections, ≥4 equations, ≥1 figure
+    • ch08 (results): ≥4000 Hebrew words, ≥6 subsections, ≥4 equations, ≥2 figures, ≥1 table
+    • ch09 (conclusion): ≥2000 Hebrew words, ≥3 subsections
+    IMPORTANT: Write ALL chapters — do NOT skip any. Each chapter MUST be written to its own file.
 
 FIGURE WIDTH AND PLACEMENT RULES:
     • Single-column figures: \\begin{{figure}}[htbp] with [width=0.98\\columnwidth]
@@ -349,24 +380,24 @@ STEP 3 — WRITE these 7 files ONE AT A TIME (write each immediately after plann
 
   FILE 2: {chapters_dir}/ch01_intro.tex     ← EXACT filename, do NOT change
       Use the Hebrew section title from paper_outline.md for this chapter.
-      ≥1800 words. Cover: motivation, problem statement, contributions overview, paper structure.
+      ≥2500 words. Cover: motivation, problem statement, contributions overview, paper structure.
       Must have: ≥4 \\subsection{{}} blocks, ≥2 equations, ≥2 \\cite{{}} calls.
 
   FILE 3: {chapters_dir}/ch02_bio_basis.tex ← EXACT filename, do NOT change
       Use the Hebrew section title from paper_outline.md for chapter 2.
-      ≥2400 words. ≥6 \\subsection{{}}, ≥5 equations, ≥1 figure, ≥1 table, ≥3 citations.
+      ≥3200 words. ≥6 \\subsection{{}}, ≥5 equations, ≥1 figure, ≥1 table, ≥3 citations.
 
   FILE 4: {chapters_dir}/ch03_sensors.tex   ← EXACT filename, do NOT change
       Use the Hebrew section title from paper_outline.md for chapter 3.
-      ≥2400 words. ≥6 \\subsection{{}}, ≥5 equations, ≥1 figure, ≥1 table, ≥3 citations.
+      ≥3200 words. ≥6 \\subsection{{}}, ≥5 equations, ≥1 figure, ≥1 table, ≥3 citations.
 
   FILE 5: {chapters_dir}/ch04_slam.tex      ← EXACT filename, do NOT change
       Use the Hebrew section title from paper_outline.md for chapter 4.
-      ≥2400 words. ≥6 \\subsection{{}}, ≥5 equations, ≥1 figure, ≥1 table, ≥3 citations.
+      ≥3200 words. ≥6 \\subsection{{}}, ≥5 equations, ≥1 figure, ≥1 table, ≥3 citations.
 
   FILE 6: {chapters_dir}/ch05_fusion.tex    ← EXACT filename, do NOT change
       Use the Hebrew section title from paper_outline.md for chapter 5.
-      ≥2400 words. ≥6 \\subsection{{}}, ≥5 equations, ≥1 figure, ≥1 table, ≥3 citations.
+      ≥3200 words. ≥6 \\subsection{{}}, ≥5 equations, ≥1 figure, ≥1 table, ≥3 citations.
 
   FILE 7: {bib_path}
       Full BibTeX file. Collect ALL \\cite{{}} keys you used in the chapters above.
@@ -378,7 +409,7 @@ STEP 3 — WRITE these 7 files ONE AT A TIME (write each immediately after plann
         expected_output=(
             "7 files written: abstract.tex, ch01_intro.tex, ch02–ch05.tex, references.bib. "
             "Each chapter uses Hebrew section title from paper_outline.md. "
-            "≥1800w for ch01, ≥2400w for ch02–ch05, ≥5 equations, ≥1 figure (ch02–ch05). "
+            "≥2500w for ch01, ≥3200w for ch02–ch05, ≥5 equations, ≥1 figure (ch02–ch05). "
             "references.bib has ≥14 entries. "
             "Confirmation: 'LATEX PART 1 COMPLETE'."
         ),
@@ -428,24 +459,24 @@ STEP 3 — WRITE these 4 files ONE AT A TIME:
 
   FILE 1: {chapters_dir}/ch06_algorithm.tex  ← EXACT filename, do NOT change
       Use the Hebrew section title from paper_outline.md for chapter 6.
-      ≥3000 words. The algorithm/methodology chapter — the longest and most detailed.
+      ≥4000 words. The algorithm/methodology chapter — the longest and most detailed.
       Must have: ≥6 \\subsection{{}}, ≥6 equations (numbered), ≥1 lstlisting pseudocode block,
       ≥1 figure, ≥3 citations, complexity analysis table.
 
   FILE 2: {chapters_dir}/ch07_oursystem.tex  ← EXACT filename, do NOT change
       Use the Hebrew section title from paper_outline.md for chapter 7.
-      ≥2400 words. The system design / implementation chapter.
+      ≥3200 words. The system design / implementation chapter.
       Must have: ≥5 \\subsection{{}}, ≥4 equations, ≥1 figure, ≥3 citations.
 
   FILE 3: {chapters_dir}/ch08_results.tex    ← EXACT filename, do NOT change
       Use the Hebrew section title from paper_outline.md for chapter 8.
-      ≥3000 words. Simulation/experimental results — detailed quantitative analysis.
+      ≥4000 words. Simulation/experimental results — detailed quantitative analysis.
       Must have: ≥6 \\subsection{{}}, ≥4 equations, ≥2 figures from manifest, ≥2 results tables,
       ≥3 citations. Quantitative data with numerical values.
 
   FILE 4: {chapters_dir}/ch09_conclusion.tex ← EXACT filename, do NOT change
       Use the Hebrew section title from paper_outline.md for chapter 9.
-      ≥1400 words for conclusion. After the conclusion section, add:
+      ≥2000 words for conclusion. After the conclusion section, add:
           \\appendix
           \\section{{רשימת סמלים ומשתנים}}
           booktabs table: Symbol | Definition | Units (≥15 rows).
@@ -453,8 +484,8 @@ STEP 3 — WRITE these 4 files ONE AT A TIME:
 {rules}
 """.strip(),
         expected_output=(
-            "4 files written: ch06_algorithm.tex (≥3000w), ch07_oursystem.tex (≥2400w), "
-            "ch08_results.tex (≥3000w), ch09_conclusion.tex (≥1400w + appendix). "
+            "4 files written: ch06_algorithm.tex (≥4000w), ch07_oursystem.tex (≥3200w), "
+            "ch08_results.tex (≥4000w), ch09_conclusion.tex (≥2000w + appendix). "
             "All use Hebrew section titles from paper_outline.md. Labels unique with chapter prefix. "
             "Confirmation: 'LATEX PART 2 COMPLETE'."
         ),
@@ -468,6 +499,230 @@ STEP 3 — WRITE these 4 files ONE AT A TIME:
 def create_task_latex(author: Agent, context: list[Task], run_folder: Path | None = None) -> Task:
     """Backward-compatible wrapper used by remediation node. Calls part2 logic."""
     return create_task_latex_part2(author, context, run_folder=run_folder)
+
+
+# ---------------------------------------------------------------------------
+# 3-way LaTeX split (v6 architecture — 3 separate writers)
+# ---------------------------------------------------------------------------
+
+def create_task_latex_a(author: Agent, context: list[Task], run_folder: Path | None = None) -> Task:
+    """Writer A: abstract + ch01 + ch02 + ch03 + references.bib (5 files)."""
+    latex_dir = str(run_folder / "latex") if run_folder else "latex"
+    chapters_dir = f"{latex_dir}/chapters"
+    bib_path = f"{latex_dir}/references.bib"
+    rules = _latex_shared_rules(chapters_dir, bib_path, latex_dir)
+    return Task(
+        description=f"""
+You are LaTeX Writer A. Write the OPENING chapters of a 25–30 page IEEE paper in XeLaTeX (Hebrew).
+
+STEP 1 — READ INPUTS (FileReaderTool for each):
+    FileReaderTool("{_STAGING}/paper_outline.md")
+    FileReaderTool("{_STAGING}/hebrew_prose.md")
+    FileReaderTool("{_STAGING}/research_briefs.md")    ← fallback if hebrew_prose is missing
+
+    If hebrew_prose.md is missing or empty — write Hebrew prose yourself from research_briefs.md.
+
+STEP 2 — WRITE these 5 files ONE AT A TIME using SafeFileWriterTool:
+
+  FILE 1: {chapters_dir}/abstract.tex
+      Short abstract (200–300 words Hebrew). No equations, no figures, no \\section command.
+
+  FILE 2: {chapters_dir}/ch01_intro.tex
+      ≥2500 words. Introduction: motivation, problem, contributions, paper structure.
+      ≥4 \\subsection{{}}, ≥2 equations, ≥3 \\cite{{}} calls.
+
+  FILE 3: {chapters_dir}/ch02_bio_basis.tex
+      ≥3200 words. Biological foundations. ≥6 \\subsection{{}}, ≥5 equations, ≥1 figure, ≥1 table, ≥3 citations.
+
+  FILE 4: {chapters_dir}/ch03_sensors.tex
+      ≥3200 words. Sensor systems. ≥6 \\subsection{{}}, ≥5 equations, ≥1 figure, ≥1 table, ≥3 citations.
+
+  FILE 5: {bib_path}
+      Full BibTeX file with ≥14 topic-relevant entries covering ALL chapters (ch01–ch09).
+      Use real author/title/year from the research briefs. Do NOT fabricate citations.
+
+{rules}
+""".strip(),
+        expected_output=(
+            "5 files: abstract.tex, ch01_intro.tex, ch02_bio_basis.tex, ch03_sensors.tex, references.bib. "
+            "Confirmation: 'LATEX PART A COMPLETE'."
+        ),
+        agent=author,
+        context=context,
+        output_file=f"{_STAGING}/latex_status_a.md",
+    )
+
+
+def create_task_latex_b(author: Agent, context: list[Task], run_folder: Path | None = None) -> Task:
+    """Writer B: ch04 + ch05 + ch06 (3 files)."""
+    latex_dir = str(run_folder / "latex") if run_folder else "latex"
+    chapters_dir = f"{latex_dir}/chapters"
+    bib_path = f"{latex_dir}/references.bib"
+    rules = _latex_shared_rules(chapters_dir, bib_path, latex_dir)
+    return Task(
+        description=f"""
+You are LaTeX Writer B. Write the CORE TECHNICAL chapters of a 25–30 page IEEE paper in XeLaTeX (Hebrew).
+
+STEP 1 — READ INPUTS (FileReaderTool for each):
+    FileReaderTool("{_STAGING}/paper_outline.md")
+    FileReaderTool("{_STAGING}/hebrew_prose.md")
+    FileReaderTool("{_STAGING}/figures_manifest.md")
+    FileReaderTool("{_STAGING}/research_briefs.md")    ← fallback if hebrew_prose is missing
+
+    If hebrew_prose.md is missing or empty — write Hebrew prose yourself from research_briefs.md.
+
+STEP 2 — WRITE these 3 files ONE AT A TIME using SafeFileWriterTool:
+
+  FILE 1: {chapters_dir}/ch04_slam.tex
+      ≥3200 words. SLAM and mapping. ≥6 \\subsection{{}}, ≥5 equations, ≥1 figure, ≥1 table, ≥3 citations.
+
+  FILE 2: {chapters_dir}/ch05_fusion.tex
+      ≥3200 words. Sensor fusion. ≥6 \\subsection{{}}, ≥5 equations, ≥1 figure, ≥1 table, ≥3 citations.
+
+  FILE 3: {chapters_dir}/ch06_algorithm.tex
+      ≥4000 words. Algorithm/methodology — the most detailed technical chapter.
+      ≥6 \\subsection{{}}, ≥6 equations, ≥1 lstlisting pseudocode block, ≥1 figure, ≥1 table, ≥4 citations.
+
+{rules}
+""".strip(),
+        expected_output=(
+            "3 files: ch04_slam.tex, ch05_fusion.tex, ch06_algorithm.tex. "
+            "Confirmation: 'LATEX PART B COMPLETE'."
+        ),
+        agent=author,
+        context=context,
+        output_file=f"{_STAGING}/latex_status_b.md",
+    )
+
+
+def create_task_latex_c(author: Agent, context: list[Task], run_folder: Path | None = None) -> Task:
+    """Writer C: ch07 + ch08 + ch09 (3 files)."""
+    latex_dir = str(run_folder / "latex") if run_folder else "latex"
+    chapters_dir = f"{latex_dir}/chapters"
+    bib_path = f"{latex_dir}/references.bib"
+    rules = _latex_shared_rules(chapters_dir, bib_path, latex_dir)
+    return Task(
+        description=f"""
+You are LaTeX Writer C. Write the SYSTEM, RESULTS, and CONCLUSION chapters of a 25–30 page IEEE paper in XeLaTeX (Hebrew).
+
+STEP 1 — READ INPUTS (FileReaderTool for each):
+    FileReaderTool("{_STAGING}/paper_outline.md")
+    FileReaderTool("{_STAGING}/hebrew_prose.md")
+    FileReaderTool("{_STAGING}/figures_manifest.md")
+    FileReaderTool("{_STAGING}/research_briefs.md")    ← fallback if hebrew_prose is missing
+
+    If hebrew_prose.md is missing or empty — write Hebrew prose yourself from research_briefs.md.
+
+STEP 2 — WRITE these 3 files ONE AT A TIME using SafeFileWriterTool:
+
+  FILE 1: {chapters_dir}/ch07_oursystem.tex
+      ≥3200 words. System design/implementation. ≥5 \\subsection{{}}, ≥4 equations, ≥1 figure, ≥1 table, ≥3 citations.
+
+  FILE 2: {chapters_dir}/ch08_results.tex
+      ≥4000 words. Results and performance. ≥6 \\subsection{{}}, ≥4 equations, ≥2 figures, ≥2 tables, ≥4 citations.
+
+  FILE 3: {chapters_dir}/ch09_conclusion.tex
+      ≥2000 words for conclusion. After the conclusion section, add:
+          \\appendix
+          \\section{{רשימת סמלים ומשתנים}}
+          booktabs table: Symbol | Definition | Units (≥15 rows).
+
+{rules}
+""".strip(),
+        expected_output=(
+            "3 files: ch07_oursystem.tex, ch08_results.tex, ch09_conclusion.tex. "
+            "Confirmation: 'LATEX PART C COMPLETE'."
+        ),
+        agent=author,
+        context=context,
+        output_file=f"{_STAGING}/latex_status_c.md",
+    )
+
+
+# ---------------------------------------------------------------------------
+# Crew-building helpers for split architecture (v6)
+# ---------------------------------------------------------------------------
+
+def create_research_tasks(
+    director, researcher,
+    domain_experts: dict[str, Agent],
+    topic: str,
+) -> list[Task]:
+    """
+    Create tasks for the research phase crew:
+    outline → research → 8 domain expert tasks (all in parallel context from research).
+    """
+    t_outline = create_task_outline(director, topic)
+    t_research = create_task_research(researcher, [t_outline])
+
+    domain_tasks = []
+    for key, expert in domain_experts.items():
+        desc = _DOMAIN_DESCRIPTIONS.get(key, key)
+        t = create_task_domain_expert(expert, key, desc, [t_outline, t_research])
+        domain_tasks.append(t)
+
+    return [t_outline, t_research] + domain_tasks
+
+
+def create_writing_tasks(
+    visualizer, hebrew_writer,
+    author_a, author_b, author_c,
+    run_folder: Path | None = None,
+) -> list[Task]:
+    """
+    Create tasks for the writing phase crew:
+    figures → hebrew_prose → latex_a → latex_b → latex_c
+    """
+    t_figures = create_task_figures(visualizer, [], run_folder=run_folder)
+    t_hebrew = create_task_hebrew_prose(hebrew_writer, [t_figures])
+    t_latex_a = create_task_latex_a(author_a, [t_hebrew, t_figures], run_folder=run_folder)
+    t_latex_b = create_task_latex_b(author_b, [t_hebrew, t_figures], run_folder=run_folder)
+    t_latex_c = create_task_latex_c(author_c, [t_hebrew, t_figures], run_folder=run_folder)
+    return [t_figures, t_hebrew, t_latex_a, t_latex_b, t_latex_c]
+
+
+def create_task_fix_domain(
+    fixer: Agent,
+    domain_key: str,
+    topic: str,
+    outline_content: str,
+) -> Task:
+    """
+    Task for the Research Fixer agent to produce content for a failed domain expert.
+    The topic and outline are embedded directly in the task description (no file reads needed).
+    """
+    desc = _DOMAIN_DESCRIPTIONS.get(domain_key, domain_key)
+    return Task(
+        description=f"""
+You are a Research Fixer. A domain expert failed to produce usable content.
+Your job: produce the missing domain contribution yourself.
+
+PAPER TOPIC: {topic}
+
+PAPER OUTLINE:
+{outline_content}
+
+DOMAIN TO COVER: {desc}
+
+Write a complete domain contribution with:
+1. Technical analysis (500+ words) of state-of-the-art from this domain
+2. At least 3 LaTeX-ready equations with variable definitions
+3. At least 2 algorithm/method descriptions
+4. At least 5 BibTeX references (real, verifiable)
+5. Integration notes on how this domain connects to the paper
+
+Use SafeFileWriterTool to write your output to: {_STAGING}/domain_{domain_key}.md
+
+You have web search tools (SerperDevSearchTool, ArxivSearchTool) — use them
+to find real papers and data. Do NOT fabricate citations.
+""".strip(),
+        expected_output=(
+            f"Domain contribution saved to {_STAGING}/domain_{domain_key}.md "
+            f"with technical analysis, equations, algorithms, references, and integration notes."
+        ),
+        agent=fixer,
+        # No output_file — agent writes via SafeFileWriterTool, don't overwrite.
+    )
 
 
 def create_task_review(editor: Agent, context: list[Task]) -> Task:
@@ -543,13 +798,20 @@ STEP 2 — Read ONLY the chapter files that have issues (see failed sections bel
     Do NOT try to read directories — only read specific .tex files.
 
 STEP 3 — Fix the failing chapters. Common fixes:
-    • words too low: expand existing subsections with more detail, add 400+ Hebrew words per chapter
+    • MISSING CHAPTERS (file does not exist or is too small): CREATE the chapter from scratch.
+      Write a full LaTeX chapter with ≥1800 Hebrew words, ≥4 subsections, ≥2 equations,
+      ≥1 figure (use figures from figures/ directory), ≥2 citations. Use \\selectlanguage{{hebrew}}
+      at the top. Wrap English terms in \\en{{}}.
+    • words too low: Add ≥800 Hebrew words per failing chapter.
+      Add new subsections, extend paragraphs with deeper explanations, add derivations,
+      comparisons with alternative approaches, and implementation details.
     • citations missing: add \\cite{{}} references and ensure keys exist in references.bib
     • equations missing: add numbered \\begin{{equation}}...\\end{{equation}} blocks
     • em dashes: replace every — (U+2014) with a colon (:) or comma (,)
 
 STEP 4 — Write each fixed file back using SafeFileWriterTool.
     Rewrite the ENTIRE file content (not just the changed parts).
+    PRIORITY: Create missing chapter files FIRST, then fix existing ones.
 
 Failed sections to fix: [{sections_str}]
 Do NOT modify chapters that passed — only fix the ones with issues.
@@ -582,6 +844,21 @@ _DOMAIN_DESCRIPTIONS: dict[str, str] = {
         "Bat echolocation (CF-FM sonar, acoustic fovea, DSC mechanism), "
         "neural computation for spatial mapping, bio-inspired algorithm design, "
         "dolphin biosonar, lateral line sensing"
+    ),
+    "signal_processing": (
+        "Chirp/FM pulse design, matched filtering, beamforming (delay-and-sum, MVDR), "
+        "time-of-flight estimation, Doppler shift processing, spectral analysis for bio-sonar, "
+        "sonar equation, adaptive filtering (LMS, RLS)"
+    ),
+    "control_systems": (
+        "Quadrotor dynamics and equations of motion, PID/LQR controller design, "
+        "path planning (RRT*, A*, D*), trajectory optimization, obstacle avoidance, "
+        "state estimation for control, real-time control on embedded platforms"
+    ),
+    "ml": (
+        "Multi-modal sensor fusion networks (cross-attention, gating), "
+        "1D-CNN for sonar signal encoding, reinforcement learning for navigation (PPO, SAC, GAE), "
+        "training pipelines, loss functions, data augmentation for sensor data"
     ),
 }
 

@@ -104,9 +104,7 @@ OUTPUT CONTRACT:
     • State assumptions clearly (small-angle, rigid body, incompressible flow).
     • When writing about GPS-denied navigation in confined spaces, invoke the
       submarine↔drone analogy with at least one quantitative comparison.
-    • If the chapter topic involves neither aerospace nor marine/submarine
-      domains, write exactly:
-      "DOMAIN SKIP: topic does not require aerospace/marine expertise."
+    • Always contribute aerospace or marine/submarine content relevant to the chapter.
 """.strip()
 
 _BACKSTORY = """

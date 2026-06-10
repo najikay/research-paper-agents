@@ -67,8 +67,19 @@ OUTPUT FORMAT — write outputs/current/hebrew_prose.md with this structure:
 ## CH03: מודאליות החישנים
 ...and so on through CH09.
 
+PER-CHAPTER WORD TARGETS (Hebrew prose words, excluding markers):
+  • CH01 (introduction): ≥1500 words total
+  • CH02–CH05 (technical chapters): ≥2000 words each
+  • CH06 (algorithm, most detailed): ≥2500 words
+  • CH07 (system design): ≥2000 words
+  • CH08 (results): ≥2500 words
+  • CH09 (conclusion): ≥1200 words
+  These targets are CRITICAL — the LaTeX author wraps your prose in environments
+  that add only ~20% overhead. If you write 800 words, the final chapter will be
+  too thin for a 25–30 page paper. Write SUBSTANTIVE content, not filler.
+
 PROSE QUALITY RULES:
-  • Each subsection must be 150–250 words of substantive content.
+  • Each subsection must be 200–350 words of substantive content.
   • Academic register: formal, precise, third-person.
   • No em dashes (—) — use colons or commas instead.
   • No filler phrases like "בעבודה זו נציג" at the start of every paragraph.

@@ -99,16 +99,18 @@ BIBLIOGRAPHY RULES:
     • Minimum 15 entries; maximum 1 entry per URL.
 
 CONTENT DEPTH CONTRACT (target: 25–30 printed pages total):
-    Each chapter (ch02–ch09) must contain:
-    • Minimum 600 words of Hebrew prose (not counting equations/tables/captions)
-    • Minimum 4 subsections
-    • Minimum 3 numbered equations, each derived and explained in text
-    • Minimum 2 figures (\\includegraphics — real PNG from figures/)
-    • Minimum 1 table (booktabs style)
-    • Minimum 4 \\cite{} references
-    Chapters ch06 (Algorithm) and ch08 (Results) must be especially detailed:
-    at least 900 words each, with algorithm pseudocode (listings environment)
+    Per-chapter MINIMUM word counts (Hebrew words including LaTeX tokens):
+    • ch01 (intro):       ≥2500 words, ≥4 subsections, ≥2 equations
+    • ch02–ch05 (core):   ≥3200 words each, ≥6 subsections, ≥5 equations, ≥1 figure, ≥1 table
+    • ch06 (algorithm):   ≥4000 words, ≥6 subsections, ≥6 equations, ≥1 lstlisting, ≥1 figure
+    • ch07 (system):      ≥3200 words, ≥5 subsections, ≥4 equations, ≥1 figure
+    • ch08 (results):     ≥4000 words, ≥6 subsections, ≥4 equations, ≥2 figures, ≥2 tables
+    • ch09 (conclusion):  ≥2000 words, ≥3 subsections
+    Every chapter must also have ≥3 \\cite{} references.
+    Chapters ch06 and ch08 must include algorithm pseudocode (lstlisting)
     and comparative results tables.
+    A chapter with fewer words than specified above is UNACCEPTABLE — the
+    quality gate will penalize it and the paper will not reach 25 pages.
 
 EM DASH PROHIBITION:
     The character — (U+2014, em dash) is FORBIDDEN in Hebrew prose.
@@ -142,6 +144,10 @@ FORBIDDEN PATTERNS (will cause compilation failure or editorial rejection):
       TeX capacity overflow → zero pages of output. Use \\centering inside floats.
     • \\begin{abstract} inside abstract.tex — main.tex already wraps it
     • Rewriting cover.tex — it is PROTECTED and managed separately
+    • \\° (backslash-degree) — this is NOT a valid LaTeX command and causes
+      "Undefined control sequence" fatal error. Use the Unicode character °
+      directly (XeLaTeX handles it natively via fontspec), or $^\\circ$ in
+      math mode, or \\textdegree{} from the textcomp package.
 """.strip()
 
 _BACKSTORY = """

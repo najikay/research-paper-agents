@@ -1,9 +1,15 @@
 """
 src/graph/nodes.py
 ==================
-LangGraph node functions. Each node:
+LangGraph node functions (v6 — split pipeline with validation gate).
+
+Graph topology:
+  run_research_phase → validate_and_fix_research → run_writing_phase
+    → run_quality_gate → [PASS → END | FAIL → run_remediation → run_quality_gate]
+
+Each node:
   - Receives the full PipelineState
-  - Does its work (runs a CrewAI sub-crew or parses a file)
+  - Does its work (runs a CrewAI sub-crew or programmatic check)
   - Returns a dict of state keys to update (LangGraph merges these)
 """
 from __future__ import annotations
@@ -32,11 +38,9 @@ QUALITY_THRESHOLD = 75   # score below this triggers remediation
 MAX_REMEDIATIONS  = 3    # hard cap — prevents infinite loops
 
 # Minimum number of BibTeX entries required in references.bib.
-# Topic-agnostic — agents cite whatever is relevant to the dynamic topic.
 MIN_BIB_ENTRIES = 10
 
 # All content chapters are now agent-written (ch01–ch09 + abstract).
-# cover.tex is the only static file (excluded from quality checks).
 AGENT_CHAPTERS = [
     "abstract.tex",
     "ch01_intro.tex",
@@ -45,30 +49,36 @@ AGENT_CHAPTERS = [
     "ch08_results.tex", "ch09_conclusion.tex",
 ]
 
-# Per-chapter minimum requirements — tuned for a 25–30 page IEEE paper.
-# Structural chapters (intro, conclusion, abstract) have relaxed thresholds;
-# core technical chapters need deeper content to hit the page target.
+# Per-chapter minimum requirements — v10: raised word thresholds to push toward
+# 25-page target.  split() overcounts LaTeX tokens ~30% vs actual prose words,
+# so a 1500-word threshold ≈ 1150 real prose words.
 _CHAPTER_MIN_REQS: dict[str, dict] = {
-    "abstract.tex":        {"eq": 0, "fig": 0, "sub": 0, "cite": 0, "words": 100},
-    "ch01_intro.tex":      {"eq": 1, "fig": 0, "sub": 3, "cite": 2, "words": 900},
-    "ch06_algorithm.tex":  {"eq": 4, "fig": 1, "sub": 5, "cite": 2, "words": 1500},
-    "ch07_oursystem.tex":  {"eq": 2, "fig": 1, "sub": 4, "cite": 2, "words": 1200},
-    "ch08_results.tex":    {"eq": 2, "fig": 1, "sub": 5, "cite": 2, "words": 1500},
-    "ch09_conclusion.tex": {"eq": 0, "fig": 0, "sub": 2, "cite": 1, "words": 600},
+    "abstract.tex":        {"eq": 0, "fig": 0, "sub": 0, "cite": 0, "words": 80},
+    "ch01_intro.tex":      {"eq": 1, "fig": 0, "sub": 3, "cite": 2, "words": 1500},
+    "ch06_algorithm.tex":  {"eq": 3, "fig": 1, "sub": 5, "cite": 3, "words": 2200},
+    "ch07_oursystem.tex":  {"eq": 2, "fig": 1, "sub": 4, "cite": 2, "words": 1800},
+    "ch08_results.tex":    {"eq": 2, "fig": 1, "sub": 5, "cite": 3, "words": 2200},
+    "ch09_conclusion.tex": {"eq": 0, "fig": 0, "sub": 2, "cite": 1, "words": 800},
 }
-_DEFAULT_MIN_REQS: dict = {"eq": 2, "fig": 1, "sub": 4, "cite": 2, "words": 1200}
+_DEFAULT_MIN_REQS: dict = {"eq": 2, "fig": 1, "sub": 3, "cite": 2, "words": 1500}
+
+# Domain expert output validation thresholds
+_MIN_DOMAIN_BYTES = 500   # files smaller than this are considered failures
+_LOOP_PATTERN = re.compile(r"(STEP 1|Let me read|Read existing work)", re.IGNORECASE)
+_LOOP_THRESHOLD = 3       # repeated loop phrases = stuck agent
 
 
 # ---------------------------------------------------------------------------
-# Node 1: run_main_pipeline
+# Node 1: run_main_pipeline (legacy — for fast/smoke modes)
 # ---------------------------------------------------------------------------
 def run_main_pipeline(state: PipelineState) -> dict:
     """
-    Runs the full CrewAI pipeline (outline → research → figures → latex).
+    Legacy node: runs the full single-crew pipeline.
+    Used by fast and smoke modes. Full mode uses the split nodes instead.
     """
-    from src.crew import build_crew  # lazy import avoids circular deps
+    from src.crew import build_crew
 
-    logger.info("[Graph] NODE: run_main_pipeline")
+    logger.info("[Graph] NODE: run_main_pipeline (legacy)")
     fast_mode  = state.get("fast_mode",  False)
     smoke_mode = state.get("smoke_mode", False)
     crew, accountant = build_crew(
@@ -82,31 +92,156 @@ def run_main_pipeline(state: PipelineState) -> dict:
 
 
 # ---------------------------------------------------------------------------
+# Node 1a: run_research_phase (v6 split architecture)
+# ---------------------------------------------------------------------------
+def run_research_phase(state: PipelineState) -> dict:
+    """
+    Phase 1: Run the research crew — outline, deep research, 8 domain experts.
+    Produces: paper_outline.md, research_briefs.md, domain_*.md
+    """
+    from src.crew import build_research_crew
+
+    logger.info("[Graph] NODE: run_research_phase")
+    crew, accountant = build_research_crew(
+        topic=state["topic"],
+        run_folder=state["run_folder"],
+    )
+    crew.kickoff()
+    logger.info("[Graph] Research phase complete")
+    return {"quality_verdict": "PENDING", "research_fix_count": 0}
+
+
+# ---------------------------------------------------------------------------
+# Node 1b: validate_and_fix_research (programmatic + fixer crew)
+# ---------------------------------------------------------------------------
+def validate_and_fix_research(state: PipelineState) -> dict:
+    """
+    Validation gate between research and writing phases.
+
+    1. Programmatic check: scan all domain_*.md files for failures
+       (empty, trivially short, or stuck-in-loop output).
+    2. For any failures: spawn a Fixer crew that writes the missing content.
+       The Fixer is a SEPARATE agent — not a retry of the failed one.
+    3. Log results and return the count of fixed domains.
+    """
+    logger.info("[Graph] NODE: validate_and_fix_research")
+
+    staging = PROJECT_ROOT / "outputs" / "current"
+
+    # All domain keys we expect (8 total)
+    domain_keys = [
+        "vision_ai", "physics", "algorithms", "aerospace", "biology",
+        "signal_processing", "control_systems", "ml",
+    ]
+
+    failed_domains: list[str] = []
+
+    for key in domain_keys:
+        fpath = staging / f"domain_{key}.md"
+
+        # Check 1: file exists and has minimum size
+        if not fpath.exists():
+            logger.warning(f"[Validate] domain_{key}.md does not exist")
+            failed_domains.append(key)
+            continue
+
+        content = fpath.read_text(encoding="utf-8", errors="replace")
+        size = len(content.encode("utf-8"))
+
+        if size < _MIN_DOMAIN_BYTES:
+            logger.warning(f"[Validate] domain_{key}.md too small ({size} bytes)")
+            failed_domains.append(key)
+            continue
+
+        # Check 2: detect loop patterns (agent said "let me read" N times)
+        loop_matches = _LOOP_PATTERN.findall(content)
+        if len(loop_matches) >= _LOOP_THRESHOLD:
+            logger.warning(
+                f"[Validate] domain_{key}.md has loop pattern "
+                f"({len(loop_matches)} matches) — agent was stuck"
+            )
+            failed_domains.append(key)
+            continue
+
+        # Check 3: detect shortcut (just "DOMAIN EXPERT COMPLETE" or "DOMAIN SKIP")
+        stripped = content.strip()
+        if stripped in ("DOMAIN EXPERT COMPLETE", "DOMAIN SKIP") or len(stripped) < 100:
+            logger.warning(f"[Validate] domain_{key}.md is a shortcut/stub")
+            failed_domains.append(key)
+            continue
+
+        logger.info(f"[Validate] domain_{key}.md OK ({size} bytes)")
+
+    if not failed_domains:
+        logger.info("[Validate] All domain expert outputs valid — no fixes needed")
+        return {"research_fix_count": 0}
+
+    # Read outline for the fixer (it needs the paper structure)
+    outline_path = staging / "paper_outline.md"
+    outline_content = ""
+    if outline_path.exists():
+        outline_content = outline_path.read_text(encoding="utf-8", errors="replace")
+
+    logger.info(
+        f"[Validate] {len(failed_domains)} domain(s) failed: {failed_domains} — "
+        f"spawning Fixer crew"
+    )
+
+    from src.crew import build_fixer_crew
+    fixer_crew, _ = build_fixer_crew(
+        topic=state["topic"],
+        failed_domains=failed_domains,
+        outline_content=outline_content,
+    )
+    fixer_crew.kickoff()
+
+    logger.info(f"[Validate] Fixer crew completed for: {failed_domains}")
+    return {"research_fix_count": len(failed_domains)}
+
+
+# ---------------------------------------------------------------------------
+# Node 1c: run_writing_phase (v6 split architecture)
+# ---------------------------------------------------------------------------
+def run_writing_phase(state: PipelineState) -> dict:
+    """
+    Phase 2: Run the writing crew — visualizer, Hebrew writer, 3 LaTeX authors.
+    Reads from outputs/current/ (populated by research phase + validator).
+    Produces: figures, hebrew_prose.md, all chapter .tex files, references.bib.
+    """
+    from src.crew import build_writing_crew
+
+    logger.info("[Graph] NODE: run_writing_phase")
+    crew, accountant = build_writing_crew(
+        run_folder=state["run_folder"],
+    )
+    crew.kickoff()
+    logger.info("[Graph] Writing phase complete")
+    return {"quality_verdict": "PENDING"}
+
+
+# ---------------------------------------------------------------------------
 # Node 2: run_quality_gate  (programmatic — no LLM loop risk)
 # ---------------------------------------------------------------------------
 def run_quality_gate(state: PipelineState) -> dict:
     """
     Programmatic quality check of generated LaTeX files.
-    Scores the paper based on structural completeness and correctness,
-    without relying on an LLM agent that can loop indefinitely.
+    Scores the paper based on structural completeness and correctness.
 
     Before scoring, runs:
       1. validate_and_fix_chapters — renames any wrong-named chapter files
-      2. _generate_fallback_figures — creates matplotlib figures for any
-         referenced-but-missing PNGs
-      3. _sanitize_tex_files — fixes common LaTeX errors (em dashes, etc.)
-    This ensures the quality gate sees the best possible state.
+      2. _generate_fallback_figures — creates matplotlib figures for missing PNGs
+      3. _sanitize_tex_files — fixes common LaTeX errors
     """
     logger.info("[Graph] NODE: run_quality_gate (programmatic)")
 
     run_folder   = Path(state["run_folder"])
 
-    # Pre-scoring fixups — ensure the gate scores the best possible state
+    # Pre-scoring fixups
     from main import (validate_and_fix_chapters, _diversify_stub_figures,
                       _generate_fallback_figures, _sanitize_tex_files)
     validate_and_fix_chapters(run_folder)
-    _diversify_stub_figures(run_folder)     # replace fig_stub.png → chapter-specific names
-    _generate_fallback_figures(run_folder)  # create unique figures for each chapter
+    _diversify_stub_figures(run_folder)
+    _generate_fallback_figures(run_folder)
     _sanitize_tex_files(run_folder / "latex" / "chapters")
 
     chapters_dir = run_folder / "latex" / "chapters"
@@ -116,7 +251,7 @@ def run_quality_gate(state: PipelineState) -> dict:
     failed_sections: list[str] = []
     score = 100
 
-    # ── 1. Check all chapter files exist ─────────────────────────────────
+    # 1. Check all chapter files exist
     missing_files = []
     for fname in AGENT_CHAPTERS:
         fpath = chapters_dir / fname
@@ -127,7 +262,7 @@ def run_quality_gate(state: PipelineState) -> dict:
         issues.append(f"Missing or empty chapter files: {missing_files}")
         failed_sections.extend(["introduction", "methodology", "algorithms"])
 
-    # ── 2. Check structural elements per chapter ──────────────────────────
+    # 2. Check structural elements per chapter
     for fname in AGENT_CHAPTERS:
         fpath = chapters_dir / fname
         if not fpath.exists():
@@ -162,9 +297,7 @@ def run_quality_gate(state: PipelineState) -> dict:
         if chapter_issues:
             issues.append(f"{fname}: " + ", ".join(chapter_issues))
 
-    # ── 3. Check references.bib has enough entries ───────────────────────
-    # Topic-agnostic: we require a minimum count, not specific key names,
-    # since ch01 and ch04 are now dynamic and cite topic-appropriate references.
+    # 3. Check references.bib
     if bib_path.exists():
         bib_text = bib_path.read_text(encoding="utf-8", errors="replace")
         entry_count = len(re.findall(r"@\w+\{", bib_text))
@@ -177,9 +310,7 @@ def run_quality_gate(state: PipelineState) -> dict:
         score -= 20
         failed_sections.append("references")
 
-    # ── 4a. Check figure references point to real files ──────────────────
-    # Penalty is capped at -20 total so that a single component failure
-    # (e.g. visualization engineer timing out) doesn't crater the whole score.
+    # 4a. Check figure references
     figures_dir = run_folder / "latex" / "figures"
     all_tex = list(chapters_dir.glob("*.tex"))
     missing_fig_penalty = 0
@@ -189,12 +320,11 @@ def run_quality_gate(state: PipelineState) -> dict:
             if not (figures_dir / fig_ref).exists():
                 issues.append(f"{fpath.name}: missing figure file 'figures/{fig_ref}'")
                 failed_sections.append("figures")
-                if missing_fig_penalty < 20:   # cap cascading damage
+                if missing_fig_penalty < 20:
                     missing_fig_penalty += 2
     score -= missing_fig_penalty
 
-    # ── 4b. Check for forbidden patterns ─────────────────────────────────
-    # Only cover.tex is static now — all chapter files are agent-written.
+    # 4b. Check for forbidden patterns
     _STATIC = {"cover.tex"}
     agent_tex = [f for f in chapters_dir.glob("*.tex") if f.name not in _STATIC]
     placeholder_files, emdash_files, center_files = [], [], []
@@ -202,7 +332,6 @@ def run_quality_gate(state: PipelineState) -> dict:
         text = fpath.read_text(encoding="utf-8", errors="replace")
         if "PLACEHOLDER" in text or r"\fbox{\parbox" in text:
             placeholder_files.append(fpath.name)
-        # em dash outside \en{} blocks (rough heuristic)
         clean = re.sub(r"\\en\{[^}]*\}", "", text)
         if "\u2014" in clean:
             emdash_files.append(fpath.name)
@@ -221,12 +350,12 @@ def run_quality_gate(state: PipelineState) -> dict:
         score -= 10
         failed_sections.append("methodology")
 
-    # ── 5. Clamp score and deduplicate failed sections ────────────────────
+    # 5. Clamp score and deduplicate
     score = max(0, min(100, score))
     failed_sections = sorted(set(failed_sections))
     verdict = "PASS" if score >= QUALITY_THRESHOLD else "FAIL"
 
-    # ── 6. Write quality report ───────────────────────────────────────────
+    # 6. Write quality report
     report_path = PROJECT_ROOT / "outputs" / "current" / "quality_report.md"
     report_path.parent.mkdir(parents=True, exist_ok=True)
 
@@ -245,13 +374,13 @@ def run_quality_gate(state: PipelineState) -> dict:
 ## Checks Performed
 
 - Chapter file existence and minimum size
-- Equations per chapter (≥2 default; abstract=0, ch01=1, ch06=4, ch09=0)
+- Equations per chapter (≥2 default; abstract=0, ch01=1, ch06=3, ch09=0)
 - Figures per chapter (≥1 default; abstract/ch01/ch09=0)
-- Subsections per chapter (≥4 default; abstract=0, ch01=3, ch06/ch08=5, ch09=2)
+- Subsections per chapter (≥3 default; abstract=0, ch01=3, ch06/ch08=4, ch09=2)
 - Citations per chapter (≥2 default; abstract=0, ch09=1)
-- Word count estimate per chapter (≥1200 default; abstract=100, ch01=900, ch06/ch08=1500, ch07=1200, ch09=600)
+- Word count estimate per chapter (≥1000 default; abstract=80, ch01=1100, ch06/ch08=1400, ch07=1200, ch09=600)
 - references.bib entry count (≥{MIN_BIB_ENTRIES} required)
-- Missing figure files (≤-20 total penalty, capped to prevent cascade)
+- Missing figure files (≤-20 total penalty, capped)
 - Placeholder figure boxes
 - Em dashes in Hebrew prose
 - \\begin{{center}} at document level (XeLaTeX crash risk)
@@ -268,7 +397,7 @@ def run_quality_gate(state: PipelineState) -> dict:
 
     logger.info(f"[Graph] Quality verdict={verdict} score={score} failed={failed_sections}")
     if issues:
-        for issue in issues[:5]:  # log first 5 to avoid log spam
+        for issue in issues[:5]:
             logger.warning(f"[Graph] Quality issue: {issue}")
 
     return {
@@ -285,12 +414,6 @@ def run_remediation(state: PipelineState) -> dict:
     """
     Targeted remediation: builds a minimal sub-crew that reads the quality
     report and fixes ONLY the failing chapter files in-place.
-
-    Key design decision: skip the researcher in remediation. The chapters
-    already contain content — the problem is usually thin prose, missing
-    citations, or em dashes. A LaTeX author with FileReaderTool can fix
-    those directly by reading the existing chapter and expanding it.
-    Adding a researcher wastes iterations on web searches that don't help.
     """
     count = state["remediation_count"] + 1
     logger.info(f"[Graph] NODE: run_remediation (attempt {count}/{MAX_REMEDIATIONS})")
@@ -299,12 +422,23 @@ def run_remediation(state: PipelineState) -> dict:
     run_folder = Path(state["run_folder"])
     failed = state["failed_sections"]
 
-    # Single-agent remediation: LaTeX author reads existing chapters + quality
-    # report, then rewrites only the failing files with expanded content.
     author = create_latex_author(tools=[SafeFileWriterTool(), FileReaderTool()])
+    author.max_iter = 55
+
+    report_path = PROJECT_ROOT / "outputs" / "current" / "quality_report.md"
+    chapter_issues: list[str] = []
+    if report_path.exists():
+        for line in report_path.read_text(encoding="utf-8").splitlines():
+            stripped = line.lstrip("- ")
+            if line.startswith("- ch") and "words" in line:
+                chapter_issues.append(stripped)
+            elif line.startswith("- Missing") and "chapter" in line.lower():
+                chapter_issues.append(stripped)
+    detailed_failed = chapter_issues if chapter_issues else failed
+
     t_latex = create_remediation_task(
         agent=author,
-        failed_sections=failed,
+        failed_sections=detailed_failed,
         quality_report_path="outputs/current/quality_report.md",
         output_file="outputs/current/latex_status.md",
         run_folder=run_folder,

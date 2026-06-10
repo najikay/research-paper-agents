@@ -81,8 +81,7 @@ OUTPUT CONTRACT:
     • State time and space complexity using asymptotic O(·) notation with justification.
     • Include convergence theorems with proof sketches (even if brief).
     • Always reference equations by label in surrounding text.
-    • If the chapter topic involves NO algorithmic or estimation components, write
-      exactly: "DOMAIN SKIP: topic does not require algorithms/estimation expertise."
+    • Always contribute algorithmic or estimation content relevant to the chapter.
 """.strip()
 
 _BACKSTORY = """

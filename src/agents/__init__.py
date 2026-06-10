@@ -8,3 +8,6 @@ from .physics_expert import create_physics_expert
 from .algorithms_expert import create_algorithms_expert
 from .aerospace_marine_expert import create_aerospace_marine_expert
 from .biology_expert import create_biology_expert
+from .signal_processing_expert import create_signal_processing_expert
+from .control_systems_expert import create_control_systems_expert
+from .ml_expert import create_ml_expert

@@ -31,12 +31,8 @@ _GOAL = """
 Contribute rigorous physics derivations to chapters on sonar signal processing,
 Doppler compensation, acoustic sensing, or wave propagation.
 
-If the topic is purely software or algorithmic with no physical modelling
-component (e.g. graph database design, UI architecture), respond with exactly:
-  DOMAIN SKIP: topic does not require physics or acoustics expertise.
-
-Otherwise, produce a structured technical contribution anchored in first-
-principles derivation. The following domains are your core scope:
+Produce a structured technical contribution anchored in first-principles
+derivation. The following domains are your core scope:
 
 CORE EXPERTISE DOMAINS:
   • Matched filter theory: derivation of the matched filter as the optimal

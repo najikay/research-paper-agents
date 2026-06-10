@@ -21,8 +21,8 @@ def good_chapter_content() -> str:
     """A valid minimal .tex chapter satisfying all quality-gate criteria."""
     # Build a string that has:
     #   >=3 \begin{equation}, >=1 \includegraphics, >=4 \subsection,
-    #   >=2 \cite{}, >=1200 words, no em dashes, no \begin{center}
-    words = " ".join(["מילה"] * 1350)  # ~1350 Hebrew words to exceed the 1200-word threshold
+    #   >=3 \cite{}, >=2500 words, no em dashes, no \begin{center}
+    words = " ".join(["מילה"] * 2500)  # ~2500 Hebrew words to exceed the 2200-word ch06/ch08 threshold
     return r"""
 \selectlanguage{hebrew}
 \section{פרק לדוגמה}
@@ -57,6 +57,9 @@ def good_chapter_content() -> str:
 \subsection{תת-סעיף רביעי}
 תוכן רביעי עם דיון נוסף.
 
+\subsection{תת-סעיף חמישי}
+תוכן חמישי עם ניתוח השוואתי.
+
 \begin{figure}[H]
     \centering
     \includegraphics[width=0.95\columnwidth]{figures/fig_trajectory_3d.png}
@@ -67,6 +70,7 @@ def good_chapter_content() -> str:
 ניתן לראות ב-\figref{fig:trajectory} את המסלול.
 \cite{Thrun2005ProbRobotics} הוא המקור העיקרי.
 עוד מקור \cite{Kalman1960} לאימות.
+מקור נוסף \cite{Grisetti2010g2o} להשלמה.
 """
 
 
@@ -227,16 +231,19 @@ def tmp_latex_dir(tmp_path: Path) -> Path:
     good = (
         r"\selectlanguage{hebrew}" + "\n"
         r"\section{Test}" + "\n"
-        + " ".join(["word"] * 800) + "\n"
+        + " ".join(["word"] * 2500) + "\n"
         + r"\subsection{A}" + "\n"
         + r"\subsection{B}" + "\n"
         + r"\subsection{C}" + "\n"
         + r"\subsection{D}" + "\n"
+        + r"\subsection{E}" + "\n"
         + r"\begin{equation}x=1\label{eq:a}\end{equation}" + "\n"
         + r"\begin{equation}y=2\label{eq:b}\end{equation}" + "\n"
+        + r"\begin{equation}z=3\label{eq:c}\end{equation}" + "\n"
         + r"\includegraphics{figures/fig.png}" + "\n"
         + r"\cite{Thrun2005ProbRobotics}" + "\n"
         + r"\cite{Kalman1960}" + "\n"
+        + r"\cite{Grisetti2010g2o}" + "\n"
     )
 
     for fname in [

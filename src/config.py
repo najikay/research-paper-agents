@@ -136,12 +136,15 @@ AGENT_MAX_ITER: dict[str, int] = {
     "deep_researcher":   18,
     "data_visualizer":   40,   # 9 figures × ~4 tool calls each (read+write+execute+check) = ~36 needed
     "hebrew_writer":     40,   # writes 9 chapter prose sections; increased to handle fallback reads
-    "latex_author":      55,   # writes up to 7 files per task; increased to prevent mid-run cutoff
+    "latex_author":      30,   # 3–4 files per task (split into 3 writers); each needs ~7 iter/file
     "biology_expert":    15,   # biological ground-truth for echolocation chapters
     "vision_ai_expert":  15,   # visual SLAM, depth estimation, semantic perception
     "physics_expert":    15,   # acoustics, matched filter, Doppler, wave propagation
     "algorithms_expert": 15,   # probabilistic algorithms, SLAM, estimation theory
     "aerospace_marine_expert": 15,   # UAV dynamics, INS, submarine/AUV sonar
+    "signal_processing_expert": 15,  # acoustic chirp analysis, beamforming, matched filtering
+    "control_systems_expert":   15,  # UAV dynamics, PID/LQR, path planning
+    "ml_expert":                15,  # neural architectures, fusion networks, RL navigation
 }
 
 # Target paper length used in agent prompts

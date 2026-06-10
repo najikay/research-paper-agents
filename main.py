@@ -209,6 +209,43 @@ def _diversify_stub_figures(run_folder: Path) -> None:
             logger.info(f"[Diversify] {tex_file.name}: replaced fig_stub.png → chapter-specific names")
 
 
+def _deduplicate_cross_chapter_figures(run_folder: Path) -> None:
+    """
+    When two different chapters reference the same figure file, rename the
+    second occurrence to a chapter-specific name. The fallback figure generator
+    will then create a distinct figure for it.
+    """
+    chapters_dir = run_folder / "latex" / "chapters"
+    if not chapters_dir.exists():
+        return
+
+    # Collect all figure references: fig_name → list of chapter files
+    fig_usage: dict[str, list[Path]] = {}
+    for tex_file in sorted(chapters_dir.glob("ch*.tex")):
+        text = tex_file.read_text(encoding="utf-8", errors="replace")
+        for fig_ref in re.findall(
+            r'\\includegraphics(?:\[[^\]]*\])?\{figures/([^}]+)\}', text
+        ):
+            if fig_ref == "fig_stub.png":
+                continue
+            fig_usage.setdefault(fig_ref, []).append(tex_file)
+
+    # For figures used by multiple chapters, rename in all but the first chapter
+    for fig_name, users in fig_usage.items():
+        if len(users) <= 1:
+            continue
+        for tex_file in users[1:]:  # Skip the first (canonical) user
+            ch_match = re.match(r"(ch\d+)", tex_file.name)
+            ch_id = ch_match.group(1) if ch_match else "dup"
+            base, ext = fig_name.rsplit(".", 1) if "." in fig_name else (fig_name, "png")
+            new_name = f"{base}_{ch_id}.{ext}"
+            text = tex_file.read_text(encoding="utf-8", errors="replace")
+            new_text = text.replace(f"figures/{fig_name}", f"figures/{new_name}")
+            if new_text != text:
+                tex_file.write_text(new_text, encoding="utf-8")
+                logger.info(f"[Dedup] {tex_file.name}: {fig_name} → {new_name}")
+
+
 # Chapter-to-figure-type mapping for generating visually distinct fallback plots.
 # Each chapter gets a unique visualization style matching its content.
 _CHAPTER_FIGURE_STYLE: dict[str, str] = {
@@ -785,7 +822,88 @@ def _sanitize_tex_files(chapters_dir: Path) -> None:
                 r'\end{tabular}%' + '\n' + '}',
             )
 
-        # Fix 12: Wrap bare math symbols anywhere in body text with $...$.
+        # Fix 11b: Escape bare % that follows a digit (meaning "percent").
+        # LLM agents write "96.3%" but LaTeX treats % as comment-start, eating the
+        # rest of the line. This destroys table alignment and silently drops body text.
+        # Only escape % immediately preceded by a digit — this targets "N%" patterns
+        # without touching intentional LaTeX comments (which start with space/brace + %).
+        text = re.sub(r'(\d)%', r'\1\\%', text)
+
+        # Fix 12a: Unwrap \en{} from math mode — $\en{Word}$ → \en{Word}
+        # Also handles \(\en{Word}\) syntax. Polyglossia \en{} does language-group
+        # switching that breaks inside math mode.
+        text = re.sub(r'\$\\en\{([^}]*)\}\$', r'\\en{\1}', text)
+        text = re.sub(r'\\\(\\en\{([^}]*)\}\\\)', r'\\en{\1}', text)
+
+        # Fix 12a2: Remove \begin{english}/\end{english} wrappers around tables.
+        # The polyglossia english environment triggers font redefinition loops.
+        # Tables work fine in Hebrew mode as long as % is escaped (Fix 11b above).
+        text = re.sub(r'\\begin\{english\}\s*\n(\\begin\{table)', r'\1', text)
+        text = re.sub(r'(\\end\{table\*?\})\s*\n\\end\{english\}', r'\1', text)
+        # Also remove \begin{LTR}/\end{LTR} wrappers (from previous sanitizer versions)
+        text = re.sub(r'\\begin\{LTR\}\s*\n(\\begin\{table)', r'\1', text)
+        text = re.sub(r'(\\end\{table\*?\})\s*\n\\end\{LTR\}', r'\1', text)
+
+        # Fix 12a3: Unwrap \en{text} → text when it appears right before a closing }
+        # This prevents bidi direction-switch corruption at group boundaries
+        # (e.g., \caption{... \en{CNN}} → \caption{... CNN})
+        text = re.sub(r'\\en\{([^}]*)\}(\s*\})', r'\1\2', text)
+
+        # Fix 12c: Replace undefined \tabref{...} → \ref{...} and \figref{...} → \ref{...}.
+        # LLM agents invent these macros but they're not defined in the IEEEtran template.
+        # The undefined command causes cascading errors (Missing $, Extra }, Missing \endgroup).
+        text = re.sub(r'\\tabref\{', r'\\ref{', text)
+        text = re.sub(r'\\figref\{', r'\\ref{', text)
+        text = re.sub(r'\\secref\{', r'\\ref{', text)
+
+        # Fix 13: Replace \begin{algorithm}/\begin{algorithmic} with lstlisting.
+        # The algorithm/algorithmic environments require packages not in our template.
+        # Convert to lstlisting wrapped in english environment (which IS available).
+        text = re.sub(
+            r'\\begin\{algorithm\}(\[[^\]]*\])?',
+            r'\\begin{english}\n\\begin{lstlisting}[language=Python]',
+            text,
+        )
+        text = re.sub(r'\\end\{algorithm\}', r'\\end{lstlisting}\n\\end{english}', text)
+        text = re.sub(r'\\begin\{algorithmic\}(\[[^\]]*\])?', '', text)
+        text = re.sub(r'\\end\{algorithmic\}', '', text)
+        # Remove \Require, \Ensure, \State, \If, \EndIf, \For, \EndFor, \While, \EndWhile, \Return
+        # These are algorithmic package commands — convert to plain text pseudocode
+        for cmd in [r'\\Require', r'\\Ensure', r'\\State', r'\\If', r'\\EndIf',
+                    r'\\For', r'\\EndFor', r'\\While', r'\\EndWhile', r'\\Return',
+                    r'\\Function', r'\\EndFunction', r'\\Procedure', r'\\EndProcedure']:
+            text = re.sub(cmd + r'\b', '', text)
+
+        # Fix 14: Fix literal \\n sequences in tabular rows.
+        # LLM agents sometimes write \\n (Python-style newline) instead of
+        # \\ + actual newline inside tabular environments. The literal 'n'
+        # character after \\ breaks \midrule/\hline placement, causing
+        # "Misplaced \noalign" errors and potential xelatex infinite loops.
+        # Replace \\n followed by a LaTeX command with \\ + real newline.
+        text = re.sub(r'\\\\n(\\[a-zA-Z])', r'\\\\\n\1', text)
+        # Also fix \\n at end of line (should just be \\)
+        text = re.sub(r'\\\\n\s*$', r'\\\\', text, flags=re.MULTILINE)
+
+        # Fix 15: Remove backslash before Hebrew characters.
+        # LLM agents sometimes write \ש, \מ etc. (backslash + Hebrew letter)
+        # which LaTeX interprets as undefined control sequences.
+        # Hebrew Unicode range: \u0590-\u05FF (Hebrew block).
+        text = re.sub(r'\\([\u0590-\u05FF])', r'\1', text)
+
+        # Fix 16: Escape underscores inside \en{...} blocks.
+        # LLM agents write \en{sonar_driver} but _ is a math-mode subscript
+        # operator that causes "Missing $ inserted" cascading errors.
+        # Replace _ with \_ only inside \en{...} content.
+        def _escape_underscores_in_en(m: re.Match) -> str:
+            return r'\en{' + m.group(1).replace('_', r'\_') + '}'
+        text = re.sub(r'\\en\{([^}]*_[^}]*)\}', _escape_underscores_in_en, text)
+
+        # Fix 17: Replace \° (undefined control sequence) with Unicode °.
+        # LLM agents write 5\° for "5 degrees" but \° is not a valid LaTeX
+        # command. XeLaTeX handles the Unicode ° glyph natively via fontspec.
+        text = text.replace("\\°", "°")
+
+        # Fix 12b: Wrap bare math symbols anywhere in body text with $...$.
         # Agents often write \alpha, \sigma etc. without $...$ outside math
         # environments, causing "Missing $ inserted" errors.
         # Uses _wrap_bare_math_in_text() which protects existing math regions
@@ -810,7 +928,7 @@ def compile_pdf(run_folder: Path) -> Path | None:
         result = subprocess.run(
             cmd, cwd=latex_dir,
             capture_output=True, text=True,
-            timeout=120,
+            timeout=180,
         )
         if result.returncode != 0:
             logger.warning(f"[LaTeX] {cmd[0]} returned non-zero: {result.stdout[-500:]}")
@@ -843,11 +961,12 @@ def compile_pdf(run_folder: Path) -> Path | None:
                     logger.debug(f"[LaTeX] Stubbed missing figure: {fig_ref}")
 
     logger.info("[LaTeX] Compiling PDF (xelatex → bibtex → xelatex × 3)...")
-    run(["xelatex", "-interaction=nonstopmode", "main.tex"])
+    _xe = ["xelatex", "-interaction=nonstopmode", "-halt-on-error", "main.tex"]
+    run(_xe)
     run(["bibtex", "main"])
-    run(["xelatex", "-interaction=nonstopmode", "main.tex"])
-    run(["xelatex", "-interaction=nonstopmode", "main.tex"])
-    run(["xelatex", "-interaction=nonstopmode", "main.tex"])
+    run(_xe)
+    run(_xe)
+    run(_xe)
 
     if pdf_src.exists() and pdf_src.stat().st_size > 1000:
         shutil.copy2(pdf_src, pdf_dst)
@@ -1041,8 +1160,11 @@ def main():
     from src.graph.navigator_graph import build_navigator_graph
     from src.graph.state import PipelineState
 
-    logger.info("Building NavigatorCrew LangGraph pipeline...")
-    graph = build_navigator_graph()
+    # Use split pipeline (research → validate → writing) for full mode;
+    # legacy single-crew pipeline for fast/smoke modes.
+    use_split = not (args.fast or args.smoke)
+    logger.info(f"Building NavigatorCrew LangGraph pipeline (split={use_split})...")
+    graph = build_navigator_graph(split_mode=use_split)
 
     initial_state: PipelineState = {
         "topic":             args.topic,
@@ -1053,6 +1175,7 @@ def main():
         "quality_score":     0,
         "fast_mode":         args.fast,
         "smoke_mode":        args.smoke,
+        "research_fix_count": 0,
     }
 
     try:
@@ -1070,6 +1193,7 @@ def main():
     # Diversify stub figures → chapter-specific names, then generate fallbacks
     # ------------------------------------------------------------------
     _diversify_stub_figures(run_folder)
+    _deduplicate_cross_chapter_figures(run_folder)
     _generate_fallback_figures(run_folder)
 
     # ------------------------------------------------------------------
