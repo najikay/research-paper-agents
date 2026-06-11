@@ -119,6 +119,5 @@ remediation:      targeted fix crew (max 4 cycles)
 
 - [ ] Push page count to 25 pages consistently (currently 23)
 - [ ] Push score to 100/100 consistently (currently 96)
-- [ ] ArXiv search for real citations in researcher
 - [ ] Post-run `references.bib` key validator
 - [ ] Token-budget enforcement: abort if projected cost exceeds threshold

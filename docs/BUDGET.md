@@ -92,7 +92,7 @@ Hard limits enforced in `src/config.py`:
 - `AGENT_MAX_ITER` caps each agent's iteration count (12–40 depending on role)
 - `MAX_REMEDIATIONS = 4` caps LangGraph feedback loops
 - `QUALITY_THRESHOLD = 90` — score below this triggers remediation
-- `max_tokens=8192` per LLM call
+- `max_tokens=16384` per LLM call (DeepSeek V3)
 
 ## Switching Providers
 

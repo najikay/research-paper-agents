@@ -231,7 +231,7 @@ outputs/runs/
 
 All agents use DeepSeek V3 (`openai/deepseek-chat`).
 
-**Domain experts** each independently read the research briefs and contribute PhD-level content. If the topic has no intersection with their field they write `"DOMAIN SKIP: [reason]"` — downstream agents ignore those files.
+**Domain experts** each independently read the research briefs and contribute PhD-level content in their specialty area.
 
 ### Quality Gate
 
@@ -302,7 +302,7 @@ The content flows through three stages with explicit handoffs:
 2. **Validation**: Programmatic check of all research outputs; fixer crew re-runs any that failed
 3. **Writing (Hebrew)**: Hebrew writer produces prose -> 3 LaTeX writers format into XeLaTeX chapters
 
-Word count targets ensure 20-25+ printed pages:
+Word count targets ensure 25-30 printed pages:
 
 | Stage | ch01 | ch02-05 | ch06/ch08 | ch07 | ch09 |
 |---|---|---|---|---|---|

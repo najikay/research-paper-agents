@@ -71,7 +71,5 @@
 
 ## Backlog
 
-- [ ] ArXiv tool for researcher (real paper citations)
 - [ ] Post-run `references.bib` key validator
 - [ ] Token budget enforcement (abort if projected cost > threshold)
-- [ ] Investigate paper similarity across runs (temperature=0.3)

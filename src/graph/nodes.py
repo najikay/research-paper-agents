@@ -239,9 +239,11 @@ def run_quality_gate(state: PipelineState) -> dict:
 
     # Pre-scoring fixups
     from main import (validate_and_fix_chapters, _diversify_stub_figures,
+                      _deduplicate_cross_chapter_figures,
                       _generate_fallback_figures, _sanitize_tex_files)
     validate_and_fix_chapters(run_folder)
     _diversify_stub_figures(run_folder)
+    _deduplicate_cross_chapter_figures(run_folder)
     _generate_fallback_figures(run_folder)
     _sanitize_tex_files(run_folder / "latex" / "chapters")
 
