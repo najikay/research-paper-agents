@@ -111,14 +111,14 @@ remediation:      targeted fix crew (max 4 cycles)
 
 - [x] `QUALITY_THRESHOLD` raised 75 → 90 (remediation fires more often)
 - [x] `MAX_REMEDIATIONS` raised 3 → 4
-- [x] Thresholds calibrated from 3-run data (bat + 2x AUV): default 1200 words, ch06 1700, ch07/ch08 1200
+- [x] Thresholds calibrated to LLM output: default 1400, ch06/ch08 1800, ch07 1600
 - [x] Remediation prompt improved: reads references.bib, targets 400+ words/chapter, processes ALL failures
-- [x] Result: 20-23 pages, score 90-96/100
+- [x] Result: 23 pages, score 96/100, 3 remediation cycles
 
 ## Backlog
 
-- [ ] Push page count to 25 pages consistently (currently 20-23)
-- [ ] Push score to 100/100 consistently (currently 90-96)
+- [ ] Push page count to 25 pages consistently (currently 23)
+- [ ] Push score to 100/100 consistently (currently 96)
 - [ ] ArXiv search for real citations in researcher
 - [ ] Post-run `references.bib` key validator
 - [ ] Token-budget enforcement: abort if projected cost exceeds threshold

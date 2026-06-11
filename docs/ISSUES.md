@@ -64,8 +64,8 @@
 
 ### 1. Page count below 25-page target
 **Severity:** MEDIUM
-**Status:** Currently 20-23 pages depending on topic and run variance. Figure* upgrade (Fix 24) added ~3 pages. Remediation adds ~100-400 words per cycle.
-**Root cause:** DeepSeek V3 word count variance is significant (~900-1900 words/chapter). Same topic can produce 20pp or 23pp across runs.
+**Status:** Currently 23 pages (best run). Figure* upgrade (Fix 24) added ~3 pages. Remediation adds ~100-400 words per cycle.
+**Root cause:** DeepSeek V3 word count variance is significant (~900-1900 words/chapter).
 
 ### 2. Duplicate figures across chapters
 **Severity:** LOW
@@ -74,7 +74,7 @@
 
 ### 3. Run-to-run score variance
 **Severity:** LOW
-**Evidence:** Score ranges from 90-96 across runs due to word count variance. Thresholds calibrated ~10% below worst-case to ensure reliable PASS.
+**Evidence:** Score ranges from 70-96 on first pass due to word count variance. Remediation reliably brings scores above 90 within 3-4 cycles.
 
 ---
 

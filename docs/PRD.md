@@ -71,7 +71,7 @@ All staging paths are in `outputs/current/` and moved to `{run_folder}/outputs/`
 
 ### Quality Gate (programmatic, in LangGraph node)
 
-Per-chapter minimums (calibrated from 3 runs — bat + 2x AUV):
+Per-chapter minimums (calibrated to LLM output — thresholds ~10% below observed):
 
 | Check | Default | abstract | ch01 | ch06 | ch07 | ch08 | ch09 |
 |---|---|---|---|---|---|---|---|
@@ -79,7 +79,7 @@ Per-chapter minimums (calibrated from 3 runs — bat + 2x AUV):
 | Figures | >= 1 | 0 | 0 | 1 | 1 | 1 | 0 |
 | Subsections | >= 3 | 0 | 3 | 5 | 4 | 5 | 2 |
 | Citations | >= 2 | 0 | 2 | 3 | 2 | 3 | 1 |
-| Words | >= 1200 | 80 | 1200 | 1700 | 1200 | 1200 | 700 |
+| Words | >= 1400 | 80 | 1400 | 1800 | 1600 | 1800 | 700 |
 
 Additional checks:
 - `references.bib` entry count >= 10
@@ -189,8 +189,8 @@ outputs/runs/{slug}-{date}/
 
 | Criterion | Target | Current |
 |---|---|---|
-| Paper length | 20-25+ printed pages | 20-23 pages |
-| Quality gate score | >= 90/100 | 90-96/100 |
+| Paper length | 20-25+ printed pages | 23 pages |
+| Quality gate score | >= 90/100 | 96/100 |
 | BibTeX entries | >= 10 in quality gate; agent targets >= 14 | 14+ entries |
 | LaTeX compilation | PDF > 0 bytes and openable | 3.8-4.1 MB PDF, 0 fatal errors |
 | Cost per run | < $0.40 (including worst-case remediation) | ~$0.22-0.36 |

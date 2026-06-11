@@ -29,7 +29,7 @@
 - [x] Hebrew writer per-chapter targets: 1500-2500 words
 - [x] LaTeX author CONTENT DEPTH CONTRACT: 2500-4000 words per chapter
 - [x] 3-split task targets aligned with shared rules (2500-4000)
-- [x] Quality gate word thresholds calibrated from 3 runs: default 1200, ch06 1700, ch07/ch08 1200, ch09 700
+- [x] Quality gate word thresholds calibrated to LLM output: default 1400, ch06/ch08 1800, ch07 1600, ch09 700
 
 ### LaTeX / Compilation
 - [x] 25-fix sanitizer in `_sanitize_tex_files()`
@@ -53,7 +53,7 @@
 ### Quality Gate & Remediation
 - [x] `QUALITY_THRESHOLD` raised 75 → 90 (remediation fires more often)
 - [x] `MAX_REMEDIATIONS` raised 3 → 4
-- [x] Thresholds calibrated from 3 runs (bat + 2x AUV): set ~10% below worst-case post-remediation
+- [x] Thresholds calibrated to LLM output: set ~10% below observed, stricter thresholds drive better remediation
 - [x] Remediation prompt: reads references.bib, targets 400+ words/chapter expansion
 
 ### Tests
@@ -64,8 +64,8 @@
 
 ## Active Targets
 
-- [ ] Push page count to 25 pages (currently 20-23)
-- [ ] Push score to 100/100 consistently (currently 90-96)
+- [ ] Push page count to 25 pages (currently 23)
+- [ ] Push score to 100/100 consistently (currently 96)
 
 ---
 

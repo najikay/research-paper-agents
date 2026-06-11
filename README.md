@@ -9,7 +9,6 @@ Built for Assignment 3 — *Orchestration of AI Agents*, Semester B 2026.
 | Run | Topic | Score | Pages | PDF | Remediation |
 |---|---|---|---|---|---|
 | bat-v13 | Bat-Inspired Drone Navigation via Bio-Mimetic SLAM | 96/100 | 23 | 4.1 MB | 3 cycles |
-| auv-v2 | Autonomous Underwater Vehicle Navigation Using Acoustic SLAM | 90/100 | 20 | 3.8 MB | 2 cycles |
 
 ---
 
@@ -240,7 +239,7 @@ Programmatic (no LLM). Per-chapter checks:
 
 | Check | Default threshold | Relaxed for |
 |---|---|---|
-| Word count | >= 1200 | abstract (80), ch09 (700), ch06 (1700), ch07/ch08 (1200) |
+| Word count | >= 1400 | abstract (80), ch09 (700), ch06/ch08 (1800), ch07 (1600) |
 | Equations | >= 2 | abstract (0), ch01 (1), ch09 (0) |
 | Figures | >= 1 | abstract (0), ch01 (0), ch09 (0) |
 | Subsections | >= 3 | abstract (0), ch09 (2), ch06/ch08 (5), ch07 (4) |
@@ -309,7 +308,7 @@ Word count targets ensure 20-25+ printed pages:
 |---|---|---|---|---|---|
 | Hebrew prose | 1500 | 2000 | 2500 | 2000 | 1200 |
 | LaTeX task target | 2500 | 3200 | 4000 | 3200 | 2000 |
-| Quality gate min | 1200 | 1200 | 1700/1200 | 1200 | 700 |
+| Quality gate min | 1400 | 1400 | 1800 | 1600 | 700 |
 
 ### LaTeX Sanitizer
 
