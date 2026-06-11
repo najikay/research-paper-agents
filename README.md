@@ -4,6 +4,36 @@ An autonomous multi-agent research platform that takes a `--topic` argument and 
 
 Built for Assignment 3 — *Orchestration of AI Agents*, Semester B 2026.
 
+---
+
+## Demo
+
+A full run takes a single `--topic` argument and produces a compiled, bilingual IEEE paper end to end. The screenshots below are from the
+*Pit-Viper-Inspired Infrared-Thermal and Visual Sensor Fusion for Nocturnal UAV Navigation* run.
+
+### Compiled paper
+
+| Cover page | Content + figure |
+|:---:|:---:|
+| ![Cover page of the generated IEEE paper](docs/screenshots/cover.PNG) | ![A chapter page with Hebrew prose and an embedded figure](docs/screenshots/content_spread.PNG) |
+
+### Pipeline run
+
+![Terminal showing the NavigatorCrew completion banner with quality score](docs/screenshots/banner.PNG)
+
+### Generated output
+
+| Run-folder structure |
+|:---:|
+| ![The per-run output folder tree in VS Code](docs/screenshots/run_tree.PNG) |
+
+|
+| Sample generated figure |
+|:---:|
+| ![One of the 9 auto-generated matplotlib figures](outputs/runs/pit-viper-inspired-infrared-thermal-and-2026-06-11/latex/figures/fig_adaptive_fusion_example_ch08.png) ![One of the 9 auto-generated matplotlib figures](outputs/runs/pit-viper-inspired-infrared-thermal-and-2026-06-11/latex/figures/fig_slam_trajectory_comparison.png)![One of the 9 auto-generated matplotlib figures](outputs/runs/pit-viper-inspired-infrared-thermal-and-2026-06-11/latex/figures/fig_thermal_saliency_map.png)
+---
+
+
 ### Latest Results
 
 | Run | Topic | Score | Pages | PDF | Remediation |
