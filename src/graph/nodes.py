@@ -34,8 +34,8 @@ from src.tools import (
 )
 from src.config import logger, PROJECT_ROOT
 
-QUALITY_THRESHOLD = 75   # score below this triggers remediation
-MAX_REMEDIATIONS  = 3    # hard cap — prevents infinite loops
+QUALITY_THRESHOLD = 90   # score below this triggers remediation
+MAX_REMEDIATIONS  = 4    # hard cap — prevents infinite loops
 
 # Minimum number of BibTeX entries required in references.bib.
 MIN_BIB_ENTRIES = 10
@@ -55,13 +55,13 @@ AGENT_CHAPTERS = [
 # attempt, while genuinely thin chapters still get flagged for remediation.
 _CHAPTER_MIN_REQS: dict[str, dict] = {
     "abstract.tex":        {"eq": 0, "fig": 0, "sub": 0, "cite": 0, "words": 80},
-    "ch01_intro.tex":      {"eq": 1, "fig": 0, "sub": 3, "cite": 2, "words": 1200},
-    "ch06_algorithm.tex":  {"eq": 3, "fig": 1, "sub": 5, "cite": 3, "words": 1600},
-    "ch07_oursystem.tex":  {"eq": 2, "fig": 1, "sub": 4, "cite": 2, "words": 1400},
-    "ch08_results.tex":    {"eq": 2, "fig": 1, "sub": 5, "cite": 3, "words": 1600},
+    "ch01_intro.tex":      {"eq": 1, "fig": 0, "sub": 3, "cite": 2, "words": 1400},
+    "ch06_algorithm.tex":  {"eq": 3, "fig": 1, "sub": 5, "cite": 3, "words": 1800},
+    "ch07_oursystem.tex":  {"eq": 2, "fig": 1, "sub": 4, "cite": 2, "words": 1600},
+    "ch08_results.tex":    {"eq": 2, "fig": 1, "sub": 5, "cite": 3, "words": 1800},
     "ch09_conclusion.tex": {"eq": 0, "fig": 0, "sub": 2, "cite": 1, "words": 700},
 }
-_DEFAULT_MIN_REQS: dict = {"eq": 2, "fig": 1, "sub": 3, "cite": 2, "words": 1100}
+_DEFAULT_MIN_REQS: dict = {"eq": 2, "fig": 1, "sub": 3, "cite": 2, "words": 1400}
 
 # Domain expert output validation thresholds
 _MIN_DOMAIN_BYTES = 500   # files smaller than this are considered failures

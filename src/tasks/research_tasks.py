@@ -836,38 +836,42 @@ WRITE fixed chapters with SafeFileWriterTool to the SAME paths above.
 
     return Task(
         description=f"""
-REMEDIATION TASK. Fix specific quality failures from the quality report.
+REMEDIATION TASK. Expand and fix chapters that failed the quality gate.
 
-STEP 1 — Read the quality report to understand what failed:
+STEP 1 — Read the quality report AND the references.bib:
     FileReaderTool("{quality_report_path}")
+    FileReaderTool("{bib_path}")  ← you need the \\cite{{}} keys for adding citations
 
-STEP 2 — Read ONLY the chapter files that have issues (see failed sections below).
-    Do NOT try to read directories — only read specific .tex files.
+STEP 2 — For EACH failing chapter listed below, read + expand + write back.
+    Process ALL failing chapters — do not stop after fixing just one.
 
-STEP 3 — Fix the failing chapters. The failed sections list below contains SPECIFIC chapter filenames
-    and their exact shortfall (e.g., "ch02_bio_basis.tex: words≈1162<1500").
-    For EACH failing chapter:
-    • Read the existing file using FileReaderTool at the path above.
-    • KEEP all existing content — do NOT delete or rewrite from scratch.
-    • ADD new content to reach the target. Techniques for expanding:
-      - Add 1-2 new \\subsection{{}} blocks with 200+ words each
-      - Extend existing subsections with deeper technical explanations
-      - Add comparisons with alternative approaches (with \\cite{{}})
-      - Add derivation steps for equations, explain each variable
-      - Add implementation notes, parameter sensitivity analysis
-      - Add a comparison table (\\begin{{table}})
-    • For "words too low": you need to add at LEAST the shortfall amount. If a chapter has
-      "words≈1162<1500", add at least 400 words of Hebrew prose (with \\en{{}} for English terms).
-    • For "citations missing": add \\cite{{}} calls using keys from references.bib
-    • For "equations missing": add \\begin{{equation}}...\\label{{eq:chNN_name}}...\\end{{equation}}
-    • For "em dashes": replace every — (U+2014) with colon (:) or comma (,)
+STEP 3 — For EACH failing chapter:
+    a) Read it: FileReaderTool("<path>")
+    b) KEEP ALL existing content — do NOT delete or rewrite from scratch.
+    c) ADD new content. You MUST add at least 400 words per chapter, using these techniques:
+       - Add 2 new \\subsection{{}} blocks with 250+ Hebrew words each
+       - Extend existing subsections: add technical comparisons, mathematical derivations,
+         parameter sensitivity analysis, implementation considerations
+       - Add equations: \\begin{{equation}} ... \\label{{eq:chNN_name}} \\end{{equation}}
+       - Add \\cite{{}} calls using REAL keys from references.bib (read it in Step 1)
+       - Add comparison tables (\\begin{{table}}[htbp])
+       - Wrap English terms in \\en{{}}: \\en{{SLAM}}, \\en{{EKF}}, etc.
+    d) Write the ENTIRE expanded file using SafeFileWriterTool (not just new parts).
 
-STEP 4 — Write each fixed file back using SafeFileWriterTool.
-    Rewrite the ENTIRE file content (not just the changed parts).
-    PRIORITY: Create missing chapter files FIRST, then fix existing ones.
+    SPECIFIC FIX RULES:
+    • "words≈N<M": add at least (M - N + 200) words of Hebrew academic prose
+    • "citations=N<M": add \\cite{{}} calls using keys from references.bib
+    • "equations=N<M": add numbered equations with \\label{{eq:chNN_...}}
+    • "subsections=N<M": add new \\subsection{{}} blocks with 200+ words each
+    • "em dashes": replace every — (U+2014) with colon (:) or comma (,)
+
+    EM DASH RULE: character — is FORBIDDEN. Use colon (:) or comma (,).
+    INLINE ENGLISH: every English word in Hebrew prose MUST be in \\en{{}}.
+
+STEP 4 — After fixing ALL chapters, confirm: 'REMEDIATION COMPLETE'.
 
 Failed sections to fix: [{sections_str}]
-Do NOT modify chapters that passed — only fix the ones with issues.
+Do NOT modify chapters that passed — only fix the ones listed above.
 {paths_note}
 """,
         expected_output=f"Fixed chapter file(s) addressing failures in: {sections_str}. Confirmation: 'REMEDIATION COMPLETE'.",

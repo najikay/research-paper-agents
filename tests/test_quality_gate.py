@@ -37,13 +37,13 @@ def test_agent_chapters_count():
 
 
 def test_quality_threshold():
-    """QUALITY_THRESHOLD must be 75."""
-    assert QUALITY_THRESHOLD == 75
+    """QUALITY_THRESHOLD must be 90."""
+    assert QUALITY_THRESHOLD == 90
 
 
 def test_max_remediations():
-    """MAX_REMEDIATIONS must be 3."""
-    assert MAX_REMEDIATIONS == 3
+    """MAX_REMEDIATIONS must be 4."""
+    assert MAX_REMEDIATIONS == 4
 
 
 # ---------------------------------------------------------------------------
@@ -114,7 +114,7 @@ class TestQualityGate:
         assert result["quality_verdict"] == "PASS", (
             f"Expected PASS, got FAIL with score={result['quality_score']}"
         )
-        assert result["quality_score"] >= 75
+        assert result["quality_score"] >= 90
 
     def test_quality_gate_fail_missing_chapters(
         self, tmp_path, monkeypatch, full_bib_content
@@ -176,7 +176,7 @@ class TestQualityGate:
         assert "\u2014" not in cleaned, "sanitizer should remove em dashes"
 
         # Score should still be high (sanitizer fixed the issue)
-        assert result["quality_score"] >= 75
+        assert result["quality_score"] >= 90
 
     def test_quality_gate_sanitizer_fixes_center_env(
         self, tmp_path, monkeypatch, full_bib_content
@@ -217,7 +217,7 @@ class TestQualityGate:
         assert r"\centering" in cleaned, "sanitizer should replace with \\centering"
 
         # Score should still be high (sanitizer fixed the issue)
-        assert result["quality_score"] >= 75
+        assert result["quality_score"] >= 90
 
     def test_quality_gate_fail_placeholder(
         self, tmp_path, monkeypatch, full_bib_content
