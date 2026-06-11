@@ -39,7 +39,7 @@ A full run takes a single `--topic` argument and produces a compiled, bilingual 
 | Run | Topic | Score | Pages | PDF | Remediation |
 |---|---|---|---|---|---|
 | bat-v13 | Bat-Inspired Drone Navigation via Bio-Mimetic SLAM | 96/100 | 23 | 4.1 MB | 3 cycles |
-
+| pit-viper | Pit-Viper-Inspired Infrared-Thermal and Visual Sensor Fusion for Nocturnal UAV Navigation | 90/100 | 23 | 3.9 MB | 3 CYCLES |
 ---
 
 ## Architecture
