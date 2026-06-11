@@ -8,6 +8,10 @@
 %       Similarly, \\[length] optional args trigger \@ifnextchar in bidi mode —
 %       all spacing uses \vspace{} instead.
 % =============================================================================
+% PLACEHOLDERS: {{TOPIC_HEBREW}} and {{TOPIC_ENGLISH}} are replaced by
+% setup_run_latex() at runtime with the actual topic. If not replaced,
+% the defaults below are shown.
+% =============================================================================
 
 \begin{titlepage}
     \centering
@@ -31,19 +35,9 @@
     \vspace{0.5cm}
 
     % ── Paper Title ──────────────────────────────────────────────────────────
-    {\LARGE\bfseries
-        ניווט רחפנים ביומימטי\\
-        \vspace{0.4em}
-        מבוסס-עטלף באמצעות\\
-        \vspace{0.4em}
-        היתוך חישתי מרובה-מודאלי
-    }\\
+    {\LARGE\bfseries {{TOPIC_HEBREW}}}\\
     \vspace{0.4em}
-    {\large\foreignlanguage{english}{%
-        Bat-Inspired Drone Navigation\\
-        \vspace{0.2em}
-        via Bio-Mimetic Multi-Modal Sensor Fusion%
-    }}\\
+    {\large\foreignlanguage{english}{{{TOPIC_ENGLISH}}}}\\
     \vspace{0.3em}
 
     \rule{\linewidth}{1pt}\\

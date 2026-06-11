@@ -633,13 +633,16 @@ def _render_fallback_figure(plt, np, out_path: Path, label: str, style: str) -> 
 # LaTeX template → run folder
 # ---------------------------------------------------------------------------
 
-def setup_run_latex(run_folder: Path) -> None:
+def setup_run_latex(run_folder: Path, topic: str = "") -> None:
     """
     Copy the latex template into this run's folder.
 
     The project-root latex/ contains only the static template files (main.tex,
     cover.tex, IEEEtran.cls/bst, seed references.bib). Agents write all
     generated chapters and figures directly into run_folder/latex/.
+
+    If *topic* is provided, replaces {{TOPIC_ENGLISH}} and {{TOPIC_HEBREW}}
+    placeholders in the cover page with the actual topic title.
     """
     template = PROJECT_ROOT / "latex"
     run_latex = run_folder / "latex"
@@ -650,6 +653,19 @@ def setup_run_latex(run_folder: Path) -> None:
             "*.toc", "*.fls", "*.fdb_latexmk", "*.synctex.gz", "*.pdf",
         ),
     )
+    # Replace cover page placeholders with the actual topic title.
+    if topic:
+        cover = run_latex / "chapters" / "cover.tex"
+        if cover.is_file():
+            text = cover.read_text(encoding="utf-8")
+            # English title: use the topic as-is
+            text = text.replace("{{TOPIC_ENGLISH}}", topic)
+            # Hebrew placeholder: keep the English topic in \en{} if no
+            # Hebrew translation is available (agents write the real Hebrew
+            # title in ch01_intro.tex's \section{}).
+            hebrew_fallback = r"\en{" + topic + "}"
+            text = text.replace("{{TOPIC_HEBREW}}", hebrew_fallback)
+            cover.write_text(text, encoding="utf-8")
     logger.info(f"[RunFolder] LaTeX template → {run_latex}")
 
 
@@ -989,6 +1005,19 @@ def _sanitize_tex_files(chapters_dir: Path) -> None:
             return result
         text = re.sub(r'\\en\{([^}]*\^[^}]*)\}', _fix_math_in_en, text)
 
+        # Fix 26: Wrap bare math expressions in $...$. LLMs sometimes write
+        # inline math like p(z_t^s | x_t, m) directly in Hebrew prose without
+        # dollar signs. Detect sequences with _ or ^ outside of math mode and
+        # wrap them. Pattern: word-char followed by _ or ^ with sub/superscript,
+        # possibly with parentheses and pipes — common probability notation.
+        text = re.sub(
+            r'(?<!\$)(?<!\\)'           # not already in math or escaped
+            r'([A-Za-z]\w*'             # starts with a letter+word chars (e.g. "p")
+            r'\([^)]*[_^][^)]*\))',     # parenthesized group containing _ or ^
+            r'$\1$',
+            text,
+        )
+
         # Fix 17: Replace \° (undefined control sequence) with Unicode °.
         # LLM agents write 5\° for "5 degrees" but \° is not a valid LaTeX
         # command. XeLaTeX handles the Unicode ° glyph natively via fontspec.
@@ -1273,12 +1302,12 @@ def main():
         if run_folder is None:
             logger.warning("[Resume] No saved run folder — creating new one")
             run_folder = create_run_folder(args.topic)
-            setup_run_latex(run_folder)
+            setup_run_latex(run_folder, topic=args.topic)
         else:
             logger.info(f"[Resume] Reusing run folder: {run_folder}")
     else:
         run_folder = create_run_folder(args.topic)
-        setup_run_latex(run_folder)
+        setup_run_latex(run_folder, topic=args.topic)
 
     _save_run_folder(run_folder)
 
