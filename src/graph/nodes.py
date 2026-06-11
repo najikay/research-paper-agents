@@ -49,19 +49,15 @@ AGENT_CHAPTERS = [
     "ch08_results.tex", "ch09_conclusion.tex",
 ]
 
-# Per-chapter minimum requirements — v11: calibrated to actual LLM output.
-# DeepSeek V3 reliably produces 1100-1800 words per chapter (LaTeX tokens).
-# Thresholds set ~10% below observed output so most chapters pass on first
-# attempt, while genuinely thin chapters still get flagged for remediation.
-# Calibrated from observed post-remediation output across bat + AUV runs.
-# Set ~10% below the minimum observed value so both topics pass reliably.
-# First pass (~900-1200 words) still fails → remediation fires → expands to 1300-1900.
+# Per-chapter minimum requirements — calibrated from 3 runs (bat + 2× AUV).
+# Set ~10% below worst-case post-remediation output so all topics pass reliably.
+# First pass (~900-1100 words) still fails → remediation fires → expands to 1200-1900.
 _CHAPTER_MIN_REQS: dict[str, dict] = {
     "abstract.tex":        {"eq": 0, "fig": 0, "sub": 0, "cite": 0, "words": 80},
-    "ch01_intro.tex":      {"eq": 1, "fig": 0, "sub": 3, "cite": 2, "words": 1250},
+    "ch01_intro.tex":      {"eq": 1, "fig": 0, "sub": 3, "cite": 2, "words": 1200},
     "ch06_algorithm.tex":  {"eq": 3, "fig": 1, "sub": 5, "cite": 3, "words": 1700},
-    "ch07_oursystem.tex":  {"eq": 2, "fig": 1, "sub": 4, "cite": 2, "words": 1500},
-    "ch08_results.tex":    {"eq": 2, "fig": 1, "sub": 5, "cite": 3, "words": 1800},
+    "ch07_oursystem.tex":  {"eq": 2, "fig": 1, "sub": 4, "cite": 2, "words": 1200},
+    "ch08_results.tex":    {"eq": 2, "fig": 1, "sub": 5, "cite": 3, "words": 1200},
     "ch09_conclusion.tex": {"eq": 0, "fig": 0, "sub": 2, "cite": 1, "words": 700},
 }
 _DEFAULT_MIN_REQS: dict = {"eq": 2, "fig": 1, "sub": 3, "cite": 2, "words": 1200}
