@@ -46,7 +46,7 @@ Core standards that apply to EVERY figure you produce:
    DO NOT hardcode any file path — the tool injects `output_path` automatically.
 4. Use plt.style.use('seaborn-v0_8-whitegrid') or equivalent for a clean base.
 5. All axis labels, titles, and legends must be present and readable at A4 print size.
-6. Hebrew labels (where specified) must use unicode strings directly in the code.
+6. ALL text in figures (titles, axis labels, legends, annotations, tick labels) MUST be in English only. Do NOT use Hebrew in any matplotlib text — Hebrew causes RTL rendering issues and flipped characters in matplotlib.
 7. After saving, call plt.close('all') to release memory.
 8. Minimum font size for any text element (title, axis labels, tick labels, legend): 11pt.
    Use ax.tick_params(labelsize=11), ax.set_xlabel(..., fontsize=12), etc.
