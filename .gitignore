@@ -68,9 +68,18 @@ latex/chapters/ch07_oursystem.tex
 latex/chapters/ch08_results.tex
 latex/chapters/ch09_conclusion.tex
 
-# --- Per-run archives (large, reproducible — keep out of git) ---
-outputs/runs/*
-!outputs/runs/.gitkeep
+# --- Per-run archives ---
+# Runs are included in git for submission.
+# LaTeX build artifacts inside runs are excluded.
+outputs/runs/*/latex/*.aux
+outputs/runs/*/latex/*.log
+outputs/runs/*/latex/*.out
+outputs/runs/*/latex/*.bbl
+outputs/runs/*/latex/*.blg
+outputs/runs/*/latex/*.toc
+outputs/runs/*/latex/*.fls
+outputs/runs/*/latex/*.fdb_latexmk
+outputs/runs/*/latex/*.synctex.gz
 
 # --- Claude Code ---
 .claude/
