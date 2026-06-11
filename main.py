@@ -969,6 +969,26 @@ def _sanitize_tex_files(chapters_dir: Path) -> None:
             return r'\en{' + m.group(1).replace('_', r'\_') + '}'
         text = re.sub(r'\\en\{([^}]*_[^}]*)\}', _escape_underscores_in_en, text)
 
+        # Fix 25: Extract math superscripts/subscripts from \en{} blocks.
+        # LLM writes \en{m/s^2} or \en{R^2} but ^ is a math-mode operator
+        # that crashes in text mode. Split: \en{m/s^2} → \en{m/s}$^2$
+        # Handles ^N (single digit) and ^{...} (braced group).
+        def _fix_math_in_en(m: re.Match) -> str:
+            content = m.group(1)
+            # Split at first ^ that's followed by a digit or {
+            caret = re.search(r'\^(\{[^}]*\}|\d+)', content)
+            if not caret:
+                return m.group(0)
+            before = content[:caret.start()]
+            math_part = caret.group(0)  # e.g. ^2 or ^{2}
+            after = content[caret.end():]
+            result = r'\en{' + before + '}'
+            result += '$' + math_part + '$'
+            if after:
+                result += r'\en{' + after + '}'
+            return result
+        text = re.sub(r'\\en\{([^}]*\^[^}]*)\}', _fix_math_in_en, text)
+
         # Fix 17: Replace \° (undefined control sequence) with Unicode °.
         # LLM agents write 5\° for "5 degrees" but \° is not a valid LaTeX
         # command. XeLaTeX handles the Unicode ° glyph natively via fontspec.
