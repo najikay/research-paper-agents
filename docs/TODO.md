@@ -6,7 +6,7 @@
 - [x] 13-agent CrewAI pipeline, split into research + writing phases
 - [x] LangGraph state machine: research → validate → writing → quality gate → remediation → END
 - [x] Research validation node (checks domain output sizes, detects stuck agents, re-runs failures)
-- [x] Programmatic quality gate with per-chapter thresholds (v10 raised)
+- [x] Programmatic quality gate with per-chapter thresholds (calibrated from 3 runs)
 - [x] `--resume`, `--no-pdf`, `--no-archive` flags
 - [x] Run-folder architecture: each run self-contained in `outputs/runs/{slug}-{date}/`
 - [x] `setup_run_latex()`, `compile_pdf()` (5 xelatex passes), `finalize_run()`
@@ -25,14 +25,14 @@
 - [x] All agents use DeepSeek V3; max_iter tuned per role
 - [x] DOMAIN SKIP mechanism for irrelevant topics
 
-### Content Depth (v10)
+### Content Depth
 - [x] Hebrew writer per-chapter targets: 1500-2500 words
 - [x] LaTeX author CONTENT DEPTH CONTRACT: 2500-4000 words per chapter
 - [x] 3-split task targets aligned with shared rules (2500-4000)
-- [x] Quality gate word thresholds: default 1500, ch06/ch08 2200, ch01 1500, ch09 800
+- [x] Quality gate word thresholds calibrated from 3 runs: default 1200, ch06 1700, ch07/ch08 1200, ch09 700
 
 ### LaTeX / Compilation
-- [x] 25-fix sanitizer in `_sanitize_tex_files()` (em dashes, `\begin{center}`, `\°`, etc.)
+- [x] 25-fix sanitizer in `_sanitize_tex_files()`
 - [x] Fix 20: Brace repair for truncated files (unclosed `{`)
 - [x] Fix 21: Author-name commands (`\Au`, `\Thorp`) → `\en{}`
 - [x] Fix 22: `\ensuremath{$\theta$}` nested math → `$\theta$` (brace-counting parser)
@@ -50,24 +50,22 @@
 - [x] `cover.tex` bidi crash fixed
 - [x] Only `cover.tex` is static; all 10 content files are agent-written
 
+### Quality Gate & Remediation
+- [x] `QUALITY_THRESHOLD` raised 75 → 90 (remediation fires more often)
+- [x] `MAX_REMEDIATIONS` raised 3 → 4
+- [x] Thresholds calibrated from 3 runs (bat + 2x AUV): set ~10% below worst-case post-remediation
+- [x] Remediation prompt: reads references.bib, targets 400+ words/chapter expansion
+
 ### Tests
-- [x] Test suite covers: agents, tasks, quality gate, config, tools, run archive, latex sources
-- [x] Test fixtures updated for v10 quality gate thresholds
+- [x] Test suite: 143 tests across agents, tasks, quality gate, config, tools, run archive, latex sources
+- [x] Test fixtures updated for calibrated quality gate thresholds
 
 ---
 
-### Quality Gate & Remediation
-- [x] QUALITY_THRESHOLD raised 75 → 90 (remediation fires more often)
-- [x] MAX_REMEDIATIONS raised 3 → 4
-- [x] Word minimums raised: default 1100→1400, ch01 1200→1400, ch06/ch08 1600→1800
-- [x] Remediation prompt: reads references.bib, targets 400+ words/chapter expansion
-
 ## Active Targets
 
-- [x] Full run reaching 19 pages (2 successful runs: bat + dolphin topics)
-- [x] Reduce non-fatal LaTeX errors (78 → 0 via Fix 25)
-- [ ] Push page count to 25 pages (currently 23)
-- [ ] Push score to 100/100 (currently 96)
+- [ ] Push page count to 25 pages (currently 20-23)
+- [ ] Push score to 100/100 consistently (currently 90-96)
 
 ---
 

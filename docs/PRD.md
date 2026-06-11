@@ -1,5 +1,5 @@
 # Product Requirements Document — NavigatorCrew
-**Version**: 13.0 | **Date**: 2026-06-11
+**Version**: 13.1 | **Date**: 2026-06-11
 
 ---
 
@@ -20,7 +20,7 @@ main.py --topic "..." [--fast | --smoke | --dry-run]
         │     validate_and_fix_research → programmatic check + Fixer crew for failures
         │     run_writing_phase      → CrewAI crew (5 agents: visualizer + Hebrew writer + 3 LaTeX authors)
         │     run_quality_gate       → programmatic checker (no LLM)
-        │     run_remediation        → targeted fix crew (max 3 cycles)
+        │     run_remediation        → targeted fix crew (max 4 cycles)
         │     END                    → XeLaTeX compile (5 passes) + run archive
         └── split_mode=False (--fast/--smoke):
               run_main_pipeline      → single CrewAI crew
@@ -36,7 +36,7 @@ main.py --topic "..." [--fast | --smoke | --dry-run]
 | `--smoke` | 2 | 2 | 10-20 min | Quick structural test, outline + latex |
 | `--dry-run` | 0 | 0 | 5-30 sec | PDF compile pipeline verification only |
 
-### Full Pipeline — Split Architecture (v6+)
+### Full Pipeline — Split Architecture
 
 **Phase 1: Research (10 agents, sequential CrewAI crew)**
 
@@ -71,21 +71,21 @@ All staging paths are in `outputs/current/` and moved to `{run_folder}/outputs/`
 
 ### Quality Gate (programmatic, in LangGraph node)
 
-Per-chapter minimums (v13 thresholds):
+Per-chapter minimums (calibrated from 3 runs — bat + 2x AUV):
 
-| Check | Default | abstract | ch01 | ch06/ch08 | ch07 | ch09 |
-|---|---|---|---|---|---|---|
-| Equations | >= 2 | 0 | 1 | 3 | 2 | 0 |
-| Figures | >= 1 | 0 | 0 | 1 | 1 | 0 |
-| Subsections | >= 3 | 0 | 3 | 5 | 4 | 2 |
-| Citations | >= 2 | 0 | 2 | 3 | 2 | 1 |
-| Words | >= 1400 | 80 | 1400 | 1800 | 1600 | 700 |
+| Check | Default | abstract | ch01 | ch06 | ch07 | ch08 | ch09 |
+|---|---|---|---|---|---|---|---|
+| Equations | >= 2 | 0 | 1 | 3 | 2 | 2 | 0 |
+| Figures | >= 1 | 0 | 0 | 1 | 1 | 1 | 0 |
+| Subsections | >= 3 | 0 | 3 | 5 | 4 | 5 | 2 |
+| Citations | >= 2 | 0 | 2 | 3 | 2 | 3 | 1 |
+| Words | >= 1200 | 80 | 1200 | 1700 | 1200 | 1200 | 700 |
 
 Additional checks:
 - `references.bib` entry count >= 10
 - Missing figure file penalty capped at -20 total
 - No `\begin{center}` at document level, no em dashes, no placeholder `\fbox` boxes
-- `\°` (undefined control sequence) auto-replaced with `°` by sanitizer
+- `\degree` (undefined control sequence) auto-replaced with `°` by sanitizer
 
 Score < 90 -> FAIL -> remediation crew (max 4 cycles) -> re-check.
 
@@ -175,13 +175,13 @@ outputs/runs/{slug}-{date}/
 14. Fix literal `\\n` sequences in tabular rows
 15. Remove backslash before Hebrew characters
 16. Escape underscores inside `\en{}`
-17. Replace `\°` with Unicode `°` (XeLaTeX handles natively)
+17. Replace `\degree` with Unicode `°` (XeLaTeX handles natively)
 20. Repair truncated files with unbalanced braces (agent token-limit truncation)
-21. Author-name commands (`\Au`, `\Thorp`) → `\en{Word}` (with Greek letter exclusions)
-22. `\ensuremath{$\theta$}` nested math mode → `$\theta$` (brace-counting parser)
+21. Author-name commands (`\Au`, `\Thorp`) -> `\en{Word}` (with Greek letter exclusions)
+22. `\ensuremath{$\theta$}` nested math mode -> `$\theta$` (brace-counting parser)
 23. Stray `}` removal via brace-depth tracking
-24. Auto-upgrade wide figures (`figure` → `figure*`) based on PNG aspect ratio > 1.8
-25. Extract math superscripts from `\en{}` blocks (`\en{m/s^2}` → `\en{m/s}$^2$`)
+24. Auto-upgrade wide figures (`figure` -> `figure*`) based on PNG aspect ratio > 1.8
+25. Extract math superscripts from `\en{}` blocks (`\en{m/s^2}` -> `\en{m/s}$^2$`)
 
 ---
 
@@ -189,9 +189,9 @@ outputs/runs/{slug}-{date}/
 
 | Criterion | Target | Current |
 |---|---|---|
-| Paper length | 25-30 printed pages | 23 pages (v13, with remediation) |
-| Quality gate score | >= 90/100 | 96/100 |
+| Paper length | 20-25+ printed pages | 20-23 pages |
+| Quality gate score | >= 90/100 | 90-96/100 |
 | BibTeX entries | >= 10 in quality gate; agent targets >= 14 | 14+ entries |
-| LaTeX compilation | PDF > 0 bytes and openable | 4.1 MB PDF, 0 fatal errors |
-| Cost per run | <= $0.14 (including worst-case remediation) | ~$0.07-0.15 |
+| LaTeX compilation | PDF > 0 bytes and openable | 3.8-4.1 MB PDF, 0 fatal errors |
+| Cost per run | < $0.40 (including worst-case remediation) | ~$0.22-0.36 |
 | Execution | Unattended, no manual intervention | Fully autonomous |

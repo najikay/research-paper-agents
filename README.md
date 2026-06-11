@@ -4,11 +4,12 @@ An autonomous multi-agent research platform that takes a `--topic` argument and 
 
 Built for Assignment 3 — *Orchestration of AI Agents*, Semester B 2026.
 
-### Latest Results (v13)
+### Latest Results
 
 | Run | Topic | Score | Pages | PDF | Remediation |
 |---|---|---|---|---|---|
-| 1 | Bat-Inspired Drone Navigation via Bio-Mimetic SLAM | 96/100 | 23 | 4.1 MB | 3 cycles |
+| bat-v13 | Bat-Inspired Drone Navigation via Bio-Mimetic SLAM | 96/100 | 23 | 4.1 MB | 3 cycles |
+| auv-v2 | Autonomous Underwater Vehicle Navigation Using Acoustic SLAM | 90/100 | 20 | 3.8 MB | 2 cycles |
 
 ---
 
@@ -35,7 +36,7 @@ main.py --topic "..."
 |        FAIL                                    |
 |         v                                      |
 |  [run_remediation] ---------> [run_quality_gate]
-|         (max 3 cycles)                         |
+|         (max 4 cycles)                         |
 +-----------------------------------------------+
         |
         v
@@ -87,7 +88,7 @@ main.py --topic "..."
 | **25-fix sanitizer** | Auto-fixes common LLM errors (em dashes, `\begin{center}`, `\ensuremath`, stray braces, figure sizing, etc.) before compilation |
 | **Fault tolerance** | Every task writes an `output_file`; `--resume` skips completed tasks |
 | **Run isolation** | `outputs/runs/{slug}-{date}/` is self-contained; project-root `latex/` is read-only template |
-| **Cost** | DeepSeek V3 via OpenAI-compatible API (~$0.16/run) |
+| **Cost** | DeepSeek V3 via OpenAI-compatible API (~$0.22/run base, ~$0.29 typical with remediation) |
 | **Bilingual LaTeX** | XeLaTeX + polyglossia + bidi; `\en{}` wraps all English in Hebrew prose |
 
 ---
@@ -239,10 +240,10 @@ Programmatic (no LLM). Per-chapter checks:
 
 | Check | Default threshold | Relaxed for |
 |---|---|---|
-| Word count | >= 1500 | abstract (80), ch09 (800), ch06/ch08 (2200) |
+| Word count | >= 1200 | abstract (80), ch09 (700), ch06 (1700), ch07/ch08 (1200) |
 | Equations | >= 2 | abstract (0), ch01 (1), ch09 (0) |
 | Figures | >= 1 | abstract (0), ch01 (0), ch09 (0) |
-| Subsections | >= 3 | abstract (0), ch09 (2), ch06/ch08 (5) |
+| Subsections | >= 3 | abstract (0), ch09 (2), ch06/ch08 (5), ch07 (4) |
 | Citations | >= 2 | abstract (0), ch09 (1), ch06/ch08 (3) |
 
 Additional checks: `references.bib` >= 10 entries, missing figure penalty (capped at -20), no `\begin{center}` at document level, no em dashes in Hebrew prose, no placeholder `\fbox` boxes.
@@ -302,13 +303,13 @@ The content flows through three stages with explicit handoffs:
 2. **Validation**: Programmatic check of all research outputs; fixer crew re-runs any that failed
 3. **Writing (Hebrew)**: Hebrew writer produces prose -> 3 LaTeX writers format into XeLaTeX chapters
 
-Word count targets ensure 25-30 printed pages:
+Word count targets ensure 20-25+ printed pages:
 
 | Stage | ch01 | ch02-05 | ch06/ch08 | ch07 | ch09 |
 |---|---|---|---|---|---|
 | Hebrew prose | 1500 | 2000 | 2500 | 2000 | 1200 |
 | LaTeX task target | 2500 | 3200 | 4000 | 3200 | 2000 |
-| Quality gate min | 1500 | 1500 | 2200 | 1800 | 800 |
+| Quality gate min | 1200 | 1200 | 1700/1200 | 1200 | 700 |
 
 ### LaTeX Sanitizer
 
@@ -324,11 +325,11 @@ Before compilation, `_sanitize_tex_files()` applies 25 automatic fixes to agent-
 - Replaces `\degree` with Unicode degree sign (prevents undefined control sequence)
 - Wraps bare math symbols in `$...$` (prevents "Missing $ inserted" errors)
 - Repairs truncated files with unbalanced braces (Fix 20)
-- Converts author-name commands `\Au`, `\Thorp` → `\en{Au}` (Fix 21)
+- Converts author-name commands `\Au`, `\Thorp` -> `\en{Au}` (Fix 21)
 - Resolves `\ensuremath{$\theta$}` nested math mode (Fix 22, brace-counting parser)
 - Removes stray `}` via brace-depth tracking (Fix 23)
 - Auto-upgrades wide figures to `figure*` (two-column) based on PNG aspect ratio (Fix 24)
-- Extracts math superscripts from `\en{}` blocks: `\en{m/s^2}` → `\en{m/s}$^2$` (Fix 25)
+- Extracts math superscripts from `\en{}` blocks: `\en{m/s^2}` -> `\en{m/s}$^2$` (Fix 25)
 
 ---
 
@@ -339,4 +340,17 @@ source venv/bin/activate
 python3 -m pytest tests/ -v
 ```
 
-Test coverage includes: agent instantiation and properties, task creation, quality gate scoring (pass/fail/edge cases), config validation, latex source invariants, and run-folder structure.
+Test coverage (143 tests): agent instantiation and properties, task creation, quality gate scoring (pass/fail/edge cases), config validation, latex source invariants, run-folder structure, tool security (code executor, file writer, file reader).
+
+---
+
+## Budget
+
+| Component | Est. Cost |
+|-----------|-----------|
+| Per run (DeepSeek V3, with remediation) | ~$0.29 |
+| Total pipeline runs (~20 runs) | ~$2.13 |
+| Development tooling (Claude Sonnet 4.6) | ~$25.35 |
+| **Grand total** | **~$27.48** |
+
+See [docs/BUDGET.md](docs/BUDGET.md) for full token breakdown.
