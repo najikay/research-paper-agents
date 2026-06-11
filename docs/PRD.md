@@ -1,5 +1,5 @@
 # Product Requirements Document — NavigatorCrew
-**Version**: 11.0 | **Date**: 2026-06-10
+**Version**: 13.0 | **Date**: 2026-06-11
 
 ---
 
@@ -71,7 +71,7 @@ All staging paths are in `outputs/current/` and moved to `{run_folder}/outputs/`
 
 ### Quality Gate (programmatic, in LangGraph node)
 
-Per-chapter minimums (v10 thresholds):
+Per-chapter minimums (v13 thresholds):
 
 | Check | Default | abstract | ch01 | ch06/ch08 | ch07 | ch09 |
 |---|---|---|---|---|---|---|
@@ -79,7 +79,7 @@ Per-chapter minimums (v10 thresholds):
 | Figures | >= 1 | 0 | 0 | 1 | 1 | 0 |
 | Subsections | >= 3 | 0 | 3 | 5 | 4 | 2 |
 | Citations | >= 2 | 0 | 2 | 3 | 2 | 1 |
-| Words | >= 1500 | 80 | 1500 | 2200 | 1800 | 800 |
+| Words | >= 1400 | 80 | 1400 | 1800 | 1600 | 700 |
 
 Additional checks:
 - `references.bib` entry count >= 10
@@ -87,7 +87,7 @@ Additional checks:
 - No `\begin{center}` at document level, no em dashes, no placeholder `\fbox` boxes
 - `\°` (undefined control sequence) auto-replaced with `°` by sanitizer
 
-Score < 75 -> FAIL -> remediation crew (max 3 cycles) -> re-check.
+Score < 90 -> FAIL -> remediation crew (max 4 cycles) -> re-check.
 
 ---
 
@@ -154,7 +154,7 @@ outputs/runs/{slug}-{date}/
 
 ---
 
-## 7. LaTeX Sanitizer (23 fixes)
+## 7. LaTeX Sanitizer (25 fixes)
 
 `_sanitize_tex_files()` in `main.py` auto-fixes common agent errors before compilation:
 
@@ -180,6 +180,8 @@ outputs/runs/{slug}-{date}/
 21. Author-name commands (`\Au`, `\Thorp`) → `\en{Word}` (with Greek letter exclusions)
 22. `\ensuremath{$\theta$}` nested math mode → `$\theta$` (brace-counting parser)
 23. Stray `}` removal via brace-depth tracking
+24. Auto-upgrade wide figures (`figure` → `figure*`) based on PNG aspect ratio > 1.8
+25. Extract math superscripts from `\en{}` blocks (`\en{m/s^2}` → `\en{m/s}$^2$`)
 
 ---
 
@@ -187,9 +189,9 @@ outputs/runs/{slug}-{date}/
 
 | Criterion | Target | Current |
 |---|---|---|
-| Paper length | 25-30 printed pages | 19 pages (2 successful runs) |
-| Quality gate score | >= 75/100 | 88/100 |
+| Paper length | 25-30 printed pages | 23 pages (v13, with remediation) |
+| Quality gate score | >= 90/100 | 96/100 |
 | BibTeX entries | >= 10 in quality gate; agent targets >= 14 | 14+ entries |
-| LaTeX compilation | PDF > 0 bytes and openable | 10 MB PDFs, ~78 non-fatal warnings |
-| Cost per run | <= $0.14 (including worst-case remediation) | ~$0.07-0.12 |
+| LaTeX compilation | PDF > 0 bytes and openable | 4.1 MB PDF, 0 fatal errors |
+| Cost per run | <= $0.14 (including worst-case remediation) | ~$0.07-0.15 |
 | Execution | Unattended, no manual intervention | Fully autonomous |

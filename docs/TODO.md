@@ -32,11 +32,13 @@
 - [x] Quality gate word thresholds: default 1500, ch06/ch08 2200, ch01 1500, ch09 800
 
 ### LaTeX / Compilation
-- [x] 23-fix sanitizer in `_sanitize_tex_files()` (em dashes, `\begin{center}`, `\°`, etc.)
+- [x] 25-fix sanitizer in `_sanitize_tex_files()` (em dashes, `\begin{center}`, `\°`, etc.)
 - [x] Fix 20: Brace repair for truncated files (unclosed `{`)
 - [x] Fix 21: Author-name commands (`\Au`, `\Thorp`) → `\en{}`
 - [x] Fix 22: `\ensuremath{$\theta$}` nested math → `$\theta$` (brace-counting parser)
 - [x] Fix 23: Stray `}` removal via brace-depth tracking
+- [x] Fix 24: Auto-upgrade wide figures (`figure` → `figure*`) based on PNG aspect ratio
+- [x] Fix 25: Extract math superscripts from `\en{}` (`\en{m/s^2}` → `\en{m/s}$^2$`)
 - [x] Removed `-halt-on-error` — PDFs compile fully past non-fatal errors
 - [x] `main.tex` `\IfFileExists` guards for all chapters
 - [x] `fig_stub.png` pre-seeded; auto-stubbing of missing figures
@@ -54,11 +56,18 @@
 
 ---
 
+### Quality Gate & Remediation
+- [x] QUALITY_THRESHOLD raised 75 → 90 (remediation fires more often)
+- [x] MAX_REMEDIATIONS raised 3 → 4
+- [x] Word minimums raised: default 1100→1400, ch01 1200→1400, ch06/ch08 1600→1800
+- [x] Remediation prompt: reads references.bib, targets 400+ words/chapter expansion
+
 ## Active Targets
 
 - [x] Full run reaching 19 pages (2 successful runs: bat + dolphin topics)
-- [ ] Push page count to 25-30 pages (currently 19)
-- [ ] Reduce remaining non-fatal LaTeX errors (~78 per run)
+- [x] Reduce non-fatal LaTeX errors (78 → 0 via Fix 25)
+- [ ] Push page count to 25 pages (currently 23)
+- [ ] Push score to 100/100 (currently 96)
 
 ---
 

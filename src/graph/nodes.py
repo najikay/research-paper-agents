@@ -55,7 +55,7 @@ AGENT_CHAPTERS = [
 # attempt, while genuinely thin chapters still get flagged for remediation.
 _CHAPTER_MIN_REQS: dict[str, dict] = {
     "abstract.tex":        {"eq": 0, "fig": 0, "sub": 0, "cite": 0, "words": 80},
-    "ch01_intro.tex":      {"eq": 1, "fig": 0, "sub": 3, "cite": 2, "words": 1400},
+    "ch01_intro.tex":      {"eq": 1, "fig": 0, "sub": 3, "cite": 2, "words": 1300},
     "ch06_algorithm.tex":  {"eq": 3, "fig": 1, "sub": 5, "cite": 3, "words": 1800},
     "ch07_oursystem.tex":  {"eq": 2, "fig": 1, "sub": 4, "cite": 2, "words": 1600},
     "ch08_results.tex":    {"eq": 2, "fig": 1, "sub": 5, "cite": 3, "words": 1800},

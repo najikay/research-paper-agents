@@ -4,12 +4,11 @@ An autonomous multi-agent research platform that takes a `--topic` argument and 
 
 Built for Assignment 3 — *Orchestration of AI Agents*, Semester B 2026.
 
-### Latest Results (v11)
+### Latest Results (v13)
 
-| Run | Topic | Score | Pages | PDF |
-|---|---|---|---|---|
-| 1 | Bat-Inspired Drone Navigation via Bio-Mimetic SLAM | 88/100 | 19 | 10.0 MB |
-| 2 | Dolphin-Inspired Submarine Drone Navigation | 88/100 | 19 | 10.3 MB |
+| Run | Topic | Score | Pages | PDF | Remediation |
+|---|---|---|---|---|---|
+| 1 | Bat-Inspired Drone Navigation via Bio-Mimetic SLAM | 96/100 | 23 | 4.1 MB | 3 cycles |
 
 ---
 
@@ -84,8 +83,8 @@ main.py --topic "..."
 | **8 domain experts** | PhD-level specialists contribute equations, algorithms, references in their field |
 | **3 LaTeX writers** | A (abstract+ch01-03+bib), B (ch04-06), C (ch07-09) for better iteration budget |
 | **Quality gate** | Programmatic checker in LangGraph node; no LLM, no loop risk |
-| **Feedback loop** | LangGraph conditional edge: score < 75 -> remediation (max 3 cycles) |
-| **23-fix sanitizer** | Auto-fixes common LLM errors (em dashes, `\begin{center}`, `\ensuremath`, stray braces, etc.) before compilation |
+| **Feedback loop** | LangGraph conditional edge: score < 90 -> remediation (max 4 cycles) |
+| **25-fix sanitizer** | Auto-fixes common LLM errors (em dashes, `\begin{center}`, `\ensuremath`, stray braces, figure sizing, etc.) before compilation |
 | **Fault tolerance** | Every task writes an `output_file`; `--resume` skips completed tasks |
 | **Run isolation** | `outputs/runs/{slug}-{date}/` is self-contained; project-root `latex/` is read-only template |
 | **Cost** | DeepSeek V3 via OpenAI-compatible API (~$0.16/run) |
@@ -248,7 +247,7 @@ Programmatic (no LLM). Per-chapter checks:
 
 Additional checks: `references.bib` >= 10 entries, missing figure penalty (capped at -20), no `\begin{center}` at document level, no em dashes in Hebrew prose, no placeholder `\fbox` boxes.
 
-Score < 75 -> FAIL -> remediation crew (max 3 cycles).
+Score < 90 -> FAIL -> remediation crew (max 4 cycles).
 
 ---
 
@@ -313,7 +312,7 @@ Word count targets ensure 25-30 printed pages:
 
 ### LaTeX Sanitizer
 
-Before compilation, `_sanitize_tex_files()` applies 23 automatic fixes to agent-generated LaTeX:
+Before compilation, `_sanitize_tex_files()` applies 25 automatic fixes to agent-generated LaTeX:
 - Removes preamble commands from chapter files (`\documentclass`, `\usepackage`, `\begin{document}`)
 - Replaces `\begin{center}` with `\centering` (prevents bidi crash)
 - Replaces em dashes with colons, en dashes with hyphens
@@ -328,6 +327,8 @@ Before compilation, `_sanitize_tex_files()` applies 23 automatic fixes to agent-
 - Converts author-name commands `\Au`, `\Thorp` → `\en{Au}` (Fix 21)
 - Resolves `\ensuremath{$\theta$}` nested math mode (Fix 22, brace-counting parser)
 - Removes stray `}` via brace-depth tracking (Fix 23)
+- Auto-upgrades wide figures to `figure*` (two-column) based on PNG aspect ratio (Fix 24)
+- Extracts math superscripts from `\en{}` blocks: `\en{m/s^2}` → `\en{m/s}$^2$` (Fix 25)
 
 ---
 

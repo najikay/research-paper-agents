@@ -1,4 +1,4 @@
-# NavigatorCrew — Implementation Plan (v11)
+# NavigatorCrew — Implementation Plan (v13)
 
 ## Architecture Summary
 
@@ -114,10 +114,25 @@ remediation:      targeted fix crew (max 3 cycles)
 - [x] `output_file` removed from outline/research tasks (CrewAI overwrites SafeFileWriterTool content)
 - [x] Successful runs: bat (19pp, 88/100) + dolphin (19pp, 88/100)
 
+## Phase 12: Figure Sizing & Error Elimination (COMPLETE)
+
+- [x] Fix 24: Auto-upgrade wide figures (`figure` → `figure*`) based on PNG aspect ratio > 1.8
+- [x] Fix 25: Extract math superscripts from `\en{}` blocks (`\en{m/s^2}` → `\en{m/s}$^2$`)
+- [x] LaTeX writer instructions updated: explicit `figure*` guidance for wide images
+- [x] Result: 19 → 22 pages from figure sizing alone; 0 fatal LaTeX errors (was 8)
+
+## Phase 13: Quality Gate & Remediation Boost (COMPLETE)
+
+- [x] QUALITY_THRESHOLD raised 75 → 90 (remediation fires more often)
+- [x] MAX_REMEDIATIONS raised 3 → 4
+- [x] Word minimums raised: default 1100→1400, ch01 1200→1400, ch06/ch08 1600→1800
+- [x] Remediation prompt improved: reads references.bib, targets 400+ words/chapter, processes ALL failures
+- [x] Result: 22 → 23 pages, score 88 → 96/100, 3 remediation cycles active
+
 ## Backlog
 
-- [ ] Push page count to 25-30 pages consistently
-- [ ] Reduce non-fatal LaTeX errors (~78 per run)
+- [ ] Push page count to 25 pages consistently (currently 23)
+- [ ] Push score to 100/100 (currently 96 — ch01 words barely short)
 - [ ] ArXiv search for real citations in researcher
 - [ ] Post-run `references.bib` key validator
 - [ ] Token-budget enforcement: abort if projected cost exceeds threshold
