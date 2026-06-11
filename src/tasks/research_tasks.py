@@ -310,10 +310,14 @@ CONTENT DEPTH — targeting 25–30 printed pages total:
     IMPORTANT: Write ALL chapters — do NOT skip any. Each chapter MUST be written to its own file.
 
 FIGURE WIDTH AND PLACEMENT RULES:
-    • Single-column figures: \\begin{{figure}}[htbp] with [width=0.98\\columnwidth]
-    • Wide figures (flowcharts, multi-panel): \\begin{{figure*}}[htbp] with [width=\\textwidth]
+    • Default for simple plots: \\begin{{figure}}[htbp] with [width=0.98\\columnwidth]
+    • WIDE figures MUST use: \\begin{{figure*}}[htbp] with [width=\\textwidth]
+      Use figure* for: architecture diagrams, pipeline flowcharts, multi-panel figures,
+      wide spectrograms, comparison bar charts, system block diagrams, and any figure
+      with a landscape/wide aspect ratio. In real IEEE papers these ALWAYS span both columns.
     • NEVER use [H] for float placement — it causes overlapping in two-column IEEE.
     • NEVER use width smaller than 0.9\\columnwidth.
+    • Aim for at least 40\\% of figures to use figure* — this improves readability.
 
 LABEL UNIQUENESS — every \\label{{}} must be globally unique:
     • Prefix with chapter ID: \\label{{fig:ch02_name}}, \\label{{eq:ch03_name}}, \\label{{tab:ch05_name}}
