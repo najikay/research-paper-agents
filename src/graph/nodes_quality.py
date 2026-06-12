@@ -9,6 +9,10 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
+from src.config import PROJECT_ROOT, logger
+from src.graph.nodes_quality_report import score_bib_and_figures, write_quality_report
+from src.graph.state import PipelineState
+
 QUALITY_THRESHOLD = 90
 MAX_REMEDIATIONS = 4
 MIN_BIB_ENTRIES = 10
@@ -83,61 +87,44 @@ def _score_chapters(chapters_dir: Path) -> tuple[int, list[str], list[str]]:
     return penalty, issues, failed
 
 
-def _score_bib_and_figures(
-    run_folder: Path, chapters_dir: Path, bib_path: Path,
-) -> tuple[int, list[str], list[str]]:
-    """Check references.bib and figure refs. Returns (penalty, issues, failed)."""
-    penalty = 0
-    issues: list[str] = []
-    failed: list[str] = []
+def run_quality_gate(state: PipelineState) -> dict:
+    """Programmatic quality check of generated LaTeX files."""
+    logger.info("[Graph] NODE: run_quality_gate (programmatic)")
+    run_folder = Path(state["run_folder"])
 
-    if bib_path.exists():
-        bib_text = bib_path.read_text(encoding="utf-8", errors="replace")
-        entry_count = len(re.findall(r"@\w+\{", bib_text))
-        if entry_count < MIN_BIB_ENTRIES:
-            issues.append(f"references.bib has only {entry_count} entries (need ≥{MIN_BIB_ENTRIES})")
-            penalty += max(0, (MIN_BIB_ENTRIES - entry_count) * 2)
-            failed.append("references")
-    else:
-        issues.append("references.bib does not exist")
-        penalty += 20
-        failed.append("references")
+    from main import (
+        _deduplicate_cross_chapter_figures,
+        _diversify_stub_figures,
+        _generate_fallback_figures,
+        _sanitize_tex_files,
+        validate_and_fix_chapters,
+    )
+    validate_and_fix_chapters(run_folder)
+    _diversify_stub_figures(run_folder)
+    _deduplicate_cross_chapter_figures(run_folder)
+    _generate_fallback_figures(run_folder)
+    _sanitize_tex_files(run_folder / "latex" / "chapters")
 
-    figures_dir = run_folder / "latex" / "figures"
-    missing_fig_penalty = 0
-    for fpath in chapters_dir.glob("*.tex"):
-        text = fpath.read_text(encoding="utf-8", errors="replace")
-        for fig_ref in re.findall(r'\\includegraphics(?:\[[^\]]*\])?\{figures/([^}]+)\}', text):
-            if not (figures_dir / fig_ref).exists():
-                issues.append(f"{fpath.name}: missing figure file 'figures/{fig_ref}'")
-                failed.append("figures")
-                if missing_fig_penalty < 20:
-                    missing_fig_penalty += 2
-    penalty += missing_fig_penalty
+    chapters_dir = run_folder / "latex" / "chapters"
+    bib_path = run_folder / "latex" / "references.bib"
 
-    static_files = {"cover.tex"}
-    agent_tex = [f for f in chapters_dir.glob("*.tex") if f.name not in static_files]
-    placeholder_files, emdash_files, center_files = [], [], []
-    for fpath in agent_tex:
-        text = fpath.read_text(encoding="utf-8", errors="replace")
-        if "PLACEHOLDER" in text or r"\fbox{\parbox" in text:
-            placeholder_files.append(fpath.name)
-        clean = re.sub(r"\\en\{[^}]*\}", "", text)
-        if "\u2014" in clean:
-            emdash_files.append(fpath.name)
-        if r"\begin{center}" in text:
-            center_files.append(fpath.name)
+    ch_penalty, ch_issues, ch_failed = _score_chapters(chapters_dir)
+    bf_penalty, bf_issues, bf_failed = score_bib_and_figures(
+        run_folder, chapters_dir, bib_path, MIN_BIB_ENTRIES,
+    )
 
-    if placeholder_files:
-        issues.append(f"Placeholder boxes found in: {placeholder_files}")
-        penalty += 5
-        failed.append("figures")
-    if emdash_files:
-        issues.append(f"Em dashes in Hebrew prose: {emdash_files}")
-        penalty += 2
-    if center_files:
-        issues.append(f"\\begin{{center}} at document level (bidi crash risk): {center_files}")
-        penalty += 10
-        failed.append("methodology")
+    issues = ch_issues + bf_issues
+    failed_sections = sorted(set(ch_failed + bf_failed))
+    score = max(0, min(100, 100 - ch_penalty - bf_penalty))
+    verdict = "PASS" if score >= QUALITY_THRESHOLD else "FAIL"
 
-    return penalty, issues, failed
+    write_quality_report(
+        score, verdict, QUALITY_THRESHOLD, failed_sections, issues,
+        _CHAPTER_MIN_REQS, _DEFAULT_MIN_REQS, MIN_BIB_ENTRIES,
+    )
+
+    return {
+        "quality_verdict": verdict,
+        "quality_score": score,
+        "failed_sections": failed_sections,
+    }

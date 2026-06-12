@@ -2,6 +2,7 @@
 
 from .research_tasks import (
     create_all_tasks,
+    create_remediation_task,
     create_research_tasks,
     create_smoke_tasks,
     create_task_domain_expert,
