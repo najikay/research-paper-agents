@@ -40,8 +40,8 @@ A full run takes a single `--topic` argument and produces a compiled, bilingual 
 
 | Run | Topic | Score | PDF | Remediation |
 |---|---|---|---|---|
+| bat-inspired-2026-06-11-v2 | Bat-Inspired Drone Navigation via Bio-Mimetic Sonar | 96/100 (PASS) | 4.1 MB | 0 cycles |
 | pit-viper-inspired-2026-06-11 | Pit Viper Inspired Infrared Thermal and Acoustic Navigation | 90/100 (PASS) | 5.3 MB | 1 cycle |
-| autonomous-underwater-2026-06-12 | Autonomous Underwater Vehicle Navigation Using Acoustic SLAM | 74/100 | 3.1 MB | 2 cycles |
 | swarm-intelligence-2026-06-11 | Swarm Intelligence Based Search and Rescue | 76/100 | 3.6 MB | 2 cycles |
 
 ---
