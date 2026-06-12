@@ -13,28 +13,29 @@ A full run takes a single `--topic` argument and produces a compiled, bilingual 
 
 ### Compiled paper
 
-| Cover page | Content + figure |
+| Cover page | Content + figures |
 |:---:|:---:|
-| ![Cover page: אוניברסיטת חיפה, faculty, both author names](docs/screenshots/cover_.PNG) | ![A chapter page with Hebrew prose, a numbered equation, and an embedded figure](docs/screenshots/1_.PNG) |
+| ![Cover page: אוניברסיטת חיפה, faculty, both author names](docs/screenshots/new_cover.PNG) | ![A chapter page with Hebrew prose, a numbered equation, and an embedded figure](docs/screenshots/new_content.PNG) ![Content page 2](docs/screenshots/new_content1.PNG) |
 
 ### Pipeline run
 
-![Terminal at start](docs/screenshots/terminal_start.PNG)
+![Terminal at start](docs/screenshots/new_terminal_started.PNG)
 
-![Terminal in progress](docs/screenshots/terminal_in_progress.PNG)
+![Terminal in progress](docs/screenshots/new_terminal_in_progress3.PNG)
 
-![Terminal finished](docs/screenshots/terminal_finished.PNG)
+![Terminal in progress](docs/screenshots/new_terminal_in_progress2.PNG)
+
+![Terminal finished](docs/screenshots/new_terminal_finished.PNG)
 
 ### Generated output
 
-![alt text](docs/screenshots/tree.PNG)
-
+![Output tree](docs/screenshots/new_tree.PNG)
 
 ### Sample generated figures
 
 | Figure 1 | Figure 2 | Figure 3 |
 |:---:|:---:|:---:|
-| ![Generated figure 1](outputs/runs/autonomous-underwater-vehicle-navigation-2026-06-12/latex/figures/fig_sensor_models.png) | ![Generated figure 2](outputs/runs/autonomous-underwater-vehicle-navigation-2026-06-12/latex/figures/fig_feature_extraction_pipeline.png) | ![Generated figure 3](outputs/runs/autonomous-underwater-vehicle-navigation-2026-06-12/latex/figures/fig_bioslam_flow.png) |
+| ![Generated figure 1](outputs/runs/bat-inspired-drone-navigation-via-bio-mi-2026-06-12-v4/latex/figures/fig_ch03_auto.png) | ![Generated figure 2](outputs/runs/bat-inspired-drone-navigation-via-bio-mi-2026-06-12-v4/latex/figures/fig_ch06_auto.png) | ![Generated figure 3](outputs/runs/bat-inspired-drone-navigation-via-bio-mi-2026-06-12-v4/latex/figures/fig_ch08_auto.png) |
 
 ### Latest Results
 
