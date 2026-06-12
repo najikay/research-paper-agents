@@ -60,12 +60,16 @@ def create_run_folder(topic: str) -> Path:
 
 
 def _save_run_folder(run_folder: Path) -> None:
+    """Persist the current run folder path to the state file so --resume can
+    locate it on a later invocation."""
     state = _run_state_file()
     state.parent.mkdir(parents=True, exist_ok=True)
     state.write_text(str(run_folder), encoding="utf-8")
 
 
 def _load_run_folder() -> Path | None:
+    """Read the previously saved run folder path from the state file. Returns
+    the Path if it exists on disk, otherwise None."""
     state = _run_state_file()
     if state.exists():
         p = Path(state.read_text(encoding="utf-8").strip())

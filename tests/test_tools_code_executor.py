@@ -6,12 +6,7 @@ Unit tests for validate_imports() and PythonCodeExecutorTool.
 
 from __future__ import annotations
 
-from pathlib import Path
-
-import pytest
-
 from src.tools.code_executor import PythonCodeExecutorTool, validate_imports
-
 
 # ---------------------------------------------------------------------------
 # validate_imports — whitelist tests

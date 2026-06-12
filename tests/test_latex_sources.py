@@ -9,10 +9,6 @@ structural regressions.
 
 from __future__ import annotations
 
-from pathlib import Path
-
-import pytest
-
 from src.config import PROJECT_ROOT
 
 LATEX_DIR    = PROJECT_ROOT / "latex"
@@ -147,6 +143,6 @@ def test_no_stale_chapter_naming():
     """No files matching latex/chapters/chapter*.tex must exist (old naming convention)."""
     stale = list(CHAPTERS_DIR.glob("chapter*.tex"))
     assert stale == [], (
-        f"Stale chapter files found using old 'chapter*.tex' naming: "
+        "Stale chapter files found using old 'chapter*.tex' naming: "
         + ", ".join(f.name for f in stale)
     )

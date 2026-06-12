@@ -8,8 +8,6 @@ from __future__ import annotations
 
 import threading
 
-import pytest
-
 from src.utils.token_accountant import REPORT_KEYS, TokenAccountant
 
 

@@ -10,21 +10,20 @@ from pathlib import Path
 
 import pytest
 
-from src.agents.navigation_director import create_navigation_director
-from src.agents.slam_researcher import create_slam_researcher
-from src.agents.visualization_engineer import create_visualization_engineer
+from src.agents.aerospace_marine_expert import create_aerospace_marine_expert
+from src.agents.algorithms_expert import create_algorithms_expert
+from src.agents.biology_expert import create_biology_expert
 from src.agents.hebrew_academic_writer import create_hebrew_academic_writer
 from src.agents.latex_author import create_latex_author
-from src.agents.vision_ai_expert import create_vision_ai_expert
+from src.agents.navigation_director import create_navigation_director
 from src.agents.physics_expert import create_physics_expert
-from src.agents.algorithms_expert import create_algorithms_expert
-from src.agents.aerospace_marine_expert import create_aerospace_marine_expert
-from src.agents.biology_expert import create_biology_expert
+from src.agents.slam_researcher import create_slam_researcher
+from src.agents.vision_ai_expert import create_vision_ai_expert
+from src.agents.visualization_engineer import create_visualization_engineer
 from src.tasks.research_tasks import (
     create_all_tasks,
     create_task_figures,
     create_task_hebrew_prose,
-    create_task_latex,
     create_task_latex_part1,
     create_task_latex_part2,
     create_task_outline,

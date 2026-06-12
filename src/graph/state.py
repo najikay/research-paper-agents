@@ -5,9 +5,16 @@ LangGraph state schema for the NavigatorCrew pipeline.
 Each field is the authoritative checkpoint between phases.
 """
 from __future__ import annotations
+
 from typing import TypedDict
 
+
 class PipelineState(TypedDict):
+    """
+    LangGraph state schema shared across the NavigatorCrew pipeline phases.
+    Tracks the run topic and folder, the quality-gate verdict/score and failed
+    sections, remediation and research-fix counts, and the fast/smoke mode flags.
+    """
     topic: str
     run_folder: str              # Absolute path to this run's folder
     remediation_count: int       # How many remediation loops have run

@@ -8,6 +8,12 @@ from __future__ import annotations
 
 
 def render_fusion_comparison(plt, np, rng, label):
+    """Render a two-panel sensor-fusion comparison figure.
+
+    Left panel is a bar chart of localization RMSE per method; right panel is a
+    grouped bar chart of navigation success rate by scenario for baseline EKF
+    versus the proposed method. Draws onto the current figure.
+    """
     fig, axes = plt.subplots(1, 2, figsize=(13, 5))
     methods = ["Sonar\nOnly", "IMU\nOnly", "Opt.Flow\nOnly", "EKF\nFusion", "Proposed\nBio-Fuse"]
     rmse = [5.8, 4.3, 6.1, 2.4, 1.2]
@@ -35,6 +41,13 @@ def render_fusion_comparison(plt, np, rng, label):
 
 
 def render_potential_field(plt, np, rng, label):
+    """Render a two-panel obstacle-avoidance figure.
+
+    Left panel shows an artificial potential field (attractive goal plus
+    repulsive obstacles) with goal, obstacles, and a simulated path overlaid;
+    right panel plots time-to-collision against a safety threshold. Draws onto
+    the current figure.
+    """
     fig, axes = plt.subplots(1, 2, figsize=(13, 5.5))
     # Potential field visualization
     xx, yy = np.meshgrid(np.linspace(-5, 5, 60), np.linspace(-5, 5, 60))
@@ -75,6 +88,12 @@ def render_potential_field(plt, np, rng, label):
 
 
 def render_architecture(plt, np, rng, label):
+    """Render a layered system-architecture block diagram.
+
+    Draws colour-coded boxes organised into sensor, processing, estimation, and
+    planning/control layers, connected by inter-layer arrows. Draws onto the
+    current figure.
+    """
     fig, ax = plt.subplots(figsize=(12, 6))
     ax.set_xlim(0, 16)
     ax.set_ylim(0, 8)

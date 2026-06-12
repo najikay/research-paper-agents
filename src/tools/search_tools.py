@@ -7,20 +7,19 @@ External search tools for the NavigatorCrew.
 from __future__ import annotations
 
 import os
-import textwrap
-from typing import Any, Optional, Type
+from typing import Any
 
 import requests
 from crewai.tools import BaseTool
 from pydantic import BaseModel, Field
-
-from src.config import logger
 
 _SERPER_ENDPOINT = "https://google.serper.dev/search"
 _SERPER_DEFAULT_N = 8
 
 
 class SerperSearchInput(BaseModel):
+    """Arguments for SerperDevSearchTool: the search `query` and the number of organic results `n_results` to return."""
+
     query: str = Field(
         ...,
         description=(
@@ -34,13 +33,16 @@ class SerperSearchInput(BaseModel):
 
 
 class SerperDevSearchTool(BaseTool):
+    """Search Google for academic and technical sources via the Serper.dev API."""
+
     name: str = "SerperDevSearchTool"
     description: str = (
         "Search Google for academic and technical sources using Serper.dev. "
     )
-    args_schema: Type[BaseModel] = SerperSearchInput
+    args_schema: type[BaseModel] = SerperSearchInput
 
     def _run(self, query: str, n_results: int = _SERPER_DEFAULT_N, **kwargs: Any) -> str:
+        """Query Serper.dev and return a formatted list of organic results (title, URL, snippet), or an ERROR/no-results message."""
         api_key = os.getenv("SERPER_API_KEY", "").strip()
         if not api_key:
             return "ERROR: SERPER_API_KEY is not set."
@@ -66,16 +68,21 @@ class SerperDevSearchTool(BaseTool):
 
 
 class ArxivSearchInput(BaseModel):
+    """Arguments for ArxivSearchTool: the arXiv search `query` and the number of papers `n_results` to return."""
+
     query: str = Field(..., description="arXiv search query.")
     n_results: int = Field(default=5, ge=1, le=15)
 
 
 class ArxivSearchTool(BaseTool):
+    """Search arXiv for academic papers."""
+
     name: str = "ArxivSearchTool"
     description: str = "Search arXiv for academic papers."
-    args_schema: Type[BaseModel] = ArxivSearchInput
+    args_schema: type[BaseModel] = ArxivSearchInput
 
     def _run(self, query: str, n_results: int = 5, **kwargs: Any) -> str:
+        """Query arXiv and return a formatted list of papers (title, authors, PDF URL), or an ERROR/no-results message."""
         try:
             import arxiv
         except ImportError:

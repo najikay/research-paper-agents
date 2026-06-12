@@ -12,6 +12,13 @@ import re
 
 
 def apply_content_fixes(text: str) -> str:
+    """
+    Apply content-level sanitizer fixes (12a-19) to a chapter's .tex *text* and
+    return the repaired text. Covers \\en{} block repairs, undefined cross-ref
+    macros, algorithm-environment conversion, tabular newline repair, Hebrew
+    escape removal, underscore/superscript escaping, bare-math wrapping, degree
+    and quote glyph fixes, and single-row bmatrix conversion.
+    """
     # Fix 12a: Unwrap \en{} from math mode — $\en{Word}$ → \en{Word}
     # Also handles \(\en{Word}\) syntax. Polyglossia \en{} does language-group
     # switching that breaks inside math mode.
@@ -78,6 +85,9 @@ def apply_content_fixes(text: str) -> str:
     # operator that causes "Missing $ inserted" cascading errors.
     # Replace _ with \_ only inside \en{...} content.
     def _escape_underscores_in_en(m: re.Match) -> str:
+        """Escape every underscore inside a matched \\en{...} block (_ → \\_)
+        so it is not treated as a math-mode subscript. Returns the rebuilt
+        \\en{...} string."""
         return r'\en{' + m.group(1).replace('_', r'\_') + '}'
     text = re.sub(r'\\en\{([^}]*_[^}]*)\}', _escape_underscores_in_en, text)
 
@@ -86,6 +96,9 @@ def apply_content_fixes(text: str) -> str:
     # that crashes in text mode. Split: \en{m/s^2} → \en{m/s}$^2$
     # Handles ^N (single digit) and ^{...} (braced group).
     def _fix_math_in_en(m: re.Match) -> str:
+        """Split a matched \\en{...} block at its first superscript (^N or ^{...})
+        so the exponent is emitted in math mode, e.g. \\en{m/s^2} → \\en{m/s}$^2$.
+        Returns the original match unchanged if no such superscript is found."""
         content = m.group(1)
         # Split at first ^ that's followed by a digit or {
         caret = re.search(r'\^(\{[^}]*\}|\d+)', content)
@@ -130,6 +143,9 @@ def apply_content_fixes(text: str) -> str:
     # alignment tabs (&) causing "Extra alignment tab" fatal errors.
     # Only affects row vectors (single line between begin/end).
     def _fix_row_bmatrix(m):
+        """Convert a matched single-row bmatrix into \\left[...\\right] notation,
+        replacing alignment tabs (&) with comma separators. Returns the
+        rewritten bracketed expression."""
         inner = m.group(1).strip()
         # Replace & with ,\; for comma-separated vector notation
         inner = inner.replace(" & ", r",\; ")

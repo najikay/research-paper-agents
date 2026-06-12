@@ -8,6 +8,13 @@ from __future__ import annotations
 
 
 def render_results_multi(plt, np, rng, label):
+    """Render a four-panel results figure.
+
+    Panels show (a) position error over time, (b) the cumulative error
+    distribution (CDF), (c) per-axis mean error bars with standard deviation,
+    and (d) a computation-time breakdown by module, comparing baseline and
+    proposed methods. Draws onto the current figure.
+    """
     fig, axes = plt.subplots(2, 2, figsize=(13, 9))
     t = np.linspace(0, 60, 300)
     # Panel 1: Position error over time
@@ -53,6 +60,11 @@ def render_results_multi(plt, np, rng, label):
 
 
 def render_convergence(plt, np, rng, label):
+    """Render a convergence plot of state-estimation error versus iteration.
+
+    Compares the decaying error curves of the standard EKF and the proposed
+    bio-mimetic method over 50 iterations. Draws onto the current figure.
+    """
     fig, ax = plt.subplots(figsize=(9, 5))
     iters = np.arange(1, 51)
     loss_ekf = 5 * np.exp(-0.08 * iters) + 0.8 + 0.2 * rng.randn(50) * np.exp(-0.05 * iters)
@@ -70,6 +82,11 @@ def render_convergence(plt, np, rng, label):
 
 
 def render_generic(plt, np, rng, label):
+    """Render a generic two-signal decaying-oscillation plot as a safe fallback.
+
+    Plots damped sine and cosine signals; used when no specific renderer matches.
+    Draws onto the current figure.
+    """
     # Should not reach here, but provide a safe fallback
     fig, ax = plt.subplots(figsize=(8, 5))
     x = np.linspace(0, 10, 200)

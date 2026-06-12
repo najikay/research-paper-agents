@@ -2,8 +2,7 @@
 src/tasks/tasks_latex_rules.py — shared LaTeX writing rules.
 """
 from __future__ import annotations
-from pathlib import Path
-from crewai import Agent, Task
+
 from src.tasks.staging import _STAGING
 
 

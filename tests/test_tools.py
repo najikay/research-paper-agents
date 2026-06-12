@@ -4,13 +4,8 @@ tests/test_tools.py
 Unit tests for Module 3: Tool definitions.
 """
 
-import pytest
-from src.tools import (
-    PythonCodeExecutorTool,
-    SafeFileWriterTool,
-    FileReaderTool
-)
-from src.config import PROJECT_ROOT
+from src.tools import FileReaderTool, PythonCodeExecutorTool, SafeFileWriterTool
+
 
 def test_code_executor_security():
     tool = PythonCodeExecutorTool()

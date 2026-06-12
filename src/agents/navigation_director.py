@@ -15,7 +15,6 @@ from crewai import Agent
 
 from src.config import AGENT_MAX_ITER, SONNET_LLM, logger
 
-
 # ---------------------------------------------------------------------------
 # System prompt fragments
 # ---------------------------------------------------------------------------

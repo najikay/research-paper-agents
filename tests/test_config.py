@@ -86,7 +86,6 @@ def test_paper_page_targets():
 
 def test_validate_config_passes_with_deepseek(monkeypatch):
     """validate_config() should not raise when DEEPSEEK_API_KEY and SERPER_API_KEY are set."""
-    import os
     monkeypatch.setenv("ACTIVE_PROVIDER", "deepseek")
     monkeypatch.setenv("DEEPSEEK_API_KEY", "sk-test-deepseek-key")
     monkeypatch.setenv("SERPER_API_KEY", "test-serper-key")

@@ -17,9 +17,9 @@ from src.runner.finalize import finalize_run
 
 def run_dry_run(args, run_folder: Path) -> None:
     """Execute the full dry-run flow and print the summary banner."""
-    from src.stubs import write_stub_chapters
     from src.graph.nodes import run_quality_gate
     from src.graph.state import PipelineState
+    from src.stubs import write_stub_chapters
 
     write_stub_chapters(run_folder, args.topic)
 

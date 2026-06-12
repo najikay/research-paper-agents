@@ -8,10 +8,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-import pytest
-
 from src.tools.file_tools import FileReaderTool, SafeFileWriterTool
-
 
 # ---------------------------------------------------------------------------
 # SafeFileWriterTool — security block tests
@@ -51,8 +48,8 @@ def test_write_to_protected_cover_blocked():
 
 def test_write_success_to_outputs(tmp_path, monkeypatch):
     """Writing to outputs/ in a tmp_path context must succeed and return SUCCESS."""
-    import src.tools.file_tools as ft
     import src.config as cfg
+    import src.tools.file_tools as ft
 
     monkeypatch.setattr(cfg, "PROJECT_ROOT", tmp_path)
     monkeypatch.setattr(ft, "PROJECT_ROOT", tmp_path)
@@ -72,8 +69,8 @@ def test_write_success_to_outputs(tmp_path, monkeypatch):
 
 def test_write_creates_parent_dirs(tmp_path, monkeypatch):
     """SafeFileWriterTool must create intermediate directories automatically."""
-    import src.tools.file_tools as ft
     import src.config as cfg
+    import src.tools.file_tools as ft
 
     monkeypatch.setattr(cfg, "PROJECT_ROOT", tmp_path)
     monkeypatch.setattr(ft, "PROJECT_ROOT", tmp_path)
@@ -112,8 +109,8 @@ def test_read_missing_file():
 
 def test_write_content_correct(tmp_path, monkeypatch):
     """Content written by SafeFileWriterTool must be identical when read back."""
-    import src.tools.file_tools as ft
     import src.config as cfg
+    import src.tools.file_tools as ft
 
     monkeypatch.setattr(cfg, "PROJECT_ROOT", tmp_path)
     monkeypatch.setattr(ft, "PROJECT_ROOT", tmp_path)

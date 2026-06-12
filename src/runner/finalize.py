@@ -41,13 +41,13 @@ def finalize_run(run_folder: Path) -> None:
         f"Folder : {run_folder.name}",
         "",
         f"LaTeX source: {run_folder}/latex/",
-        f"  chapters/  ← static + agent-written .tex files",
+        "  chapters/  ← static + agent-written .tex files",
         f"  figures/   ← {len(figures)} agent-generated PNG(s)",
     ]
     for fig in figures:
         lines.append(f"    {fig}")
     lines += [
-        f"  references.bib",
+        "  references.bib",
         "",
         f"Agent outputs ({len(moved)} files): {run_folder}/outputs/",
     ]

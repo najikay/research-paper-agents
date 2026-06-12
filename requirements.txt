@@ -4,6 +4,8 @@
 # =============================================================================
 # Install: pip install -r requirements.txt
 # Requires: Python 3.11+
+# NOTE: pyproject.toml + uv.lock are the canonical dependency source (uv sync).
+#       This file is kept in sync for the pip install path.
 
 # --- Core AI Framework ---
 crewai>=0.80.0
@@ -38,6 +40,7 @@ python-dotenv>=1.0.0
 # --- Code Quality & Testing ---
 pytest>=8.0.0
 pytest-cov>=5.0.0               # Coverage reports
+ruff>=0.6.0                     # Linter (config in pyproject.toml)
 
 # --- Utilities ---
 litellm>=1.40.0                 # Success callback for token accounting

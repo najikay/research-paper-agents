@@ -30,12 +30,22 @@ _SAFE_CMDS = {
 
 
 def apply_final_fixes(text: str) -> str:
+    """
+    Apply the final-pass sanitizer fixes (21, 22, 23, 20, 12b) to a chapter's
+    .tex *text* and return the repaired text. Wraps author-name macros in
+    \\en{}, flattens \\ensuremath{...} to $...$, drops stray closing braces,
+    appends closing braces for truncated files, and wraps remaining bare math
+    symbols in $...$.
+    """
     # Fix 21: Convert \AuthorName patterns to \en{AuthorName}.
     # LLM agents write \Au, \Thorp, \Ketten etc. as undefined control sequences
     # (treating author names as commands). This causes "Undefined control sequence"
     # fatal errors. Convert \CapitalizedWord to \en{CapitalizedWord} when NOT
     # followed by { and NOT a known LaTeX command.
     def _fix_author_cmd(m):
+        """Convert a matched \\CapitalizedWord control sequence to \\en{Word},
+        unless the word is a known-safe LaTeX command (in _SAFE_CMDS), in which
+        case the original match is returned unchanged."""
         word = m.group(1)
         if word in _SAFE_CMDS:
             return m.group(0)

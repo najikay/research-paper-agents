@@ -131,6 +131,17 @@ main.py --topic "..."
 
 ### 2. Install
 
+Using [uv](https://docs.astral.sh/uv/) (recommended — reproducible from `uv.lock`):
+
+```bash
+git clone <repo-url>
+cd <project-dir>
+uv sync                 # creates .venv and installs the locked dependency set
+uv sync --extra dev     # add this to also install pytest + ruff for development
+```
+
+Or with pip:
+
 ```bash
 git clone <repo-url>
 cd <project-dir>

@@ -6,7 +6,7 @@ WebScraperTool.
 
 from __future__ import annotations
 
-from typing import Any, Type
+from typing import Any
 
 from crewai.tools import BaseTool
 from pydantic import BaseModel, Field
@@ -15,15 +15,20 @@ from src.config import logger
 
 
 class WebScraperInput(BaseModel):
+    """Arguments for NavigatorWebScraperTool: the `url` of the page to scrape."""
+
     url: str = Field(..., description="URL to scrape.")
 
 
 class NavigatorWebScraperTool(BaseTool):
+    """Fetch a web page and return its readable text content."""
+
     name: str = "NavigatorWebScraperTool"
     description: str = "Fetch the text content of a web page."
-    args_schema: Type[BaseModel] = WebScraperInput
+    args_schema: type[BaseModel] = WebScraperInput
 
     def _run(self, url: str, **kwargs: Any) -> str:
+        """Fetch `url`, strip script/style/nav/footer tags, and return up to 8 KB of readable text, or an ERROR message on failure."""
         logger.debug(f"NavigatorWebScraperTool: fetching {url}")
         try:
             import requests

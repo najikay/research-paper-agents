@@ -2,10 +2,14 @@
 src/tasks/tasks_latex_parts.py — 2-way LaTeX split (part1/part2) + remediation alias.
 """
 from __future__ import annotations
+
 from pathlib import Path
+
 from crewai import Agent, Task
+
 from src.tasks.staging import _STAGING
 from src.tasks.tasks_latex_rules import _latex_shared_rules
+
 
 def create_task_latex_part1(author: Agent, context: list[Task], run_folder: Path | None = None) -> Task:
     """

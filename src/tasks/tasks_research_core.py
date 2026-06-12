@@ -2,12 +2,20 @@
 src/tasks/tasks_research_core.py — outline, research, and figure task factories.
 """
 from __future__ import annotations
+
 from pathlib import Path
+
 from crewai import Agent, Task
+
 from src.tasks.staging import _STAGING
 
 
 def create_task_outline(director: Agent, topic: str) -> Task:
+    """
+    Build the CrewAI Task that decomposes the topic into a chapter-by-chapter
+    outline for a 25-30 page IEEE paper. Produces paper_outline.md with Hebrew
+    section titles, subsections, equations, figure filenames, and search keywords.
+    """
     return Task(
         description=f"""
 Analyze the topic '{topic}' and create a chapter-by-chapter outline for a 25–30 page IEEE paper.
@@ -43,6 +51,11 @@ STEP 3 — Write the complete outline to {_STAGING}/paper_outline.md.
 
 
 def create_task_research(researcher: Agent, context: list[Task]) -> Task:
+    """
+    Build the CrewAI Task that researches each sub-domain from the outline using
+    web and ArXiv search. Produces research_briefs.md with eight technical briefs
+    (summaries, equations, algorithms, BibTeX citations, figures, comparison tables).
+    """
     return Task(
         description=f"""
 Produce 8 detailed technical research briefs based on {_STAGING}/paper_outline.md.
@@ -76,6 +89,11 @@ STEP 4 — Save ALL briefs using SafeFileWriterTool to {_STAGING}/research_brief
 
 
 def create_task_figures(visualizer: Agent, context: list[Task], run_folder: Path | None = None) -> Task:
+    """
+    Build the CrewAI Task that generates the nine IEEE-standard 300 DPI PNG
+    figures specified in the outline via matplotlib. Produces the figure files in
+    the run's latex/figures folder plus figures_manifest.md listing each one.
+    """
     latex_figures = str(run_folder / "latex" / "figures") if run_folder else "latex/figures"
     return Task(
         description=f"""

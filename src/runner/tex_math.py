@@ -43,6 +43,8 @@ def _wrap_bare_math_in_text(text: str) -> str:
     placeholders: list[str] = []
 
     def _save(m: re.Match) -> str:
+        """Stash the matched region in placeholders and return a sentinel token
+        (\\x00MATH<index>\\x00) standing in for it, to be restored later."""
         placeholders.append(m.group(0))
         return f'\x00MATH{len(placeholders) - 1}\x00'
 
@@ -110,7 +112,13 @@ def _upgrade_wide_figures(text: str, figures_dir: Path) -> str:
     )
 
     def _maybe_upgrade(m: re.Match) -> str:
-        begin, placement, body, end = m.group(1), m.group(2), m.group(3), m.group(4)
+        """
+        Inspect one matched figure block and, if its PNG aspect ratio exceeds
+        1.8, return a full-width figure* version (columnwidth → textwidth);
+        otherwise return the block unchanged. Leaves blocks unchanged when the
+        image is missing or its dimensions cannot be read.
+        """
+        placement, body = m.group(2), m.group(3)
         # Extract the figure filename from \includegraphics
         fig_match = re.search(r'\\includegraphics(?:\[[^\]]*\])?\{figures/([^}]+)\}', body)
         if not fig_match:

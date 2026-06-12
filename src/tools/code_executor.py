@@ -12,7 +12,7 @@ import sys
 import tempfile
 import textwrap
 from pathlib import Path
-from typing import Any, Type
+from typing import Any
 
 from crewai.tools import BaseTool
 from pydantic import BaseModel, Field
@@ -46,6 +46,8 @@ _DEFAULT_FIGURES_DIR: Path = PROJECT_ROOT / "latex" / "figures"
 # ---------------------------------------------------------------------------
 
 class CodeExecutorInput(BaseModel):
+    """Arguments for PythonCodeExecutorTool: a complete matplotlib `code` script and the `output_filename` (.png basename) to save."""
+
     code: str = Field(
         ...,
         description=(
@@ -107,6 +109,7 @@ output_path = {output_path!r}
 
 
 def _build_script(code: str, output_path: Path) -> str:
+    """Wrap the user code in the template (Agg backend + injected `output_path`) and return the full script as a string."""
     return _SCRIPT_TEMPLATE.format(
         output_path=str(output_path),
         user_code=textwrap.dedent(code),
@@ -133,11 +136,12 @@ class PythonCodeExecutorTool(BaseTool):
         "plt.savefig(output_path, dpi=300, bbox_inches='tight') in your script. "
         "Returns the absolute path on success or an error message on failure."
     )
-    args_schema: Type[BaseModel] = CodeExecutorInput
+    args_schema: type[BaseModel] = CodeExecutorInput
     # Per-run figures directory — set by crew.py at instantiation time.
     figures_dir: Path = _DEFAULT_FIGURES_DIR
 
     def _run(self, code: str, output_filename: str, **kwargs: Any) -> str:
+        """Validate imports, run the script in a subprocess, and return a SUCCESS message with the saved figure's path or an ERROR/security-block message."""
         # 0. Sanitise filename
         if not output_filename.endswith(".png"):
             return f"ERROR: output_filename must end in .png, got {output_filename!r}"

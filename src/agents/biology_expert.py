@@ -15,10 +15,12 @@ receive accurate biological foundations rather than engineering approximations.
 """
 
 from __future__ import annotations
-from typing import Any
-from crewai import Agent
-from src.config import AGENT_MAX_ITER, SONNET_LLM, logger
 
+from typing import Any
+
+from crewai import Agent
+
+from src.config import AGENT_MAX_ITER, SONNET_LLM, logger
 
 _ROLE = "Neuroethology, Biological Sensing & Bio-Inspired Systems Specialist"
 
@@ -130,6 +132,11 @@ ensure that does not happen here.
 
 
 def create_biology_expert(tools: list[Any] | None = None) -> Agent:
+    """
+    Build the BiologyExpert agent (Dr. Noa Tal): a neuroethology and bio-inspired
+    systems specialist that supplies biological ground truth on echolocation,
+    sensory biology, and neural computation for downstream chapters.
+    """
     if tools is None:
         tools = []
         logger.warning("BiologyExpert created with NO tools.")

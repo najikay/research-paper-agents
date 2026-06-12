@@ -7,7 +7,7 @@ SafeFileWriterTool and FileReaderTool.
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any, Type
+from typing import Any
 
 from crewai.tools import BaseTool
 from pydantic import BaseModel, Field
@@ -20,16 +20,21 @@ ALLOWED_BASE_DIRS: tuple[Path, ...] = tuple(
 
 
 class SafeFileWriterInput(BaseModel):
+    """Arguments for SafeFileWriterTool: the `file_path` to write and the text `content` to write to it."""
+
     file_path: str = Field(..., description="Path to write.")
     content: str = Field(..., description="Content to write.")
 
 
 class SafeFileWriterTool(BaseTool):
+    """Write a text file, but only inside allowed directories and never over protected files."""
+
     name: str = "SafeFileWriterTool"
     description: str = "Write a text file safely."
-    args_schema: Type[BaseModel] = SafeFileWriterInput
+    args_schema: type[BaseModel] = SafeFileWriterInput
 
     def _run(self, file_path: str, content: str, **kwargs: Any) -> str:
+        """Write `content` to `file_path` after security checks, returning a SUCCESS message with the resolved path or a SECURITY BLOCK message."""
         raw = Path(file_path)
         resolved = (PROJECT_ROOT / raw).resolve() if not raw.is_absolute() else raw.resolve()
 
@@ -52,15 +57,20 @@ class SafeFileWriterTool(BaseTool):
 
 
 class FileReaderInput(BaseModel):
+    """Arguments for FileReaderTool: the `file_path` to read."""
+
     file_path: str = Field(..., description="Path to read.")
 
 
 class FileReaderTool(BaseTool):
+    """Read the text content of a file, resolving paths relative to the project root."""
+
     name: str = "FileReaderTool"
     description: str = "Read a text file."
-    args_schema: Type[BaseModel] = FileReaderInput
+    args_schema: type[BaseModel] = FileReaderInput
 
     def _run(self, file_path: str, **kwargs: Any) -> str:
+        """Resolve `file_path` against the project root and return the file's text content, or an ERROR message if it is not found."""
         raw = Path(file_path)
         # LLMs sometimes pass "/outputs/foo.md" (leading slash) which would
         # resolve to the filesystem root. Strip the leading slash so relative

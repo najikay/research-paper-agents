@@ -9,6 +9,11 @@ from __future__ import annotations
 
 
 def render_system_concept(plt, np, rng, label):
+    """Render a system concept block diagram of the sensing/navigation pipeline.
+
+    Draws labelled boxes (sensors, sensor fusion EKF, SLAM backend, obstacle
+    avoidance, flight controller) connected by arrows onto the current figure.
+    """
     fig, ax = plt.subplots(figsize=(10, 5))
     ax.set_xlim(0, 12)
     ax.set_ylim(0, 6)
@@ -40,6 +45,12 @@ def render_system_concept(plt, np, rng, label):
 
 
 def render_bio_signal(plt, np, rng, label):
+    """Render a two-panel ultrasonic bio-signal figure.
+
+    Top panel plots an emitted Gaussian-windowed chirp and its noisy received
+    echo; bottom panel shows the time-frequency spectrogram of the combined
+    signal. Draws onto the current figure.
+    """
     fig, axes = plt.subplots(2, 1, figsize=(10, 6))
     t = np.linspace(0, 0.01, 2000)
     f0, f1 = 40000, 80000
@@ -63,6 +74,12 @@ def render_bio_signal(plt, np, rng, label):
 
 
 def render_sensor_heatmap(plt, np, rng, label):
+    """Render side-by-side sensor heatmaps.
+
+    Left panel shows a smoothed occupancy-grid map with obstacle regions; right
+    panel shows a Gaussian sensor confidence map. Each has its own colorbar and
+    is drawn onto the current figure.
+    """
     fig, axes = plt.subplots(1, 2, figsize=(12, 5))
     # Occupancy grid
     grid = rng.rand(30, 30)
@@ -87,6 +104,11 @@ def render_sensor_heatmap(plt, np, rng, label):
 
 
 def render_trajectory_3d(plt, np, rng, label):
+    """Render a 3D spiral trajectory comparing ground-truth and estimated paths.
+
+    Plots the ground-truth and noisy estimated trajectories on a 3D axis along
+    with randomly placed obstacle markers. Draws onto the current figure.
+    """
     fig = plt.figure(figsize=(9, 7))
     ax = fig.add_subplot(111, projection="3d")
     t = np.linspace(0, 6 * np.pi, 800)

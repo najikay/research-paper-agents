@@ -2,10 +2,12 @@
 src/tasks/tasks_domain.py — domain-expert and domain-fix task factories.
 """
 from __future__ import annotations
-from pathlib import Path
+
 from crewai import Agent, Task
-from src.tasks.staging import _STAGING
+
 from src.tasks.domains import _DOMAIN_DESCRIPTIONS
+from src.tasks.staging import _STAGING
+
 
 def create_task_domain_expert(
     expert: Agent,

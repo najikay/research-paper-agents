@@ -102,7 +102,13 @@ def _diversify_stub_figures(run_folder: Path) -> None:
         # Count how many stub refs this chapter has and assign unique names
         occurrence = [0]
 
-        def _replace_stub(m: re.Match) -> str:
+        def _replace_stub(m: re.Match, ch_id=ch_id, occurrence=occurrence) -> str:
+            """
+            Rewrite a matched \\includegraphics{figures/fig_stub.png} to a unique
+            per-chapter filename (fig_<ch_id>_auto[_N].png). Increments the
+            shared occurrence counter so repeated stubs in one chapter get
+            distinct suffixes. Returns the rewritten \\includegraphics string.
+            """
             occurrence[0] += 1
             suffix = f"_{occurrence[0]}" if occurrence[0] > 1 else ""
             return m.group(0).replace("fig_stub.png", f"fig_{ch_id}_auto{suffix}.png")

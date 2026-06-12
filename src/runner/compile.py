@@ -31,6 +31,11 @@ def compile_pdf(run_folder: Path) -> Path | None:
     pdf_dst   = run_folder / "paper.pdf"
 
     def run(cmd: list[str]) -> bool:
+        """
+        Run one compile command in latex_dir with UTF-8 decoding and a timeout.
+        Returns True if the command exited 0; logs a warning and returns False
+        on a non-zero exit or timeout.
+        """
         try:
             result = subprocess.run(
                 cmd, cwd=latex_dir,
@@ -88,7 +93,7 @@ def compile_pdf(run_folder: Path) -> Path | None:
         log_file = latex_dir / "main.log"
         if log_file.exists():
             log_text = log_file.read_text(encoding="utf-8", errors="replace")
-            fatal_errors = [l for l in log_text.splitlines() if l.startswith("!")]
+            fatal_errors = [line for line in log_text.splitlines() if line.startswith("!")]
             if fatal_errors:
                 logger.warning(f"[LaTeX] {len(fatal_errors)} fatal error(s) in main.log (PDF may be incomplete):")
                 for err in fatal_errors[:5]:
@@ -101,7 +106,7 @@ def compile_pdf(run_folder: Path) -> Path | None:
         log_file = latex_dir / "main.log"
         if log_file.exists():
             log_text = log_file.read_text(encoding="utf-8", errors="replace")
-            fatal_errors = [l for l in log_text.splitlines() if l.startswith("!")]
+            fatal_errors = [line for line in log_text.splitlines() if line.startswith("!")]
             for err in fatal_errors[:10]:
                 logger.error(f"  {err}")
         return None

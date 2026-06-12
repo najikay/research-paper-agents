@@ -2,12 +2,18 @@
 src/tasks/tasks_prose.py — Hebrew academic prose task factory.
 """
 from __future__ import annotations
-from pathlib import Path
+
 from crewai import Agent, Task
+
 from src.tasks.staging import _STAGING
 
 
 def create_task_hebrew_prose(writer: Agent, context: list[Task]) -> Task:
+    """
+    Build the CrewAI Task that turns the outline, research briefs, and domain
+    expert materials into polished Hebrew academic prose for all nine chapters.
+    Produces hebrew_prose.md (written in three batches then combined).
+    """
     return Task(
         description=f"""
 Read all research and domain-expert materials, then write polished Hebrew academic

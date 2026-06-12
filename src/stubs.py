@@ -20,7 +20,6 @@ from pathlib import Path
 
 from src.config import logger
 
-
 # ---------------------------------------------------------------------------
 # Minimal 1×1 white PNG (referenced by every chapter's figure stub)
 # ---------------------------------------------------------------------------
@@ -28,6 +27,7 @@ from src.config import logger
 def _stub_png() -> bytes:
     """Build a valid 1×1 white RGB PNG entirely in memory."""
     def chunk(tag: bytes, data: bytes) -> bytes:
+        """Build a single PNG chunk: length prefix, tag+data body, and trailing CRC32."""
         body = tag + data
         return struct.pack(">I", len(data)) + body + struct.pack(">I", zlib.crc32(body) & 0xFFFFFFFF)
 
@@ -52,6 +52,7 @@ _FILL = (
 
 
 def _words(n: int) -> str:
+    """Return a space-joined string of n Hebrew filler words drawn from the _FILL pool."""
     pool = (_FILL.split() * ((n // 40) + 2))
     return " ".join(pool[:n])
 
@@ -69,6 +70,7 @@ _BIB_KEYS = [
 
 
 def _references_bib() -> str:
+    """Return a BibTeX string with one @misc stub entry per key in _BIB_KEYS."""
     entries = []
     for key in _BIB_KEYS:
         entries.append(
@@ -87,6 +89,7 @@ def _references_bib() -> str:
 # ---------------------------------------------------------------------------
 
 def _abstract_stub() -> str:
+    """Return abstract-body LaTeX: a Hebrew language switch followed by 120 filler words."""
     return r"\selectlanguage{hebrew}" + "\n" + _words(120) + "\n"
 
 
@@ -103,6 +106,7 @@ def _chapter_stub(
     n_cite: int,
     n_words: int,
 ) -> str:
+    """Build a complete chapter's XeLaTeX with a section, n_sub subsections (the first n_eq carrying equations), n_fig figures, and n_cite citations, distributing roughly n_words filler words across the blocks."""
     words_per_block = max(80, n_words // (n_sub + 1))
     lines = [
         r"\selectlanguage{hebrew}",
@@ -134,7 +138,7 @@ def _chapter_stub(
         lines += [
             r"\begin{figure}[H]",
             r"    \centering",
-            f"    \\includegraphics[width=0.9\\columnwidth]{{figures/fig_stub.png}}",
+            "    \\includegraphics[width=0.9\\columnwidth]{figures/fig_stub.png}",
             f"    \\caption{{\\en{{Stub figure {j} — {ch_id}}}}}",
             f"    \\label{{fig:{ch_id}_{j}}}",
             r"\end{figure}",

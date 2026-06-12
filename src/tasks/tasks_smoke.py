@@ -2,10 +2,14 @@
 src/tasks/tasks_smoke.py — 2-task smoke pipeline factories.
 """
 from __future__ import annotations
+
 from pathlib import Path
+
 from crewai import Agent, Task
+
 from src.tasks.staging import _STAGING
 from src.tasks.tasks_research_core import create_task_outline
+
 
 def create_task_latex_smoke(author: Agent, context: list[Task], run_folder: Path | None = None) -> Task:
     """

@@ -2,12 +2,20 @@
 src/tasks/tasks_remediate.py — peer-review and targeted remediation task factories.
 """
 from __future__ import annotations
+
 from pathlib import Path
+
 from crewai import Agent, Task
+
 from src.tasks.staging import _STAGING
 
 
 def create_task_review(editor: Agent, context: list[Task]) -> Task:
+    """
+    Build the CrewAI Task that peer-reviews all LaTeX files and produces
+    quality_report.md, ending with a machine-readable JSON verdict block
+    (PASS/FAIL, score, and failed sections) used to gate remediation.
+    """
     return Task(
         description=f"""
 Conduct a peer review of all LaTeX files and output a report to {_STAGING}/quality_report.md.
@@ -44,6 +52,9 @@ def create_remediation_task(
     chapter files, then patches ONLY the sections listed in failed_sections.
     """
     sections_str = ", ".join(failed_sections)
+
+    # Default bib path used in STEP 1; overridden with the run-folder path below.
+    bib_path: Path | str = "latex/references.bib"
 
     # Build path instructions so the agent knows WHERE to read AND write.
     paths_note = ""

@@ -42,20 +42,21 @@ Graph topology (fast/smoke mode — legacy single crew):
   [run_remediation] → [run_quality_gate] → ...
 """
 from __future__ import annotations
-from langgraph.graph import StateGraph, END
 
-from src.graph.state import PipelineState
+from langgraph.graph import END, StateGraph
+
+from src.config import logger
 from src.graph.nodes import (
+    MAX_REMEDIATIONS,
+    QUALITY_THRESHOLD,
     run_main_pipeline,
-    run_research_phase,
-    validate_and_fix_research,
-    run_writing_phase,
     run_quality_gate,
     run_remediation,
-    QUALITY_THRESHOLD,
-    MAX_REMEDIATIONS,
+    run_research_phase,
+    run_writing_phase,
+    validate_and_fix_research,
 )
-from src.config import logger
+from src.graph.state import PipelineState
 
 
 def _route_after_quality_gate(state: PipelineState) -> str:

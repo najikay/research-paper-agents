@@ -15,6 +15,15 @@ from src.runner.tex_math import _upgrade_wide_figures
 
 
 def apply_structure_fixes(text: str, tex_name: str, figures_dir: Path) -> str:
+    """
+    Apply structural sanitizer fixes (1-11b, plus 24) to a chapter's .tex
+    *text* and return the repaired text. *tex_name* selects file-specific
+    handling (e.g. stripping \\begin{abstract} from abstract.tex) and
+    *figures_dir* is used to probe image dimensions for the wide-figure
+    upgrade. Removes preamble/document commands, normalizes dashes, wraps code
+    blocks for LTR rendering, relaxes float placement, fits wide tables, and
+    escapes bare percent signs.
+    """
     # Fix 1: Remove \begin{abstract} inside abstract.tex
     # (main.tex already wraps it in \begin{abstract}...\end{abstract})
     if tex_name == "abstract.tex":

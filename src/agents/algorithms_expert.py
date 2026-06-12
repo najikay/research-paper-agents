@@ -21,7 +21,6 @@ from crewai import Agent
 
 from src.config import AGENT_MAX_ITER, SONNET_LLM, logger
 
-
 # ---------------------------------------------------------------------------
 # Prompt constants
 # ---------------------------------------------------------------------------
@@ -175,5 +174,5 @@ if __name__ == "__main__":
     print(f"Max iter: {agent.max_iter}")
     print(f"Memory  : {agent.memory}")
     print(f"Tools   : {agent.tools} (empty — expected in self-test)")
-    print(f"\nPersona : Dr. Miriam Shapiro")
-    print(f"Domain  : Probabilistic Algorithms, Estimation Theory & SLAM Optimization")
+    print("\nPersona : Dr. Miriam Shapiro")
+    print("Domain  : Probabilistic Algorithms, Estimation Theory & SLAM Optimization")

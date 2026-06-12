@@ -8,9 +8,9 @@ from __future__ import annotations
 
 import datetime
 import threading
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 from src.config import PROJECT_ROOT, logger
 
@@ -37,14 +37,17 @@ class TokenUsageRecord:
 
     @property
     def total_tokens(self) -> int:
+        """Return the sum of input and output tokens."""
         return self.input_tokens + self.output_tokens
 
     def add(self, input_tokens: int, output_tokens: int) -> None:
+        """Add one call's input/output tokens and increment the call count."""
         self.input_tokens += input_tokens
         self.output_tokens += output_tokens
         self.call_count += 1
 
     def to_dict(self) -> dict[str, int]:
+        """Return this record's counts as a serializable dict."""
         return {
             "input_tokens": self.input_tokens,
             "output_tokens": self.output_tokens,
@@ -63,14 +66,15 @@ class TokenAccountant:
     """
 
     def __init__(self) -> None:
+        """Initialize empty grand-total, per-agent, and per-task token records, the current agent/task context, the installed-callback flag, and optional CrewAI metrics, guarded by a lock."""
         self._lock = threading.Lock()
         self._total = TokenUsageRecord()
         self._per_agent: dict[str, TokenUsageRecord] = {}
         self._per_task: dict[str, TokenUsageRecord] = {}
-        self._current_agent: Optional[str] = None
-        self._current_task: Optional[str] = None
+        self._current_agent: str | None = None
+        self._current_task: str | None = None
         self._installed: bool = False
-        self._crew_metrics: Optional[dict] = None
+        self._crew_metrics: dict | None = None
 
     # ------------------------------------------------------------------
     # Lifecycle
@@ -116,7 +120,8 @@ class TokenAccountant:
     # Context management
     # ------------------------------------------------------------------
 
-    def set_context(self, agent_role: Optional[str] = None, task_name: Optional[str] = None) -> None:
+    def set_context(self, agent_role: str | None = None, task_name: str | None = None) -> None:
+        """Set the current agent role and task name that subsequent recordings are attributed to."""
         self._current_agent = agent_role
         self._current_task = task_name
 
@@ -125,6 +130,7 @@ class TokenAccountant:
     # ------------------------------------------------------------------
 
     def step_callback(self, step_output: Any) -> None:
+        """CrewAI step hook: update the current agent role from the step output, ignoring any extraction errors."""
         try:
             if hasattr(step_output, "agent_role"):
                 self._current_agent = str(step_output.agent_role)
@@ -134,6 +140,7 @@ class TokenAccountant:
             pass
 
     def task_callback(self, task_output: Any) -> None:
+        """CrewAI task hook: update the current task name (and agent role, if present) from the task output, ignoring any extraction errors."""
         try:
             task_name = None
             if hasattr(task_output, "description"):
@@ -156,14 +163,16 @@ class TokenAccountant:
     # ------------------------------------------------------------------
 
     def record(self, input_tokens: int, output_tokens: int) -> None:
+        """Manually record token usage for the current agent/task context."""
         self._accumulate(input_tokens, output_tokens)
 
     def _litellm_success_callback(self, kwargs: dict, completion_response: Any, start_time: Any, end_time: Any) -> None:
+        """LiteLLM success callback: extract prompt/completion token counts from the completion response and accumulate them, logging and swallowing any errors."""
         try:
             usage = getattr(completion_response, "usage", None)
             if usage is None and isinstance(completion_response, dict):
                 usage = completion_response.get("usage")
-            
+
             if usage is None:
                 return
 
@@ -178,6 +187,7 @@ class TokenAccountant:
             logger.warning(f"TokenAccountant: error in LiteLLM callback: {exc}")
 
     def _accumulate(self, input_tokens: int, output_tokens: int) -> None:
+        """Thread-safely add the given tokens to the grand total and to the current agent/task records (creating them on first use)."""
         with self._lock:
             self._total.add(input_tokens, output_tokens)
             if self._current_agent:
@@ -193,7 +203,8 @@ class TokenAccountant:
     # Finalization
     # ------------------------------------------------------------------
 
-    def finalize(self, crew_usage_metrics: Optional[Any] = None) -> None:
+    def finalize(self, crew_usage_metrics: Any | None = None) -> None:
+        """Merge CrewAI's own usage metrics (object or dict) into the report, ignoring errors; does nothing if none are provided."""
         if crew_usage_metrics is None:
             return
         try:
@@ -215,22 +226,27 @@ class TokenAccountant:
 
     @property
     def total(self) -> TokenUsageRecord:
+        """Return the grand-total token usage record for the run."""
         return self._total
 
     @property
     def per_agent(self) -> dict[str, TokenUsageRecord]:
+        """Return a copy of the per-agent token usage records keyed by role."""
         return dict(self._per_agent)
 
     @property
     def per_task(self) -> dict[str, TokenUsageRecord]:
+        """Return a copy of the per-task token usage records keyed by task name."""
         return dict(self._per_task)
 
     def report(self) -> dict:
+        """Build a structured report dict with totals, per-agent and per-task breakdowns (each enriched with a percent-of-total), a timestamp, and any merged CrewAI metrics."""
         with self._lock:
             total_dict = self._total.to_dict()
             grand_total = self._total.total_tokens or 1
 
             def _enrich(rec: TokenUsageRecord) -> dict:
+                """Return the record as a dict with an added pct_of_total field relative to the grand total."""
                 d = rec.to_dict()
                 d["pct_of_total"] = round(rec.total_tokens / grand_total * 100, 1)
                 return d
@@ -248,6 +264,7 @@ class TokenAccountant:
             }
 
     def report_markdown(self) -> str:
+        """Render the report as a Markdown document with summary, per-agent, and per-task tables."""
         data = self.report()
         t = data["total"]
         lines = [
@@ -284,6 +301,7 @@ class TokenAccountant:
         return "\n".join(lines)
 
     def save_report(self, path: str = "outputs/current/token_report.md") -> None:
+        """Write the Markdown report to path (resolved relative to PROJECT_ROOT if not absolute), creating parent directories as needed."""
         raw = Path(path)
         dest = (PROJECT_ROOT / raw).resolve() if not raw.is_absolute() else raw
         dest.parent.mkdir(parents=True, exist_ok=True)

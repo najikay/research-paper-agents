@@ -2,15 +2,26 @@
 src/tasks/tasks_assemble.py — crew-building helpers that wire task factories together.
 """
 from __future__ import annotations
+
 from pathlib import Path
+
 from crewai import Agent, Task
-from src.tasks.staging import _STAGING
+
 from src.tasks.domains import _DOMAIN_DESCRIPTIONS
-from src.tasks.tasks_research_core import (create_task_outline, create_task_research, create_task_figures)
 from src.tasks.tasks_domain import create_task_domain_expert
-from src.tasks.tasks_prose import create_task_hebrew_prose
 from src.tasks.tasks_latex_parts import create_task_latex_part1, create_task_latex_part2
-from src.tasks.tasks_latex_split import (create_task_latex_a, create_task_latex_b, create_task_latex_c)
+from src.tasks.tasks_latex_split import (
+    create_task_latex_a,
+    create_task_latex_b,
+    create_task_latex_c,
+)
+from src.tasks.tasks_prose import create_task_hebrew_prose
+from src.tasks.tasks_research_core import (
+    create_task_figures,
+    create_task_outline,
+    create_task_research,
+)
+
 
 def create_research_tasks(
     director, researcher,

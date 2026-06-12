@@ -65,7 +65,7 @@ if OPENAI_API_KEY and not OPENAI_API_KEY.startswith("sk-"):
 # ---------------------------------------------------------------------------
 # 4. Model Constants & LLM Initialization
 # ---------------------------------------------------------------------------
-from crewai import LLM as CrewLLM
+from crewai import LLM as CrewLLM  # noqa: E402  (must import after OPENAI_API_KEY cleanup above)
 
 # ---------------------------------------------------------------------------
 # MODEL PROVIDER SWITCH
@@ -279,8 +279,8 @@ def validate_config() -> None:
         missing.append("  • SERPER_API_KEY: Free key at serper.dev")
 
     if missing:
-        raise EnvironmentError(
-            f"\n\n[NavigatorCrew] Missing required environment variables:\n"
+        raise OSError(
+            "\n\n[NavigatorCrew] Missing required environment variables:\n"
             + "\n".join(missing)
             + "\n\nCopy .env.example → .env and fill in the values.\n"
         )
@@ -311,7 +311,7 @@ if __name__ == "__main__":
     print()
     try:
         validate_config()
-    except EnvironmentError as exc:
+    except OSError as exc:
         print(str(exc))
         sys.exit(1)
 

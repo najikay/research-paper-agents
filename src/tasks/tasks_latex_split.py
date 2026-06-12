@@ -2,10 +2,14 @@
 src/tasks/tasks_latex_split.py — 3-way LaTeX split (writers A/B/C).
 """
 from __future__ import annotations
+
 from pathlib import Path
+
 from crewai import Agent, Task
+
 from src.tasks.staging import _STAGING
 from src.tasks.tasks_latex_rules import _latex_shared_rules
+
 
 def create_task_latex_a(author: Agent, context: list[Task], run_folder: Path | None = None) -> Task:
     """Writer A: abstract + ch01 + ch02 + ch03 + references.bib (5 files)."""

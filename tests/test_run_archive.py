@@ -9,10 +9,13 @@ from __future__ import annotations
 
 from pathlib import Path
 
-import pytest
-
-from main import _topic_slug, create_run_folder, finalize_run, validate_and_fix_chapters, EXPECTED_CHAPTERS
-
+from main import (
+    EXPECTED_CHAPTERS,
+    _topic_slug,
+    create_run_folder,
+    finalize_run,
+    validate_and_fix_chapters,
+)
 
 # ---------------------------------------------------------------------------
 # _topic_slug
@@ -92,8 +95,8 @@ def test_create_run_folder_triple_versioning(tmp_path, monkeypatch):
     monkeypatch.setattr(cfg, "PROJECT_ROOT", tmp_path)
     monkeypatch.setattr(m, "PROJECT_ROOT", tmp_path)
 
-    folder1 = create_run_folder("Triple Test")
-    folder2 = create_run_folder("Triple Test")
+    create_run_folder("Triple Test")  # first call (side effect: occupies base name)
+    create_run_folder("Triple Test")  # second call (side effect: occupies -v2)
     folder3 = create_run_folder("Triple Test")
 
     assert "-v3" in folder3.name

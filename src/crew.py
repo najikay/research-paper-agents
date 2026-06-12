@@ -15,28 +15,31 @@ Pipeline modes:
 """
 
 from __future__ import annotations
+
 from pathlib import Path
+
 from crewai import Crew, Process
+
 from src.agents import (
-    create_navigation_director,
-    create_slam_researcher,
-    create_visualization_engineer,
+    create_aerospace_marine_expert,
+    create_algorithms_expert,
+    create_biology_expert,
+    create_control_systems_expert,
     create_hebrew_academic_writer,
     create_latex_author,
-    create_vision_ai_expert,
-    create_physics_expert,
-    create_algorithms_expert,
-    create_aerospace_marine_expert,
-    create_biology_expert,
-    create_signal_processing_expert,
-    create_control_systems_expert,
     create_ml_expert,
+    create_navigation_director,
+    create_physics_expert,
+    create_signal_processing_expert,
+    create_slam_researcher,
+    create_vision_ai_expert,
+    create_visualization_engineer,
 )
 from src.config import logger, validate_config
 from src.tasks import (
     create_all_tasks,
-    create_smoke_tasks,
     create_research_tasks,
+    create_smoke_tasks,
     create_writing_tasks,
 )
 from src.tools import (

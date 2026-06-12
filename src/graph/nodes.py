@@ -13,26 +13,25 @@ Each node:
   - Returns a dict of state keys to update (LangGraph merges these)
 """
 from __future__ import annotations
+
 import json
 import re
 from pathlib import Path
+
 from crewai import Crew, Process
 
 from src.agents import (
-    create_slam_researcher,
     create_latex_author,
 )
+from src.config import PROJECT_ROOT, logger
 from src.graph.state import PipelineState
 from src.tasks.research_tasks import (
-    create_task_research,
-    create_task_latex,
     create_remediation_task,
 )
 from src.tools import (
-    ArxivSearchTool, FileReaderTool,
-    NavigatorWebScraperTool, SafeFileWriterTool, SerperDevSearchTool,
+    FileReaderTool,
+    SafeFileWriterTool,
 )
-from src.config import logger, PROJECT_ROOT
 
 QUALITY_THRESHOLD = 90   # score below this triggers remediation
 MAX_REMEDIATIONS  = 4    # hard cap — prevents infinite loops
@@ -238,9 +237,13 @@ def run_quality_gate(state: PipelineState) -> dict:
     run_folder   = Path(state["run_folder"])
 
     # Pre-scoring fixups
-    from main import (validate_and_fix_chapters, _diversify_stub_figures,
-                      _deduplicate_cross_chapter_figures,
-                      _generate_fallback_figures, _sanitize_tex_files)
+    from main import (
+        _deduplicate_cross_chapter_figures,
+        _diversify_stub_figures,
+        _generate_fallback_figures,
+        _sanitize_tex_files,
+        validate_and_fix_chapters,
+    )
     validate_and_fix_chapters(run_folder)
     _diversify_stub_figures(run_folder)
     _deduplicate_cross_chapter_figures(run_folder)

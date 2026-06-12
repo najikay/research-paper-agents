@@ -7,15 +7,15 @@ No LLM calls are made — tests assert on the returned Agent object properties.
 
 from __future__ import annotations
 
-import pytest
-
+from src.agents.control_systems_expert import create_control_systems_expert
+from src.agents.hebrew_academic_writer import create_hebrew_academic_writer
+from src.agents.latex_author import CHAPTER_MANIFEST, create_latex_author
+from src.agents.ml_expert import create_ml_expert
 from src.agents.navigation_director import create_navigation_director
+from src.agents.signal_processing_expert import create_signal_processing_expert
 from src.agents.slam_researcher import create_slam_researcher
 from src.agents.visualization_engineer import create_visualization_engineer
-from src.agents.hebrew_academic_writer import create_hebrew_academic_writer
-from src.agents.latex_author import create_latex_author, CHAPTER_MANIFEST
 from src.config import AGENT_MAX_ITER
-
 
 # ---------------------------------------------------------------------------
 # NavigationResearchDirector
@@ -190,14 +190,6 @@ def test_all_agents_verbose():
     agents = _all_agents()
     for agent in agents:
         assert agent.verbose is True, f"Agent {agent.role!r} must have verbose=True"
-
-
-# ---------------------------------------------------------------------------
-# New domain experts (v6)
-# ---------------------------------------------------------------------------
-from src.agents.signal_processing_expert import create_signal_processing_expert
-from src.agents.control_systems_expert import create_control_systems_expert
-from src.agents.ml_expert import create_ml_expert
 
 
 def _all_agents():

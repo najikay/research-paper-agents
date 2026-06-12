@@ -11,9 +11,9 @@ from __future__ import annotations
 from pathlib import Path
 
 from src.config import logger
-from src.runner.sanitize_structure import apply_structure_fixes
 from src.runner.sanitize_content import apply_content_fixes
 from src.runner.sanitize_final import apply_final_fixes
+from src.runner.sanitize_structure import apply_structure_fixes
 
 
 def _sanitize_tex_files(chapters_dir: Path) -> None:

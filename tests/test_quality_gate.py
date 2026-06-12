@@ -11,8 +11,6 @@ import json
 import re
 from pathlib import Path
 
-import pytest
-
 from src.graph.nodes import (
     AGENT_CHAPTERS,
     MAX_REMEDIATIONS,
@@ -20,7 +18,6 @@ from src.graph.nodes import (
     QUALITY_THRESHOLD,
     run_quality_gate,
 )
-
 
 # ---------------------------------------------------------------------------
 # Constants tests (pure inspection, no filesystem needed)
@@ -166,13 +163,13 @@ class TestQualityGate:
         _setup_latex(tmp_path, em_dash_content, full_bib_content)
 
         # Verify em dash is present before quality gate
-        sample = (tmp_path / "latex" / "chapters" / AGENT_CHAPTERS[1]).read_text()
+        sample = (tmp_path / "latex" / "chapters" / AGENT_CHAPTERS[1]).read_text(encoding="utf-8")
         assert "\u2014" in sample, "em dash should be present before quality gate"
 
         result = run_quality_gate(_make_state(tmp_path))
 
         # Sanitizer should have removed the em dash from the file
-        cleaned = (tmp_path / "latex" / "chapters" / AGENT_CHAPTERS[1]).read_text()
+        cleaned = (tmp_path / "latex" / "chapters" / AGENT_CHAPTERS[1]).read_text(encoding="utf-8")
         assert "\u2014" not in cleaned, "sanitizer should remove em dashes"
 
         # Score should still be high (sanitizer fixed the issue)
@@ -206,13 +203,13 @@ class TestQualityGate:
         _setup_latex(tmp_path, center_content, full_bib_content)
 
         # Verify \begin{center} is present before quality gate
-        sample = (tmp_path / "latex" / "chapters" / AGENT_CHAPTERS[1]).read_text()
+        sample = (tmp_path / "latex" / "chapters" / AGENT_CHAPTERS[1]).read_text(encoding="utf-8")
         assert r"\begin{center}" in sample
 
         result = run_quality_gate(_make_state(tmp_path))
 
         # Sanitizer should have replaced \begin{center} with \centering
-        cleaned = (tmp_path / "latex" / "chapters" / AGENT_CHAPTERS[1]).read_text()
+        cleaned = (tmp_path / "latex" / "chapters" / AGENT_CHAPTERS[1]).read_text(encoding="utf-8")
         assert r"\begin{center}" not in cleaned, "sanitizer should remove \\begin{center}"
         assert r"\centering" in cleaned, "sanitizer should replace with \\centering"
 

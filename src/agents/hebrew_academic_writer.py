@@ -15,10 +15,12 @@ that the LaTeXAuthor then formats into XeLaTeX environments.
 """
 
 from __future__ import annotations
-from typing import Any
-from crewai import Agent
-from src.config import AGENT_MAX_ITER, SONNET_LLM, logger
 
+from typing import Any
+
+from crewai import Agent
+
+from src.config import AGENT_MAX_ITER, SONNET_LLM, logger
 
 _ROLE = "Hebrew Academic Science Writer (Robotics & AI Domain)"
 
@@ -124,6 +126,11 @@ professor reading the paper: would they wince? If yes, she rewrites.
 
 
 def create_hebrew_academic_writer(tools: list[Any] | None = None) -> Agent:
+    """
+    Build the HebrewAcademicWriter agent (Dr. Miriam Shapiro): a Hebrew academic
+    science writer that turns English research briefs into polished, publication-
+    quality Hebrew prose organized by chapter (outputting prose only, no LaTeX).
+    """
     if tools is None:
         tools = []
         logger.warning("HebrewAcademicWriter created with NO tools.")
