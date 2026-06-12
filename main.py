@@ -19,28 +19,28 @@ Speed modes (slowest → fastest):
 import argparse
 import shutil
 
-from src.config import logger, PROJECT_ROOT  # noqa: F401  (re-export for tests)
+from src import config as _config
+from src.config import PROJECT_ROOT, logger  # noqa: F401  (re-export for tests)
 from src.runner import (  # noqa: F401  (re-exports for nodes.py + tests)
-    _STAGING_DIR,
-    _topic_slug,
-    create_run_folder,
-    _save_run_folder,
-    _load_run_folder,
-    setup_run_latex,
-    EXPECTED_CHAPTERS,
-    validate_and_fix_chapters,
-    _diversify_stub_figures,
-    _deduplicate_cross_chapter_figures,
     _CHAPTER_FIGURE_STYLE,
+    _STAGING_DIR,
+    EXPECTED_CHAPTERS,
+    _deduplicate_cross_chapter_figures,
+    _diversify_stub_figures,
     _generate_fallback_figures,
     _infer_style_from_name,
+    _load_run_folder,
     _render_fallback_figure,
     _sanitize_tex_files,
+    _save_run_folder,
+    _topic_slug,
     compile_pdf,
+    create_run_folder,
     finalize_run,
     run_dry_run,
+    setup_run_latex,
+    validate_and_fix_chapters,
 )
-from src import config as _config
 
 
 def _parse_args() -> argparse.Namespace:
