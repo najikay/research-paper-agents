@@ -36,14 +36,14 @@
 
 ## Total Project Token Spend (estimated)
 
-Approximate total across all development and testing, June 7–11 2026.
+Approximate total across all development and testing, June 7–12 2026.
 
 | Category | Runs | Tokens (in) | Tokens (out) | Est. Cost |
 |----------|------|-------------|-------------|-----------|
-| Early dev runs (v5.0–v9, pre-run-folder) | ~4 | 400,000 | 280,000 | $0.42 |
-| Archived full runs (v10–v13) | 6 | 1,200,000 | 900,000 | $1.31 |
-| Smoke / fast / dry-run tests | ~5 | 50,000 | 30,000 | $0.05 |
-| **Total pipeline** | **~15** | **~1,650,000** | **~1,210,000** | **~$1.78** |
+| Early dev runs (v5.0–v9, pre-run-folder) | ~8 | 800,000 | 560,000 | $0.83 |
+| Archived full runs (v10–v13+) | ~20 | 4,000,000 | 3,000,000 | $4.38 |
+| Smoke / fast / dry-run tests | ~12 | 120,000 | 70,000 | $0.11 |
+| **Total pipeline** | **~40** | **~4,920,000** | **~3,630,000** | **~$5.32** |
 
 > All runs use DeepSeek V3 at the prices listed above.
 
@@ -70,9 +70,9 @@ Project code was built and iterated using Claude Code.
 
 | Component | Est. Tokens | Est. Cost |
 |-----------|-------------|-----------|
-| Pipeline runs (DeepSeek V3) | ~2,800,000 | ~$1.80 |
+| Pipeline runs (DeepSeek V3) | ~8,550,000 | ~$5.32 |
 | Development tooling (Claude) | ~1,560,000 | ~$7.80 |
-| **Grand total** | **~4,360,000** | **~$9.60** |
+| **Grand total** | **~10,110,000** | **~$13.12** |
 
 ---
 

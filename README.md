@@ -412,8 +412,8 @@ python3 -m pytest --cov=src --cov=main --cov-report=term-missing
 | Component | Est. Cost |
 |-----------|-----------|
 | Per run (DeepSeek V3, with remediation) | ~$0.29 |
-| Total pipeline runs (~15 runs during development) | ~$1.80 |
+| Total pipeline runs (~40 runs during development) | ~$4.80 |
 | Development tooling (Claude, code assistance) | ~$8.00 |
-| **Grand total** | **~$9.80** |
+| **Grand total** | **~$12.80** |
 
 See [docs/BUDGET.md](docs/BUDGET.md) for full token breakdown.
