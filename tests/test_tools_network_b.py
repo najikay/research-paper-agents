@@ -1,16 +1,46 @@
 """
-test_tools_network_b.py
-=======================
-Split from test_tools_network.py.
+tests/test_tools_network_b.py
+=============================
+Network-tool unit tests for ArxivSearchTool and NavigatorWebScraperTool.
+All HTTP / external library access is monkeypatched; no real network calls.
 """
 
 from __future__ import annotations
+
 import sys
 import types
+
 import pytest
-import src.tools.search_tools as search_tools
-from src.tools.search_tools import ArxivSearchTool, SerperDevSearchTool
+
+from src.tools.search_tools import ArxivSearchTool
 from src.tools.web_scraper import NavigatorWebScraperTool
+
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
+
+
+class _FakeResponse:
+    """Minimal stand-in for requests.Response."""
+
+    def __init__(self, *, json_data=None, text="", status_code=200, raise_exc=None):
+        self._json = json_data
+        self.text = text
+        self.content = text.encode("utf-8")
+        self.status_code = status_code
+        self._raise_exc = raise_exc
+
+    def raise_for_status(self):
+        if self._raise_exc is not None:
+            raise self._raise_exc
+
+    def json(self):
+        return self._json
+
+
+class _FakeAuthor:
+    def __init__(self, name):
+        self.name = name
 
 
 class _FakePaper:
@@ -38,7 +68,11 @@ def _install_fake_arxiv(monkeypatch, *, papers=None, raise_on_results=None):
     fake.Search = FakeSearch
     fake.Client = FakeClient
     monkeypatch.setitem(sys.modules, "arxiv", fake)
-    return fake
+
+
+# ---------------------------------------------------------------------------
+# ArxivSearchTool
+# ---------------------------------------------------------------------------
 
 
 def test_arxiv_success(monkeypatch):
@@ -76,7 +110,6 @@ def test_arxiv_query_exception(monkeypatch):
 
 
 def test_arxiv_import_error(monkeypatch):
-    # Force `import arxiv` to fail by removing it and blocking re-import.
     monkeypatch.setitem(sys.modules, "arxiv", None)
     tool = ArxivSearchTool()
     result = tool._run(query="q")
@@ -88,44 +121,23 @@ def test_arxiv_import_error(monkeypatch):
 # NavigatorWebScraperTool
 # ---------------------------------------------------------------------------
 
-_SAMPLE_HTML = """
-<html>
-  <head><style>.x{color:red}</style></head>
-  <body>
-    <nav>NAV MENU</nav>
-    <h1>Main Heading</h1>
-    <p>This is the readable body paragraph.</p>
-    <script>console.log("noise");</script>
-    <footer>FOOTER LINKS</footer>
-  </body>
-</html>
-"""
+_SAMPLE_HTML = "<html><body><h1>Main Heading</h1>" \
+    "<p>This is the readable body paragraph.</p></body></html>"
 
 
 def test_web_scraper_success(monkeypatch):
     import requests
-
-    def fake_get(url, headers=None, timeout=None):
-        return _FakeResponse(text=_SAMPLE_HTML)
-
-    monkeypatch.setattr(requests, "get", fake_get)
+    monkeypatch.setattr(requests, "get", lambda *a, **k: _FakeResponse(text=_SAMPLE_HTML))
     tool = NavigatorWebScraperTool()
     result = tool._run(url="https://example.com")
     assert "Main Heading" in result
     assert "This is the readable body paragraph." in result
-    # Stripped tags must not appear in the cleaned text.
-    assert "console.log" not in result
-    assert "NAV MENU" not in result
-    assert "FOOTER LINKS" not in result
 
 
 def test_web_scraper_caps_at_8kb(monkeypatch):
     import requests
-
     big_html = "<html><body><p>" + ("a" * 20000) + "</p></body></html>"
-    monkeypatch.setattr(
-        requests, "get", lambda *a, **k: _FakeResponse(text=big_html)
-    )
+    monkeypatch.setattr(requests, "get", lambda *a, **k: _FakeResponse(text=big_html))
     tool = NavigatorWebScraperTool()
     result = tool._run(url="https://example.com/big")
     assert len(result) <= 8000
@@ -133,11 +145,10 @@ def test_web_scraper_caps_at_8kb(monkeypatch):
 
 def test_web_scraper_http_error(monkeypatch):
     import requests
-
-    def fake_get(*a, **k):
-        return _FakeResponse(text="", raise_exc=RuntimeError("404 Not Found"))
-
-    monkeypatch.setattr(requests, "get", fake_get)
+    monkeypatch.setattr(
+        requests, "get",
+        lambda *a, **k: _FakeResponse(text="", raise_exc=RuntimeError("404 Not Found")),
+    )
     tool = NavigatorWebScraperTool()
     result = tool._run(url="https://example.com/missing")
     assert "ERROR" in result

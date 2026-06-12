@@ -14,10 +14,7 @@ Each node:
 """
 from __future__ import annotations
 
-from pathlib import Path
-
 from src.config import logger
-from src.graph.state import PipelineState
 
 # ---------------------------------------------------------------------------
 # Re-exports from split modules (backward compatibility)
@@ -31,6 +28,7 @@ from src.graph.nodes_quality import (  # noqa: F401
 )
 from src.graph.nodes_remediation import run_remediation  # noqa: F401
 from src.graph.nodes_validation import validate_and_fix_research  # noqa: F401
+from src.graph.state import PipelineState
 
 
 # ---------------------------------------------------------------------------

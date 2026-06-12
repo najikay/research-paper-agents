@@ -1,25 +1,23 @@
 """
 tests/test_tools_network.py
 ===========================
-Network-tool unit tests for src/tools/search_tools.py and
-src/tools/web_scraper.py. All HTTP / external library access is monkeypatched;
-no real network calls are made.
+Network-tool unit tests for SerperDevSearchTool.
+All HTTP access is monkeypatched; no real network calls are made.
 """
 
 from __future__ import annotations
 
 import sys
-import types
 
 import pytest
 
 import src.tools.search_tools as search_tools
-from src.tools.search_tools import ArxivSearchTool, SerperDevSearchTool
-from src.tools.web_scraper import NavigatorWebScraperTool
+from src.tools.search_tools import SerperDevSearchTool
 
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 class _FakeResponse:
     """Minimal stand-in for requests.Response."""
@@ -42,6 +40,7 @@ class _FakeResponse:
 # ---------------------------------------------------------------------------
 # SerperDevSearchTool
 # ---------------------------------------------------------------------------
+
 
 def test_serper_missing_api_key(monkeypatch):
     monkeypatch.delenv("SERPER_API_KEY", raising=False)
@@ -69,12 +68,10 @@ def test_serper_success(monkeypatch):
     }
 
     def fake_post(url, headers=None, json=None, timeout=None):
-        # Confirm the API key header is forwarded.
         assert headers["X-API-KEY"] == "fake-key"
         return _FakeResponse(json_data=fake_json)
 
     monkeypatch.setattr(search_tools.requests, "post", fake_post)
-
     tool = SerperDevSearchTool()
     result = tool._run(query="kalman filter", n_results=2)
     assert "Kalman Filter Tutorial" in result
@@ -141,12 +138,5 @@ def test_serper_request_exception(monkeypatch):
     assert "network down" in result
 
 
-# ---------------------------------------------------------------------------
-# ArxivSearchTool
-# ---------------------------------------------------------------------------
-
-class _FakeAuthor:
-    def __init__(self, name):
-        self.name = name
-
-
+if __name__ == "__main__":  # pragma: no cover
+    sys.exit(pytest.main([__file__, "-q"]))

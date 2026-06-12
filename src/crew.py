@@ -36,6 +36,10 @@ from src.agents import (
     create_visualization_engineer,
 )
 from src.config import logger, validate_config
+
+# Re-exports from split modules (backward compatibility)
+from src.crew_fixer import build_fixer_crew  # noqa: F401
+from src.crew_legacy import build_crew  # noqa: F401
 from src.tasks import (
     create_research_tasks,
     create_writing_tasks,
@@ -49,10 +53,6 @@ from src.tools import (
     SerperDevSearchTool,
 )
 from src.utils.token_accountant import TokenAccountant
-
-# Re-exports from split modules (backward compatibility)
-from src.crew_fixer import build_fixer_crew  # noqa: F401
-from src.crew_legacy import build_crew  # noqa: F401
 
 _DEFAULT_TOPIC = "Bat-Inspired Drone Navigation via Bio-Mimetic Multi-Modal Sensor Fusion"
 

@@ -17,9 +17,9 @@ from pydantic import BaseModel
 
 from src.config import CODE_EXECUTOR_TIMEOUT, logger
 from src.tools.code_executor_validator import (
+    _DEFAULT_FIGURES_DIR,
     APPROVED_IMPORTS,  # noqa: F401 — re-export
     CodeExecutorInput,
-    _DEFAULT_FIGURES_DIR,
     _build_script,
     validate_imports,
 )

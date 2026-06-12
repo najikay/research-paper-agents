@@ -10,10 +10,10 @@ import threading
 from typing import Any
 
 from src.config import logger
+from src.utils.token_reporter import build_report, format_markdown, save_report
 
 # Re-export from split modules (backward compatibility)
 from src.utils.token_types import REPORT_KEYS, TokenUsageRecord  # noqa: F401
-from src.utils.token_reporter import build_report, format_markdown, save_report
 
 
 class TokenAccountant:

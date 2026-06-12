@@ -21,7 +21,6 @@ from src.agents.slam_researcher import create_slam_researcher
 from src.agents.vision_ai_expert import create_vision_ai_expert
 from src.agents.visualization_engineer import create_visualization_engineer
 from src.tasks.research_tasks import (
-    create_all_tasks,
     create_task_figures,
     create_task_hebrew_prose,
     create_task_latex_part1,

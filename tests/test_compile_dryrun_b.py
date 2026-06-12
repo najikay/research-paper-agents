@@ -5,9 +5,11 @@ Split from test_compile_dryrun.py.
 """
 
 from __future__ import annotations
+
 import subprocess
 from pathlib import Path
 from types import SimpleNamespace
+
 import src.runner.compile as compile_mod
 import src.runner.dryrun as dryrun_mod
 from src.runner.compile import compile_pdf

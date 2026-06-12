@@ -1,25 +1,15 @@
 """
-tests/test_run_archive.py
-=========================
-Unit tests for the helper functions in main.py:
-  _topic_slug(), create_run_folder(), finalize_run().
+tests/test_run_archive.py — Unit tests for _topic_slug, create_run_folder,
+and early finalize_run scenarios.
 """
-
 from __future__ import annotations
 
 from pathlib import Path
 
-from main import (
-    EXPECTED_CHAPTERS,
-    _topic_slug,
-    create_run_folder,
-    finalize_run,
-    validate_and_fix_chapters,
-)
+from main import _topic_slug, create_run_folder, finalize_run
 
-# ---------------------------------------------------------------------------
-# _topic_slug
-# ---------------------------------------------------------------------------
+# --- _topic_slug ---
+
 
 def test_topic_slug_basic():
     """'Bat-Inspired Navigation' must produce 'bat-inspired-navigation'."""
@@ -51,9 +41,8 @@ def test_topic_slug_strips_leading_trailing_hyphens():
     assert not slug.endswith("-")
 
 
-# ---------------------------------------------------------------------------
-# create_run_folder
-# ---------------------------------------------------------------------------
+# --- create_run_folder ---
+
 
 def test_create_run_folder_creates_dir(tmp_path, monkeypatch):
     """create_run_folder must create the run directory and return its Path."""
@@ -62,9 +51,7 @@ def test_create_run_folder_creates_dir(tmp_path, monkeypatch):
 
     monkeypatch.setattr(cfg, "PROJECT_ROOT", tmp_path)
     monkeypatch.setattr(m, "PROJECT_ROOT", tmp_path)
-
     folder = create_run_folder("Test Topic")
-
     assert folder.exists()
     assert folder.is_dir()
     assert "test-topic" in folder.name
@@ -77,10 +64,8 @@ def test_create_run_folder_versioning(tmp_path, monkeypatch):
 
     monkeypatch.setattr(cfg, "PROJECT_ROOT", tmp_path)
     monkeypatch.setattr(m, "PROJECT_ROOT", tmp_path)
-
     folder1 = create_run_folder("Version Test")
     folder2 = create_run_folder("Version Test")
-
     assert folder1 != folder2
     assert folder1.exists()
     assert folder2.exists()
@@ -94,18 +79,15 @@ def test_create_run_folder_triple_versioning(tmp_path, monkeypatch):
 
     monkeypatch.setattr(cfg, "PROJECT_ROOT", tmp_path)
     monkeypatch.setattr(m, "PROJECT_ROOT", tmp_path)
-
-    create_run_folder("Triple Test")  # first call (side effect: occupies base name)
-    create_run_folder("Triple Test")  # second call (side effect: occupies -v2)
+    create_run_folder("Triple Test")
+    create_run_folder("Triple Test")
     folder3 = create_run_folder("Triple Test")
-
     assert "-v3" in folder3.name
     assert folder3.exists()
 
 
-# ---------------------------------------------------------------------------
-# finalize_run helpers
-# ---------------------------------------------------------------------------
+# --- finalize_run (part 1) ---
+
 
 def _setup_run_dirs(run_folder: Path) -> None:
     """Create the minimal run folder structure expected by finalize_run."""
@@ -121,17 +103,12 @@ def test_finalize_run_moves_outputs(tmp_path, monkeypatch):
 
     monkeypatch.setattr(cfg, "PROJECT_ROOT", tmp_path)
     monkeypatch.setattr(m, "PROJECT_ROOT", tmp_path)
-
     run_folder = tmp_path / "run_test"
     _setup_run_dirs(run_folder)
-
-    # Staging directory is outputs/current/
     staging = tmp_path / "outputs" / "current"
     staging.mkdir(parents=True, exist_ok=True)
     (staging / "paper_outline.md").write_text("# Outline\n", encoding="utf-8")
-
     finalize_run(run_folder)
-
     assert (run_folder / "outputs" / "paper_outline.md").exists()
 
 
@@ -142,16 +119,12 @@ def test_finalize_run_cleans_staging(tmp_path, monkeypatch):
 
     monkeypatch.setattr(cfg, "PROJECT_ROOT", tmp_path)
     monkeypatch.setattr(m, "PROJECT_ROOT", tmp_path)
-
     run_folder = tmp_path / "run_test"
     _setup_run_dirs(run_folder)
-
     staging = tmp_path / "outputs" / "current"
     staging.mkdir(parents=True, exist_ok=True)
     (staging / "research_briefs.md").write_text("# Briefs\n", encoding="utf-8")
-
     finalize_run(run_folder)
-
     assert not staging.exists(), "Staging directory must be removed after finalize_run"
 
 
@@ -162,13 +135,7 @@ def test_finalize_run_no_crash_without_staging(tmp_path, monkeypatch):
 
     monkeypatch.setattr(cfg, "PROJECT_ROOT", tmp_path)
     monkeypatch.setattr(m, "PROJECT_ROOT", tmp_path)
-
     run_folder = tmp_path / "run_test"
     _setup_run_dirs(run_folder)
-
-    # No staging directory — must not raise
     finalize_run(run_folder)
-
     assert (run_folder / "run_manifest.txt").exists()
-
-

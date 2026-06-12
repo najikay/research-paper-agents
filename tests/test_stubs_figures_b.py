@@ -5,12 +5,13 @@ Split from test_stubs_figures.py.
 """
 
 from __future__ import annotations
-import matplotlib
+
 from pathlib import Path  # noqa: E402
+
 import matplotlib.pyplot as plt  # noqa: E402
 import numpy as np  # noqa: E402
 import pytest  # noqa: E402
-from src import stubs  # noqa: E402
+
 from src.runner import figure_styles_a, figure_styles_c  # noqa: E402
 
 

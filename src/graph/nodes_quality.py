@@ -9,7 +9,7 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
-from src.config import PROJECT_ROOT, logger
+from src.config import logger
 from src.graph.nodes_quality_report import score_bib_and_figures, write_quality_report
 from src.graph.state import PipelineState
 
