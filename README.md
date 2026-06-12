@@ -21,16 +21,16 @@ A full run takes a single `--topic` argument and produces a compiled, bilingual 
 
 ![Terminal showing the NavigatorCrew completion banner with quality score](docs/screenshots/banner.PNG)
 
+
 ### Generated output
 
-| Run-folder structure |
-|:---:|
-| ![The per-run output folder tree in VS Code](docs/screenshots/run_tree.PNG) |
+![The per-run output folder tree in VS Code](docs/screenshots/run_tree.PNG)
 
-|
-| Sample generated figure |
-|:---:|
-| ![One of the 9 auto-generated matplotlib figures](outputs/runs/pit-viper-inspired-infrared-thermal-and-2026-06-11/latex/figures/fig_adaptive_fusion_example_ch08.png) ![One of the 9 auto-generated matplotlib figures](outputs/runs/pit-viper-inspired-infrared-thermal-and-2026-06-11/latex/figures/fig_slam_trajectory_comparison.png)![One of the 9 auto-generated matplotlib figures](outputs/runs/pit-viper-inspired-infrared-thermal-and-2026-06-11/latex/figures/fig_thermal_saliency_map.png)
+### Sample generated figures
+
+| Adaptive fusion | SLAM trajectory comparison | Thermal saliency map |
+|:---:|:---:|:---:|
+| ![Adaptive thermal-visual fusion under varying illumination](outputs/runs/pit-viper-inspired-infrared-thermal-and-2026-06-11/latex/figures/fig_adaptive_fusion_example_ch08.png) | ![Visual vs thermal vs fused SLAM trajectories with ATE](outputs/runs/pit-viper-inspired-infrared-thermal-and-2026-06-11/latex/figures/fig_slam_trajectory_comparison.png) | ![Thermal saliency map](outputs/runs/pit-viper-inspired-infrared-thermal-and-2026-06-11/latex/figures/fig_thermal_saliency_map.png) |
 ---
 
 
