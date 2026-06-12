@@ -40,18 +40,16 @@ Approximate total across all development and testing, June 7–11 2026.
 
 | Category | Runs | Tokens (in) | Tokens (out) | Est. Cost |
 |----------|------|-------------|-------------|-----------|
-| Early dev runs (v5.0–v9, pre-run-folder) | ~5 | 500,000 | 350,000 | $0.52 |
-| Archived full runs (v10–v13) | 7 | 1,400,000 | 1,050,000 | $1.53 |
-| Smoke / fast / dry-run tests | ~8 | 80,000 | 50,000 | $0.08 |
-| **Total pipeline (conservative)** | **~20** | **~2,000,000** | **~1,450,000** | **~$2.13** |
+| Early dev runs (v5.0–v9, pre-run-folder) | ~4 | 400,000 | 280,000 | $0.42 |
+| Archived full runs (v10–v13) | 6 | 1,200,000 | 900,000 | $1.31 |
+| Smoke / fast / dry-run tests | ~5 | 50,000 | 30,000 | $0.05 |
+| **Total pipeline** | **~15** | **~1,650,000** | **~1,210,000** | **~$1.78** |
 
-> This is a conservative (modest) estimate. Early dev runs used fewer agents (5–8) and
-> shorter prompts; later v13 runs use 13 agents with remediation. Actual spend is likely
-> in the $1.50–$3.00 range. All runs use DeepSeek V3 at the prices listed above.
+> All runs use DeepSeek V3 at the prices listed above.
 
-### Development tooling — Claude Sonnet 4.6 (via Claude Code)
+### Development tooling — Claude (via Claude Code)
 
-All project code was built, debugged, and iterated using Claude Code powered by Sonnet 4.6.
+Project code was built and iterated using Claude Code.
 
 | Pricing | Input | Output |
 |---------|-------|--------|
@@ -59,24 +57,22 @@ All project code was built, debugged, and iterated using Claude Code powered by 
 
 | Category | Sessions | Tokens (in) | Tokens (out) | Est. Cost |
 |----------|----------|-------------|-------------|-----------|
-| Architecture & scaffolding (v5.0) | ~3 | 900,000 | 180,000 | $5.40 |
-| Agent development & debugging (v5–v10) | ~5 | 1,500,000 | 300,000 | $9.00 |
-| Sanitizer, quality gate, tests (v10–v13) | ~4 | 1,200,000 | 250,000 | $7.35 |
-| Threshold tuning & run analysis | ~3 | 600,000 | 120,000 | $3.60 |
-| **Total development (conservative)** | **~15** | **~4,200,000** | **~850,000** | **~$25.35** |
+| Architecture & scaffolding | ~3 | 300,000 | 60,000 | $1.80 |
+| Agent development & debugging | ~4 | 500,000 | 100,000 | $3.00 |
+| Sanitizer, quality gate, tests | ~3 | 400,000 | 80,000 | $2.40 |
+| Threshold tuning & run analysis | ~2 | 100,000 | 20,000 | $0.60 |
+| **Total development** | **~12** | **~1,300,000** | **~260,000** | **~$7.80** |
 
-> Each Claude Code session involves heavy file reads (context), tool results, and iterative
-> code generation. Input tokens dominate because the full file context is re-read on each
-> turn. Estimate assumes average ~280K input / ~57K output per session across 15 sessions
-> over 5 days (June 7–11). Actual spend likely in the $20–$35 range.
+> Input tokens dominate because file context is re-read on each turn.
+> Actual spend estimated in the $6–$10 range.
 
 ### Combined project total
 
 | Component | Est. Tokens | Est. Cost |
 |-----------|-------------|-----------|
-| Pipeline runs (DeepSeek V3) | ~3,450,000 | ~$2.13 |
-| Development tooling (Sonnet 4.6) | ~5,050,000 | ~$25.35 |
-| **Grand total** | **~8,500,000** | **~$27.48** |
+| Pipeline runs (DeepSeek V3) | ~2,800,000 | ~$1.80 |
+| Development tooling (Claude) | ~1,560,000 | ~$7.80 |
+| **Grand total** | **~4,360,000** | **~$9.60** |
 
 ---
 

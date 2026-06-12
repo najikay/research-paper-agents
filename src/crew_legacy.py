@@ -1,0 +1,122 @@
+"""
+src/crew_legacy.py
+===================
+Legacy single-crew builder used by fast/smoke modes and backward compat.
+"""
+
+from __future__ import annotations
+
+from pathlib import Path
+
+from crewai import Crew, Process
+
+from src.agents import (
+    create_aerospace_marine_expert,
+    create_algorithms_expert,
+    create_biology_expert,
+    create_hebrew_academic_writer,
+    create_latex_author,
+    create_navigation_director,
+    create_physics_expert,
+    create_slam_researcher,
+    create_vision_ai_expert,
+    create_visualization_engineer,
+)
+from src.config import logger, validate_config
+from src.tasks import create_all_tasks, create_smoke_tasks
+from src.tools import (
+    ArxivSearchTool,
+    FileReaderTool,
+    NavigatorWebScraperTool,
+    PythonCodeExecutorTool,
+    SafeFileWriterTool,
+    SerperDevSearchTool,
+)
+from src.utils.token_accountant import TokenAccountant
+
+_DEFAULT_TOPIC = "Bat-Inspired Drone Navigation via Bio-Mimetic Multi-Modal Sensor Fusion"
+_SMOKE_AUTHOR_MAX_ITER = 45
+
+
+def build_crew(
+    topic: str = _DEFAULT_TOPIC,
+    run_folder: str | Path = "",
+    fast_mode: bool = False,
+    smoke_mode: bool = False,
+) -> tuple[Crew, TokenAccountant]:
+    """Assemble the NavigatorCrew (legacy single-crew mode)."""
+    validate_config()
+    _run_folder = Path(run_folder) if run_folder else Path(__file__).resolve().parent.parent
+
+    serper = SerperDevSearchTool()
+    arxiv = ArxivSearchTool()
+    scraper = NavigatorWebScraperTool()
+    executor = PythonCodeExecutorTool(figures_dir=_run_folder / "latex" / "figures")
+    writer = SafeFileWriterTool()
+    reader = FileReaderTool()
+    _research_tools = [reader, writer, serper, arxiv]
+
+    director = create_navigation_director(tools=[reader, writer, serper, arxiv])
+    author = create_latex_author(tools=[writer, reader])
+
+    if smoke_mode:
+        author.max_iter = _SMOKE_AUTHOR_MAX_ITER
+        tasks = create_smoke_tasks(
+            director=director, author=author,
+            topic=topic, run_folder=_run_folder,
+        )
+        agents_list = [director, author]
+        mode_tag = "SMOKE (2 agents, 2 tasks)"
+
+    elif fast_mode:
+        researcher = create_slam_researcher(tools=[reader, serper, arxiv, scraper])
+        visualizer = create_visualization_engineer(tools=[executor, writer, reader])
+        hebrew_writer = create_hebrew_academic_writer(tools=[reader, writer])
+        tasks = create_all_tasks(
+            director=director, researcher=researcher,
+            dom_vision_ai=None, dom_physics=None, dom_algorithms=None,
+            dom_aerospace=None, dom_biology=None,
+            visualizer=visualizer, hebrew_writer=hebrew_writer, author=author,
+            topic=topic, run_folder=_run_folder, fast_mode=True,
+        )
+        agents_list = [director, researcher, visualizer, hebrew_writer, author]
+        mode_tag = "FAST (5 agents, 6 tasks)"
+
+    else:
+        logger.info("Full mode redirecting to split research/writing crews")
+        researcher = create_slam_researcher(tools=[reader, serper, arxiv, scraper])
+        visualizer = create_visualization_engineer(tools=[executor, writer, reader])
+        hebrew_writer = create_hebrew_academic_writer(tools=[reader, writer])
+        dom_vision_ai = create_vision_ai_expert(tools=_research_tools)
+        dom_physics = create_physics_expert(tools=_research_tools)
+        dom_algorithms = create_algorithms_expert(tools=_research_tools)
+        dom_aerospace = create_aerospace_marine_expert(tools=_research_tools)
+        dom_biology = create_biology_expert(tools=_research_tools)
+        author.max_iter = 65
+        tasks = create_all_tasks(
+            director=director, researcher=researcher,
+            dom_vision_ai=dom_vision_ai, dom_physics=dom_physics,
+            dom_algorithms=dom_algorithms, dom_aerospace=dom_aerospace,
+            dom_biology=dom_biology,
+            visualizer=visualizer, hebrew_writer=hebrew_writer, author=author,
+            topic=topic, run_folder=_run_folder, fast_mode=False,
+        )
+        agents_list = [
+            director, researcher, dom_vision_ai, dom_physics,
+            dom_algorithms, dom_aerospace, dom_biology,
+            visualizer, hebrew_writer, author,
+        ]
+        mode_tag = "FULL (10 agents, 11 tasks)"
+
+    accountant = TokenAccountant()
+    accountant.install()
+    crew = Crew(
+        agents=agents_list, tasks=tasks, process=Process.sequential,
+        verbose=True, memory=False,
+        step_callback=accountant.step_callback, task_callback=accountant.task_callback,
+    )
+    logger.info(
+        f"NavigatorCrew v6.0 [{mode_tag}]: "
+        f"agents={len(agents_list)} | tasks={len(tasks)}"
+    )
+    return crew, accountant

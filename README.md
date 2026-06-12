@@ -19,11 +19,11 @@ A full run takes a single `--topic` argument and produces a compiled, bilingual 
 
 ### Pipeline run
 
-![alt text](docs/screenshots/terminal_start.PNG)
+![Terminal at start](docs/screenshots/terminal_start.PNG)
 
-![alt text](terminal_in_progress.PNG)
+![Terminal in progress](docs/screenshots/terminal_in_progress.PNG)
 
-![alt text](docs/screenshots/terminal_finished.PNG)
+![Terminal finished](docs/screenshots/terminal_finished.PNG)
 
 ### Generated output
 
@@ -36,25 +36,14 @@ A full run takes a single `--topic` argument and produces a compiled, bilingual 
 |:---:|:---:|:---:|
 | ![Generated figure 1](outputs/runs/autonomous-underwater-vehicle-navigation-2026-06-12/latex/figures/fig_sensor_models.png) | ![Generated figure 2](outputs/runs/autonomous-underwater-vehicle-navigation-2026-06-12/latex/figures/fig_feature_extraction_pipeline.png) | ![Generated figure 3](outputs/runs/autonomous-underwater-vehicle-navigation-2026-06-12/latex/figures/fig_bioslam_flow.png) |
 
-### 📸 Screenshot capture checklist
-
-All files go in `docs/screenshots/` as `.png`:
-
-| File | What to capture |
-|---|---|
-| `cover.png` | First page of the generated `paper.pdf` — must show **אוניברסיטת חיפה**, the **faculty** line, and **both author names** (נאגי כיאל + אמגד עבד אלרחים). |
-| `content_spread.png` | Any inner chapter page of the PDF showing Hebrew RTL prose, a **numbered equation**, and an **embedded figure with caption**. |
-| `run_agents.png` | The terminal **mid-run** — log lines showing agents/phases executing (e.g. `run_research_phase`, `run_writing_phase`, figure generation). |
-| `banner.png` | The terminal **at the end** — the `NAVIGATORCREW — COMPLETE` box with **Score**, **Verdict (PASS)**, and **PDF** path. |
-| `run_tree.png` | The `outputs/runs/<your-run>/` folder **expanded** in VS Code's Explorer (latex/, outputs/, paper.pdf visible). |
-| `figure_1/2/3.png` | Three of the best PNGs from the run's `latex/figures/` (e.g. a SLAM trajectory, a fusion/comparison chart, an architecture diagram). |
-
 ### Latest Results
 
-<!-- Fill this row from your run's completion banner / outputs/quality_report.md -->
-| Run | Topic | Score | Pages | PDF | Remediation |
-|---|---|---|---|---|---|
-| _your run_ | _your topic_ | _NN/100_ | _NN_ | _N.N MB_ | _N cycles_ |
+| Run | Topic | Score | PDF | Remediation |
+|---|---|---|---|---|
+| pit-viper-inspired-2026-06-11 | Pit Viper Inspired Infrared Thermal and Acoustic Navigation | 90/100 (PASS) | 5.3 MB | 1 cycle |
+| autonomous-underwater-2026-06-12 | Autonomous Underwater Vehicle Navigation Using Acoustic SLAM | 74/100 | 3.1 MB | 2 cycles |
+| swarm-intelligence-2026-06-11 | Swarm Intelligence Based Search and Rescue | 76/100 | 3.6 MB | 2 cycles |
+
 ---
 
 ## Architecture
@@ -201,6 +190,19 @@ fc-cache -f ~/.config/fontconfig
 ---
 
 ## Usage
+
+### Running with uv (recommended)
+
+```bash
+uv run python main.py --topic "Your Topic Here"
+uv run python main.py --dry-run          # verify pipeline without LLM calls
+uv run python -m pytest tests/ -v        # run tests
+uv run ruff check src/ tests/ main.py    # lint
+```
+
+`uv run` automatically uses the locked `.venv` created by `uv sync`. The `.venv/bin/python` interpreter and all dependencies are managed by uv.
+
+### Running with venv
 
 ```bash
 source venv/bin/activate
@@ -395,7 +397,7 @@ source venv/bin/activate
 python3 -m pytest tests/ -v
 ```
 
-Test suite (260+ tests, ~89% line coverage): agent instantiation and properties, task creation, crew assembly, quality gate scoring (pass/fail/edge cases), config validation, LaTeX source invariants, run-folder structure, token accounting, the LangGraph nodes, the dry-run/compile path, tool security and network tools (code executor, file writer, file reader, Serper, ArXiv, web scraper).
+Test suite (288 tests, 91% line coverage): agent instantiation and properties, task creation, crew assembly, quality gate scoring (pass/fail/edge cases), config validation, LaTeX source invariants, run-folder structure, token accounting, the LangGraph nodes, the dry-run/compile path, tool security and network tools (code executor, file writer, file reader, Serper, ArXiv, web scraper).
 
 Run with coverage:
 
@@ -410,8 +412,8 @@ python3 -m pytest --cov=src --cov=main --cov-report=term-missing
 | Component | Est. Cost |
 |-----------|-----------|
 | Per run (DeepSeek V3, with remediation) | ~$0.29 |
-| Total pipeline runs (~20 runs) | ~$2.13 |
-| Development tooling (Claude Sonnet 4.6) | ~$25.35 |
-| **Grand total** | **~$27.48** |
+| Total pipeline runs (~15 runs during development) | ~$1.80 |
+| Development tooling (Claude, code assistance) | ~$8.00 |
+| **Grand total** | **~$9.80** |
 
 See [docs/BUDGET.md](docs/BUDGET.md) for full token breakdown.

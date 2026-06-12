@@ -1,0 +1,191 @@
+% !TEX program = xelatex
+% =============================================================================
+% main.tex — NavigatorCrew IEEE Paper (Hebrew / English Bilingual)
+% PROTECTED: Do not overwrite — this file is managed manually.
+% =============================================================================
+% Compiler:   XeLaTeX (NOT pdflatex — Hebrew BiDi requires fontspec + polyglossia)
+% Class:      IEEEtran [conference]
+% Language:   Hebrew (RTL primary) + English (LTR foreign language)
+% Bidi note:  \usepackage{bidi} MUST be loaded LAST among package declarations.
+%             \begin{center} at document level triggers \@ifnextchar infinite
+%             recursion in bidi mode — use \centering inside floats instead.
+%             \\[length] optional arguments also trigger \@ifnextchar —
+%             use \vspace{length} on a separate line instead.
+% =============================================================================
+
+\documentclass[conference]{IEEEtran}
+
+% ── Math & Science ────────────────────────────────────────────────────────────
+\usepackage{amsmath,amssymb}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{float}
+\usepackage{listings}
+\usepackage{multirow}
+\usepackage{xcolor}
+\usepackage{adjustbox}           % auto-shrink tables that overflow column width
+
+% ── References & Links ────────────────────────────────────────────────────────
+\usepackage{cite}
+\usepackage{url}
+\usepackage{hyperref}
+
+% ── Hebrew / BiDi — load ORDER matters: fontspec → polyglossia → bidi (last) ──
+\usepackage{fontspec}
+\usepackage{polyglossia}
+\usepackage{bidi}
+
+% ── Language Setup ────────────────────────────────────────────────────────────
+\setmainlanguage{hebrew}
+\setotherlanguage{english}
+
+% Font selection with fallback chain:
+%   Try Arial (Windows) → David (Hebrew standard) → FreeSerif (Linux) → default
+\IfFontExistsTF{Arial}{%
+    \newfontfamily\hebrewfont[Script=Hebrew]{Arial}%
+}{%
+    \IfFontExistsTF{David}{%
+        \newfontfamily\hebrewfont[Script=Hebrew]{David}%
+    }{%
+        \IfFontExistsTF{FreeSerif}{%
+            \newfontfamily\hebrewfont[Script=Hebrew]{FreeSerif}%
+        }{%
+            \newfontfamily\hebrewfont[Script=Hebrew]{DejaVu Sans}%
+        }%
+    }%
+}
+\IfFontExistsTF{Times New Roman}{%
+    \newfontfamily\englishfont[Script=Latin]{Times New Roman}%
+}{%
+    \IfFontExistsTF{FreeSerif}{%
+        \newfontfamily\englishfont[Script=Latin]{FreeSerif}%
+    }{%
+        \newfontfamily\englishfont[Script=Latin]{DejaVu Serif}%
+    }%
+}
+
+% Hebrew monospace font (required by polyglossia when lstlisting captions contain Hebrew)
+\IfFontExistsTF{Courier New}{%
+    \newfontfamily\hebrewfonttt[Script=Hebrew]{Courier New}%
+}{%
+    \IfFontExistsTF{DejaVu Sans Mono}{%
+        \newfontfamily\hebrewfonttt[Script=Hebrew]{DejaVu Sans Mono}%
+    }{%
+        \newfontfamily\hebrewfonttt[Script=Hebrew]{FreeMono}%
+    }%
+}
+% Hebrew sans-serif font (prevents polyglossia error if \textsf used in Hebrew)
+\IfFontExistsTF{Arial}{%
+    \newfontfamily\hebrewfontsf[Script=Hebrew]{Arial}%
+}{%
+    \IfFontExistsTF{DejaVu Sans}{%
+        \newfontfamily\hebrewfontsf[Script=Hebrew]{DejaVu Sans}%
+    }{%
+        \newfontfamily\hebrewfontsf[Script=Hebrew]{FreeSans}%
+    }%
+}
+
+% ── Math operators (agents use these — define them so compilation doesn't fail) ──
+\DeclareMathOperator{\rect}{rect}
+\DeclareMathOperator{\sinc}{sinc}
+\DeclareMathOperator{\sgn}{sgn}
+\DeclareMathOperator{\diag}{diag}
+\DeclareMathOperator{\tr}{tr}
+\DeclareMathOperator*{\argmin}{arg\,min}
+\DeclareMathOperator*{\argmax}{arg\,max}
+\DeclareMathOperator{\rank}{rank}
+\DeclareMathOperator{\trace}{trace}
+\DeclareMathOperator{\var}{Var}
+\DeclareMathOperator{\cov}{Cov}
+
+% ── Convenience Commands ──────────────────────────────────────────────────────
+% Wrap English technical terms inside Hebrew prose
+% \texorpdfstring prevents hyperref from crashing when \textenglish{} appears
+% in section titles that get converted to PDF bookmark strings.
+\newcommand{\en}[1]{\texorpdfstring{\textenglish{#1}}{#1}}
+% Figure reference helper
+\newcommand{\figref}[1]{\figurename~\ref{#1}}
+
+% ── Listings Configuration (MUST be LTR — code is always left-to-right) ──────
+% The bidi package reverses lstlisting content in Hebrew mode.
+% Setting every listing to LTR prevents reversed code/pseudocode.
+\lstset{
+  basicstyle=\small\ttfamily\LTR,
+  keywordstyle=\bfseries\color{blue!70!black},
+  commentstyle=\itshape\color{green!50!black},
+  stringstyle=\color{red!60!black},
+  numbers=left,
+  numberstyle=\tiny\color{gray},
+  numbersep=8pt,
+  frame=single,
+  breaklines=true,
+  breakatwhitespace=false,
+  tabsize=4,
+  showstringspaces=false,
+  columns=fullflexible,
+  xleftmargin=2em,
+  framexleftmargin=1.5em,
+}
+
+% ── Float spacing (prevent overlapping in two-column IEEE layout) ─────────────
+\setlength{\textfloatsep}{10pt plus 2pt minus 2pt}
+\setlength{\floatsep}{8pt plus 2pt minus 2pt}
+\setlength{\intextsep}{8pt plus 2pt minus 2pt}
+% Allow more floats per page to prevent float-queue buildup
+\renewcommand{\topfraction}{0.85}
+\renewcommand{\bottomfraction}{0.70}
+\renewcommand{\textfraction}{0.15}
+\renewcommand{\floatpagefraction}{0.65}
+\setcounter{topnumber}{3}
+\setcounter{bottomnumber}{2}
+\setcounter{totalnumber}{5}
+
+% =============================================================================
+\begin{document}
+\selectlanguage{hebrew}
+\allowdisplaybreaks              % allow page/column breaks inside equation environments
+\emergencystretch=3em            % reduce overfull hboxes in narrow two-column layout
+
+% ── Cover Page (university assignment format) ─────────────────────────────────
+\input{chapters/cover}
+\clearpage
+
+% ── Abstract ──────────────────────────────────────────────────────────────────
+% \IfFileExists guards: xelatex compiles even when agent hasn't written a chapter yet.
+% A missing file produces a warning in main.log, not a fatal error.
+\begin{abstract}
+\IfFileExists{chapters/abstract.tex}{\input{chapters/abstract}}{}
+\end{abstract}
+
+% ── Chapter 1: Introduction ───────────────────────────────────────────────────
+\IfFileExists{chapters/ch01_intro.tex}{\input{chapters/ch01_intro}}{}
+
+% ── Chapter 2: Biological Basis ───────────────────────────────────────────────
+\IfFileExists{chapters/ch02_bio_basis.tex}{\input{chapters/ch02_bio_basis}}{}
+
+% ── Chapter 3: Sensor Modalities ──────────────────────────────────────────────
+\IfFileExists{chapters/ch03_sensors.tex}{\input{chapters/ch03_sensors}}{}
+
+% ── Chapter 4: Bio-Mimetic SLAM Algorithms ────────────────────────────────────
+\IfFileExists{chapters/ch04_slam.tex}{\input{chapters/ch04_slam}}{}
+
+% ── Chapter 5: Sensor Fusion Architecture ─────────────────────────────────────
+\IfFileExists{chapters/ch05_fusion.tex}{\input{chapters/ch05_fusion}}{}
+
+% ── Chapter 6: The Proposed Algorithm ────────────────────────────────────────
+\IfFileExists{chapters/ch06_algorithm.tex}{\input{chapters/ch06_algorithm}}{}
+
+% ── Chapter 7: System Design ─────────────────────────────────────────────────
+\IfFileExists{chapters/ch07_oursystem.tex}{\input{chapters/ch07_oursystem}}{}
+
+% ── Chapter 8: Results ───────────────────────────────────────────────────────
+\IfFileExists{chapters/ch08_results.tex}{\input{chapters/ch08_results}}{}
+
+% ── Chapter 9: Conclusion ────────────────────────────────────────────────────
+\IfFileExists{chapters/ch09_conclusion.tex}{\input{chapters/ch09_conclusion}}{}
+
+% ── Bibliography ─────────────────────────────────────────────────────────────
+\bibliographystyle{IEEEtran}
+\bibliography{references}
+
+\end{document}
