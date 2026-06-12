@@ -5,7 +5,7 @@ description = "Autonomous multi-agent research platform that produces compiled I
 readme = "README.md"
 requires-python = ">=3.11"
 authors = [
-    { name = "Nagee Khayyal" },
+    { name = "Naji Kayal" },
     { name = "Amjad Abd Alrahim" },
 ]
 
