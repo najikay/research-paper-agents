@@ -2,7 +2,7 @@
 
 An autonomous multi-agent research platform that takes a `--topic` argument and produces a complete, compiled IEEE-formatted academic paper in XeLaTeX (Hebrew/English bilingual).
 
-Built for Assignment 3 — *Orchestration of AI Agents*, Semester B 2026.
+Built for Assignment 3 - *Orchestration of AI Agents*, Semester B 2026.
 
 ---
 
@@ -136,7 +136,7 @@ main.py --topic "..."
 
 ### 2. Install
 
-Using [uv](https://docs.astral.sh/uv/) (recommended — reproducible from `uv.lock`):
+Using [uv](https://docs.astral.sh/uv/) (recommended - reproducible from `uv.lock`):
 
 ```bash
 git clone <repo-url>
@@ -208,7 +208,7 @@ uv run ruff check src/ tests/ main.py    # lint
 ```bash
 source venv/bin/activate
 
-# Full run (split pipeline, 13 agents) — default topic
+# Full run (split pipeline, 13 agents) - default topic
 python3 main.py
 
 # Custom topic
