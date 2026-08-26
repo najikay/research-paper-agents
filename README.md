@@ -1,8 +1,8 @@
-# NavigatorCrew
+# Research Paper Agents (NavigatorCrew)
 
 An autonomous multi-agent research platform that takes a `--topic` argument and produces a complete, compiled IEEE-formatted academic paper in XeLaTeX (Hebrew/English bilingual).
 
-Built for Assignment 3 - *Orchestration of AI Agents*, Semester B 2026.
+Built during *Orchestration of AI Agents* (Semester B 2026) by Naji Kayal and Amjad Abed.
 
 ---
 
